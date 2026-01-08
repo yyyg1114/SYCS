@@ -25,7 +25,7 @@ if (isset($_POST['username'], $_POST['password'])) {
 
 <head>
     <meta charset="UTF-8">
-    <title>Login | SYCS</title>
+    <title>Login | SYCS Shinjuku Yamabuki Chat System</title>
     <link rel="stylesheet" href="css/style-login.css">
 </head>
 

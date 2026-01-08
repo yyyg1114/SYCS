@@ -13,7 +13,7 @@ $user = $_SESSION['user'] ?? null;
 
 <head>
     <meta charset="UTF-8">
-    <title>SYCS</title>
+    <title>SYCS Shinjuku Yamabuki Chat System</title>
     <link rel="stylesheet" href="css/style-index.css">
 </head>
 

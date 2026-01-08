@@ -30,7 +30,7 @@ if (isset($_GET['email'], $_GET['username'], $_GET['password'])) {
 
 <head>
     <meta charset="UTF-8">
-    <title>Sign up | SYCS</title>
+    <title>Sign up | SYCS Shinjuku Yamabuki Chat System</title>
     <link rel="stylesheet" href="css/style.css">
 
     <?php if ($success): ?>
