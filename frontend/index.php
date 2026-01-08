@@ -27,7 +27,6 @@ $user = $_SESSION['user'] ?? null;
                 <?php if ($user): ?>
                     <span>ようこそ <?=
                                 htmlspecialchars($user) ?> さん</span>
-                    <a href="top.php">Top</a>
                     <a href="delete_account.php" style="color: #dc3545;">Account</a>
                     <a href="logout.php">Logout</a>
                 <?php else: ?>
