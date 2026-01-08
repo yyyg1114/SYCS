@@ -14,7 +14,9 @@
             <h1>SYCS TOP</h1>
             <p>ここは誰でも見られるトップページです。</p>
             <p>
-                <a href="login.php" class="no-style-link">Login</a> or <a href="signup.php" class="no-style-link">Sign up</a>
+                <a href="login.php" class="no-style-link" style="font-weight: bold;">Login</a>
+                or
+                <a href="signup.php" class="no-style-link" style="font-weight: bold; ">Sign up</a>
             </p>
         </div>
     </header>
