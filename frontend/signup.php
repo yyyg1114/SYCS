@@ -5,10 +5,10 @@ $msg = '';
 $err = '';
 $success = false;
 
-if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
-    $e = $_POST['email'];
-    $u = $_POST['username'];
-    $p = $_POST['password'];
+if (isset($_GET['email'], $_GET['username'], $_GET['password'])) {
+    $e = $_GET['email'];
+    $u = $_GET['username'];
+    $p = $_GET['password'];
 
     $check = $mysqli->query("SELECT id FROM users WHERE email='$e'");
     if ($check && $check->num_rows > 0) {

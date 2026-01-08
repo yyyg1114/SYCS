@@ -26,7 +26,7 @@ if (isset($_POST['username'], $_POST['password'])) {
 <head>
     <meta charset="UTF-8">
     <title>Login | SYCS</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style-login.css">
 </head>
 
 <body>
@@ -39,7 +39,7 @@ if (isset($_POST['username'], $_POST['password'])) {
                 <div class="message error"><?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
 
-            <form method="post">
+            <form method="POST">
                 <label>
                     Username
                     <input type="text" name="username" placeholder="username" aria-required="true">
@@ -48,9 +48,9 @@ if (isset($_POST['username'], $_POST['password'])) {
                     Password
                     <input type="password" name="password" placeholder="password" aria-required="true">
                 </label>
-                <a href="index.php" class="no-style-link"><button type="submit">Log in</button></a>
-                <a href="signup.php" class="no-style-link"><button>Sign up</button></a>
-                <a href="top.php" class="no-style-link"><button>Top</button></a>
+                <button class="button" type="submit">Log in</button>
+                <a class="button" href="signup.php" class="btn">Sign up</a>
+                <a class="button" href="top.php" class="btn">Top</a>
             </form>
         </div>
     </main>

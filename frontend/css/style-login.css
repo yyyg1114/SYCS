@@ -123,3 +123,17 @@ color: #ffffff;
 }
 
 
+.button {
+display: inline-block;
+width: 100%;
+padding: 12px;
+background-color: #2563eb;
+color: #fff;
+border: none;
+border-radius: 50px;
+font-size: 15px;
+cursor: default;
+text-align: center;
+text-decoration: none;
+margin-top: 10px;
+}
