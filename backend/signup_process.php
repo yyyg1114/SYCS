@@ -9,7 +9,7 @@ $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 $stmt = $pdo->prepare("INSERT INTO users (username,email,password) VALUES (?,?,?)");
 if ($stmt->execute([$username, $email, $password])) {
     $_SESSION['user_id'] = $pdo->lastInsertId();
-    header("Location: ../frontend/index.php");
+    header("Location: ../frontend/login.php");
 } else {
     echo "登録失敗";
 }
