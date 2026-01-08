@@ -1,33 +1,92 @@
-<?php session_start();
-if (!isset($_SESSION['uid'])) header("Location: login.php"); ?>
-<!doctype html>
+<?php
+session_start();
+if (!isset($_SESSION['user'])) {
+    header("Location: login.php");
+    exit();
+}
+$user = $_SESSION['user'] ?? null;
+?>
+
+
+<!DOCTYPE html>
 <html lang="ja">
 
 <head>
-    <meta charset="utf-8">
-    <link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8">
+    <title>SYCS</title>
+    <link rel="stylesheet" href="css/style-index.css">
 </head>
 
 <body>
 
-    <h2>SYCS Web Chat</h2>
+    <header>
+        <div class="header-inner" style="display:flex; align-items:center; justify-content:space-between;">
+            <h1>SYCS</h1>
 
-    <select id="thread"></select>
-    <div id="chat"></div>
+            <nav>
+                <?php if ($user): ?>
+                    <span>ようこそ <?=
+                                htmlspecialchars($user) ?> さん</span>
+                    <a href="top.php">Top</a>
+                    <a href="radio_logs.php">Radio Logs</a>
+                    <a href="delete_account.php" style="color: #dc3545;">Account</a>
+                    <a href="logout.php">Logout</a>
+                <?php else: ?>
+                    <a href="login.php" class="no-style-link">Login</a>
+                    <a href="signup.php" class="no-style-link">Sign up</a>
+                <?php endif; ?>
+            </nav>
+        </div>
+    </header>
 
-    <input id="msg">
-    <button onclick="send()">送信</button>
+    <div class="dashboard">
 
-    <hr>
-    <h3>ユーザー設定</h3>
-    <select id="theme">
-        <option value="dark">Dark</option>
-        <option value="light">Light</option>
-    </select>
-    <button onclick="saveSettings()">保存</button>
+        <!-- Time -->
+        <section class="section1" id="clock-section">
+            <h2>Time</h2>
+            <iframe src="clock/analog_clock_re.html" width="1000" height="600" style="border:none;"></iframe>
+        </section>
 
-    <script src="js/chat.js"></script>
-    <script src="js/settings.js"></script>
+        <div class="lower-row">
+            <section class="section2" id="gps-section">
+                <h2>GPS</h2>
+                <div id="gps-status">位置取得待機中…</div>
+            </section>
+
+            <section id="radio-section" class="section2">
+                <h2>Radio Logs</h2>
+                <ul id="radioLogs"></ul>
+                <div class="add-radio-btn">
+                    <a href="radio_logs_add.php">+ 通信内容を追加</a>
+                </div>
+            </section>
+            <script src="js/radio.js"></script>
+
+        </div>
+
+
+    </div>
+
+    <script src="js/time.js"></script>
+    <script src="js/locate.js"></script>
+    <script src="js/radio.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Radio 初回ロード
+            if (typeof loadRadio === "function") loadRadio();
+
+            // GPS 位置情報取得の初期化
+            locationManager.init('gps-status', 1000);
+
+            // Radio 3秒更新
+            setInterval(() => {
+                if (typeof loadRadio === "function") loadRadio();
+            }, 3000);
+        });
+    </script>
+    <footer>
+        © 2026 SYCS · Terms · Privacy
+    </footer>
 </body>
 
 </html>
