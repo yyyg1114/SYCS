@@ -1,11 +1,11 @@
 <?php
-$mysqli = new mysqli(
-    "localhost",
+$pdo = new PDO(
+    "mysql:host=localhost;dbname=sycs;charset=utf8mb4",
     "root",
     "",
-    "SYCS"
+    [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+    ]
 );
-
-if ($mysqli->connect_error) {
-    die("DB connection failed: " . $mysqli->connect_error);
-}
+session_start();

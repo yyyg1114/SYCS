@@ -1,43 +1,30 @@
 <?php
-session_start();
 require 'db.php';
 
-/**
- * ユーザーがログインしているかをチェック
- */
-function isLoggedIn() {
-    return isset($_SESSION['user_id']);
+$data = json_decode(file_get_contents("php://input"), true);
+
+if ($data['type'] === 'signup') {
+    $stmt = $pdo->prepare(
+        "INSERT INTO users (username,email,password)
+    VALUES (?,?,?)"
+    );
+    $stmt->execute([
+        $data['username'],
+        $data['email'],
+        password_hash($data['password'], PASSWORD_DEFAULT)
+    ]);
+    echo json_encode(["ok" => true]);
 }
 
-/**
- * ログイン必須ページで呼ぶ
- * ログインしていなければ login.php にリダイレクト
- */
-function requireLogin() {
-    if (!isLoggedIn()) {
-        header('Location: ../frontend/login.php');
-        exit();
+if ($data['type'] === 'login') {
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE email=?");
+    $stmt->execute([$data['email']]);
+    $user = $stmt->fetch();
+
+    if ($user && password_verify($data['password'], $user['password'])) {
+        $_SESSION['uid'] = $user['id'];
+        echo json_encode(["ok" => true]);
+    } else {
+        echo json_encode(["ok" => false]);
     }
 }
-
-/**
- * 現在のログインユーザー情報を取得
- */
-function getCurrentUser($pdo) {
-    if (!isLoggedIn()) return null;
-
-    $stmt = $pdo->prepare("SELECT id, username, email FROM users WHERE id=?");
-    $stmt->execute([$_SESSION['user_id']]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
-}
-
-/**
- * ログアウト処理
- */
-function logout() {
-    $_SESSION = [];
-    session_destroy();
-    header('Location: ../frontend/login.php');
-    exit();
-}
-?>
