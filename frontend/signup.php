@@ -30,7 +30,7 @@ if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
 
 <head>
     <meta charset="UTF-8">
-    <title>Sign up | tac-ops</title>
+    <title>Sign up | SYCS</title>
     <link rel="stylesheet" href="css/style.css">
 
     <?php if ($success): ?>
@@ -81,7 +81,7 @@ if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
     </main>
 
     <footer>
-        © 2025 Tac-Ops-Dashboard · Terms · Privacy
+        © 2026 SYCS · Terms · Privacy
     </footer>
 
 </body>

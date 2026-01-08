@@ -13,7 +13,7 @@ $user = $_SESSION['user'] ?? null;
 
 <head>
     <meta charset="UTF-8">
-    <title>Tactical-Ops-Dashboard</title>
+    <title>Dashboard | SYCS</title>
     <link rel="stylesheet" href="css/style-index.css">
 </head>
 
@@ -21,14 +21,13 @@ $user = $_SESSION['user'] ?? null;
 
     <header>
         <div class="header-inner" style="display:flex; align-items:center; justify-content:space-between;">
-            <h1>Tactical-Ops-Dashboard</h1>
+            <h1>Top</h1>
 
             <nav>
                 <?php if ($user): ?>
                     <span>ようこそ <?=
                                 htmlspecialchars($user) ?> さん</span>
-                    <a href="top.php">Top</a>
-                    <a href="radio_logs.php">Radio Logs</a>
+                    <a href="#">Top</a>
                     <a href="delete_account.php" style="color: #dc3545;">Account</a>
                     <a href="logout.php">Logout</a>
                 <?php else: ?>
@@ -70,7 +69,7 @@ $user = $_SESSION['user'] ?? null;
         });
     </script>
     <footer>
-        © 2025 Tactical-Ops-Dashboard · Terms · Privacy
+        © 2026 Top | Shinjuku Yamabuki Chat System · Terms · Privacy
     </footer>
 </body>
 

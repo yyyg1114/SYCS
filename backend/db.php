@@ -3,7 +3,7 @@ $mysqli = new mysqli(
     "localhost",
     "root",
     "",
-    "SYCS_users"
+    "SYCS"
 );
 
 if ($mysqli->connect_error) {

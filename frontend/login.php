@@ -25,7 +25,7 @@ if (isset($_POST['username'], $_POST['password'])) {
 
 <head>
     <meta charset="UTF-8">
-    <title>Login | Tac-Ops-Dashboard</title>
+    <title>Login | SYCS</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 
@@ -56,7 +56,7 @@ if (isset($_POST['username'], $_POST['password'])) {
     </main>
 
     <footer>
-        © 2025 Tac-Ops-Dashboard · Terms · Privacy
+        © 2026 SYCS · Terms · Privacy
     </footer>
 
 </body>

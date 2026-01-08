@@ -1,9 +1,9 @@
 -- データベース作成
-CREATE DATABASE IF NOT EXISTS SYCS_users
+CREATE DATABASE IF NOT EXISTS SYCS
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_general_ci;
 
-USE SYCS_users;
+USE SYCS;
 
 -- ユーザー
 CREATE TABLE users (
