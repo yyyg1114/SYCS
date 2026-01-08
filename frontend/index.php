@@ -44,24 +44,6 @@ $user = $_SESSION['user'] ?? null;
         </div>
     </section>
 
-
-    <script src="js/time.js"></script>
-    <script src="js/locate.js"></script>
-    <script src="js/radio.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Radio 初回ロード
-            if (typeof loadRadio === "function") loadRadio();
-
-            // GPS 位置情報取得の初期化
-            locationManager.init('gps-status', 1000);
-
-            // Radio 3秒更新
-            setInterval(() => {
-                if (typeof loadRadio === "function") loadRadio();
-            }, 3000);
-        });
-    </script>
     <footer>
         © 2026 SYCS · Terms · Privacy
     </footer>
