@@ -5,8 +5,9 @@ padding: 0;
 }
 body {
 font-family: 'Segoe UI', Meiryo, 'YuGothic', sans-serif;
-background: radial-gradient(circle at top right, #1e1b4b, #0f0f10);
+background-color: radial-gradient(circle at top right, #1e1b4b, #0f0f10);
 line-height: 1.5;
+color: #000;
 }
 
 header {

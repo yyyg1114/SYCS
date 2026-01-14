@@ -75,6 +75,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>アカウント削除 - SYCS</title>
     <link rel="stylesheet" href="css/style-delete.css">
     <style>
+        :root {
+            --bg-color: #0f0f10;
+            --accent-color: #6366f1;
+            --accent-hover: #818cf8;
+            --text-primary: #000;
+            --text-secondary: #94a3b8;
+            --border-color: #2d2e32;
+            --card-bg: #1e1f23;
+            --input-bg: #2a2b2f;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            background: radial-gradient(circle at top right, #1e1b4b, #0f0f10);
+            color: var(--text-primary);
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
         .delete-account-container {
             max-width: 600px;
             margin: 50px auto;
