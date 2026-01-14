@@ -1,0 +1,215 @@
+* {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+body {
+font-family: 'Segoe UI', Meiryo, 'YuGothic', sans-serif;
+background-color: radial-gradient(circle at top right, #f0f4f8, #1e81f3);
+color: #222;
+line-height: 1.5;
+}
+
+header {
+background-color: #fff;
+border-bottom: 1px solid #d1d5db;
+}
+
+.header-inner {
+max-width: 1000px;
+margin: 0 auto;
+padding: 5px 5px;
+display: flex;
+justify-content: space-between; /* 左にタイトル、右にナビ */
+align-items: center;            /* 縦中央揃え */
+}
+
+header h1 {
+font-size: 22px;
+color: #1f2937;
+}
+
+nav a {
+margin-left: 20px;
+text-decoration: none;
+color: #2563eb;
+font-weight: 500;
+}
+
+nav span {
+margin-right: 10px;
+font-weight: 500;
+}
+
+
+
+
+.dashboard {
+max-width: 1800px;
+margin: 50px auto;
+padding: 0 20px;
+display: flex;
+flex-direction: column;
+gap: 20px;
+}
+
+.section1 {
+text-align: center;
+background-color: #e2e2e2;
+padding: 20px;
+border-radius: 8px;
+box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+}
+
+ul {
+list-style: none;
+max-height: 300px;
+overflow-y: auto;
+padding-left: 0;
+}
+
+.lower-row {
+display: flex;       /* 横並び */
+gap: 20px;           /* 要素間の隙間 */
+}
+
+.lower-row .section2 {
+flex: 1;             /* 均等に幅を広げる */
+background-color: #fff;
+padding: 20px;
+border-radius: 8px;
+box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+}
+
+#radio-section {
+background-color: #fff;
+padding: 20px;
+border-radius: 8px;
+box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+height: 450px;            /* 固定高さでスクロール */
+overflow-y: auto;
+}
+
+#radioLogs li {
+margin-bottom: 10px;
+padding: 10px;
+border-left: 4px solid #007bff;
+background-color: #f9f9f9;
+border-radius: 4px;
+font-size: 13px;
+line-height: 1.5;
+}
+
+#radioLogs li.info {
+border-left-color: #007bff;
+}
+
+#radioLogs li.move {
+border-left-color: #17a2b8;
+}
+
+#radioLogs li.check {
+border-left-color: #ffc107;
+}
+
+#radioLogs li.warn {
+border-left-color: #dc3545;
+}
+
+#radioLogs li.cmd {
+border-left-color: #6f42c1;
+}
+
+#radioLogs li.commit {
+border-left-color: #28a745;
+}
+
+.radio-log-header {
+display: flex;
+gap: 10px;
+margin-bottom: 5px;
+align-items: center;
+}
+
+.radio-time {
+font-weight: bold;
+color: #555;
+min-width: 130px;
+}
+
+.radio-source {
+background-color: #e9ecef;
+padding: 2px 8px;
+border-radius: 3px;
+font-size: 12px;
+font-weight: 600;
+}
+
+.radio-type {
+color: white;
+padding: 2px 8px;
+border-radius: 3px;
+font-size: 11px;
+font-weight: bold;
+min-width: 50px;
+text-align: center;
+}
+
+.radio-delete-btn {
+margin-left: auto;
+background-color: #dc3545;
+color: white;
+border: none;
+border-radius: 3px;
+padding: 2px 6px;
+font-size: 14px;
+cursor: pointer;
+transition: background-color 0.2s;
+}
+
+.radio-delete-btn:hover {
+background-color: #c82333;
+}
+
+.radio-message {
+display: flex;
+gap: 8px;
+}
+
+.radio-seq {
+color: #999;
+font-size: 12px;
+font-weight: bold;
+}
+
+.radio-text {
+color: #333;
+word-break: break-word;
+}
+
+.add-radio-btn {
+margin-top: 10px;
+text-align: center;
+}
+
+.add-radio-btn a {
+display: inline-block;
+background-color: #007bff;
+color: white;
+padding: 8px 16px;
+border-radius: 4px;
+text-decoration: none;
+font-size: 14px;
+transition: background-color 0.3s;
+}
+
+.add-radio-btn a:hover {
+background-color: #0056b3;
+}
+
+body footer{
+text-align: center;
+font-size: 12px;
+color: #6b7280;
+padding: 40px 0;
+}   
