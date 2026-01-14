@@ -597,6 +597,12 @@ a:hover {
 .create-thread-area {
     padding: 20px;
     border-top: 1px solid var(--border-color);
+    display: none;
+    /* Hidden by default */
+}
+
+.create-thread-area.active {
+    display: block;
 }
 
 .create-input {

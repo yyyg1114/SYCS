@@ -749,7 +749,16 @@ if ($isLoggedIn) {
                                 </svg></div>
                         </div>
                         <div id="thread-list" class="thread-list"></div>
-                        <div class="create-thread-area">
+                        <div id="create-thread-toggle-container"
+                            style="padding: 20px; border-top: 1px solid var(--border-color);">
+                            <button onclick="showCreateThread()" class="btn-primary" style="width:100%;">+ 新規スレッド作成</button>
+                        </div>
+                        <div id="create-thread-area" class="create-thread-area" style="border-top: none;">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <span style="font-weight:600; font-size:0.9rem;">新規スレッド</span>
+                                <div class="close-btn" onclick="hideCreateThread()">✕</div>
+                            </div>
                             <input type="text" id="new-thread-name" class="create-input" placeholder="新スレッド名">
                             <button onclick="createThread()" class="btn-primary" style="padding:0.6rem;">作成</button>
                         </div>
@@ -1287,8 +1296,8 @@ if ($isLoggedIn) {
                 if (!name) return;
                 const body = new FormData(); body.append('name', name);
                 await api('create_thread', 'POST', body);
-                input.value = '';
                 loadThreads();
+                hideCreateThread();
             }
 
             function toggleThreadBrowser() {
@@ -1675,6 +1684,18 @@ if ($isLoggedIn) {
             }
 
 
+
+            function showCreateThread() {
+                document.getElementById('create-thread-area').classList.add('active');
+                document.getElementById('create-thread-toggle-container').style.display = 'none';
+                document.getElementById('new-thread-name').focus();
+            }
+
+            function hideCreateThread() {
+                document.getElementById('create-thread-area').classList.remove('active');
+                document.getElementById('create-thread-toggle-container').style.display = 'block';
+                document.getElementById('new-thread-name').value = '';
+            }
 
             document.addEventListener('DOMContentLoaded', () => {
                 const avatarEl = document.getElementById('global-user-avatar');
