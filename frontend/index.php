@@ -705,11 +705,8 @@ if ($isLoggedIn) {
                                     <polyline points="6 9 12 15 18 9" />
                                 </svg>
                             </div>
-                            <div class="thread-actions" id="thread-actions-block" style="margin-left: auto;">
-                                <button class="icon-btn" onclick="editCurrentThread()" title="編集">✏️</button>
-                                <button class="icon-btn" onclick="deleteCurrentThread()" title="削除"
-                                    style="color:red;">🗑️</button>
-                            </div>
+                            <button class="icon-btn" onclick="editCurrentThread()" title="編集">✏️</button>
+                            <button class="icon-btn" onclick="deleteCurrentThread()" title="削除" style="color:red;">🗑️</button>
                         </header>
                         <div id="message-container" class="chat-messages"></div>
                         <div class="drag-overlay">ファイルをドロップしてアップロード</div>
