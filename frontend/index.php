@@ -402,8 +402,8 @@ if (isset($_GET['api'])) {
                 (dm.sender_id = ? AND dm.receiver_id = u.id)
             )
             WHERE (f.user_id_1 = ? OR f.user_id_2 = ?) 
-              AND f.status = 'accepted' 
-              AND u.id != ?
+            AND f.status = 'accepted' 
+            AND u.id != ?
             GROUP BY u.id
             ORDER BY last_msg_at DESC, u.username ASC
         ");
@@ -705,7 +705,7 @@ if ($isLoggedIn) {
                                     <polyline points="6 9 12 15 18 9" />
                                 </svg>
                             </div>
-                            <div class="thread-actions" id="thread-actions-block" style="display:none; margin-left: auto;">
+                            <div class="thread-actions" id="thread-actions-block" style="margin-left: auto;">
                                 <button class="icon-btn" onclick="editCurrentThread()" title="編集">✏️</button>
                                 <button class="icon-btn" onclick="deleteCurrentThread()" title="削除"
                                     style="color:red;">🗑️</button>
@@ -1285,6 +1285,7 @@ if ($isLoggedIn) {
                 previewContent.textContent = ''; // Clear safely
             }
 
+            //create_thread
             async function createThread() {
                 const input = document.getElementById('new-thread-name');
                 const name = input.value.trim();
