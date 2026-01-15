@@ -586,7 +586,7 @@ if ($isLoggedIn) {
     $stmt->execute();
     $tres = $stmt->get_result();
     $threadRow = $tres->fetch_assoc();
-    $currentThreadName = $threadRow ? $threadRow['name'] : '';
+    $currentThreadName = $threadRow ? $threadRow['name'] : 'general';
     $currentThreadCreatorId = $threadRow ? $threadRow['creator_id'] : 0;
     $stmt->close();
 }
