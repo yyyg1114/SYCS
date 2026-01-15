@@ -214,7 +214,7 @@ if (isset($_GET['api'])) {
             FROM direct_messages dm
             JOIN users u ON dm.sender_id = u.id
             WHERE (dm.sender_id = ? AND dm.receiver_id = ?) 
-               OR (dm.sender_id = ? AND dm.receiver_id = ?)
+            OR (dm.sender_id = ? AND dm.receiver_id = ?)
             ORDER BY dm.created_at ASC
         ");
         $stmt->bind_param("iiii", $userId, $partnerId, $partnerId, $userId);
@@ -586,7 +586,7 @@ if ($isLoggedIn) {
     $stmt->execute();
     $tres = $stmt->get_result();
     $threadRow = $tres->fetch_assoc();
-    $currentThreadName = $threadRow ? $threadRow['name'] : 'general';
+    $currentThreadName = $threadRow ? $threadRow['name'] : '';
     $currentThreadCreatorId = $threadRow ? $threadRow['creator_id'] : 0;
     $stmt->close();
 }
@@ -699,7 +699,7 @@ if ($isLoggedIn) {
                                     <line x1="16" y1="3" x2="14" y2="21" />
                                 </svg>
                                 <span
-                                    id="current-thread-name"><?= htmlspecialchars($currentThreadName ?? 'general') ?></span>
+                                    id="current-thread-name"><?= htmlspecialchars($currentThreadName ?? '$currentThreadName') ?></span>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
                                     <polyline points="6 9 12 15 18 9" />
