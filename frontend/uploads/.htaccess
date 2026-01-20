@@ -1,0 +1,6 @@
+# Disable PHP Execution
+<FilesMatch "\.(php|phtml|php3|php4|php5|pl|py|cgi|asp|aspx|sh|svg)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+Options -ExecCGI

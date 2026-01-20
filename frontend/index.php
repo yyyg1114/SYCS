@@ -232,18 +232,63 @@ if (isset($_GET['api'])) {
 
         // Reuse file upload logic
         if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = __DIR__ . '/frontend/uploads/';
-            if (!is_dir($uploadDir))
-                mkdir($uploadDir, 0777, true);
-            $fileInfo = pathinfo($_FILES['attachment']['name']);
-            $fileExt = strtolower($fileInfo['extension'] ?? '');
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'txt', 'zip'];
-            if (in_array($fileExt, $allowedExtensions)) {
-                $fileName = uniqid() . '.' . $fileExt;
-                $destPath = $uploadDir . $fileName;
-                if (move_uploaded_file($_FILES['attachment']['tmp_name'], $destPath)) {
-                    $attachmentPath = 'frontend/uploads/' . $fileName;
+            $tmpName = $_FILES['attachment']['tmp_name'];
+            $fileName = $_FILES['attachment']['name'];
+            $fileInfo = pathinfo($fileName);
+            $ext = strtolower($fileInfo['extension'] ?? '');
+            
+            require_once __DIR__ . '/../backend/SecurityUtil.php';
+
+            if (SecurityUtil::validateFile($tmpName, $ext)) {
+                $uuid = SecurityUtil::generateUuid();
+                
+                if ($ext === 'svg') {
+                    // Logic for SVG: Sanitize -> Protected Storage -> Convert PNG -> Public Storage
+                    $rawContent = file_get_contents($tmpName);
+                    $sanitized = SecurityUtil::sanitizeSVG($rawContent);
+                    
+                    if ($sanitized) {
+                        // Save Original (Sanitized) to protected
+                        $protectedDir = __DIR__ . '/../protected_uploads/';
+                        if (!is_dir($protectedDir)) mkdir($protectedDir, 0700, true);
+                        file_put_contents($protectedDir . $uuid . '.svg', $sanitized);
+
+                        // Convert to PNG for display
+                        $publicDir = __DIR__ . '/uploads/';
+                        if (!is_dir($publicDir)) mkdir($publicDir, 0755, true);
+                        
+                        $pngName = $uuid . '.png';
+                        $publicPath = $publicDir . $pngName;
+                        
+                        if (SecurityUtil::convertSvgToPng($protectedDir . $uuid . '.svg', $publicPath)) {
+                            // Success: DB stores PNG path. 
+                            // *Download Logic will infer SVG availability via UUID match.*
+                            $attachmentPath = 'frontend/uploads/' . $pngName;
+                        } else {
+                            // Fallback? If conversion fails, maybe we reject or just don't show image?
+                            // Rejecting is safer as requirement says "Display as PNG".
+                            echo json_encode(['error' => 'SVG Conversion Failed']);
+                            exit;
+                        }
+                    } else {
+                         echo json_encode(['error' => 'Invalid SVG content']);
+                         exit;
+                    }
+
+                } else {
+                    // Standard File Flow
+                    $uploadDir = __DIR__ . '/uploads/'; // use relative path consistency
+                    if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+                    
+                    $newFileName = $uuid . '.' . $ext;
+                    // Move
+                    if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
+                        $attachmentPath = 'frontend/uploads/' . $newFileName;
+                    }
                 }
+            } else {
+                echo json_encode(['error' => 'Invalid file type or content']);
+                exit;
             }
         }
 
@@ -267,24 +312,59 @@ if (isset($_GET['api'])) {
 
         // Handle File Upload (ALLOWLIST approach)
         if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = __DIR__ . '/frontend/uploads/';
-            if (!is_dir($uploadDir))
-                mkdir($uploadDir, 0777, true);
+            $tmpName = $_FILES['attachment']['tmp_name'];
+            $fileName = $_FILES['attachment']['name'];
+            $fileInfo = pathinfo($fileName);
+            $ext = strtolower($fileInfo['extension'] ?? '');
+            
+            require_once __DIR__ . '/../backend/SecurityUtil.php';
 
-            $fileInfo = pathinfo($_FILES['attachment']['name']);
-            $fileExt = strtolower($fileInfo['extension'] ?? '');
+            if (SecurityUtil::validateFile($tmpName, $ext)) {
+                $uuid = SecurityUtil::generateUuid();
+                
+                if ($ext === 'svg') {
+                    // Logic for SVG: Sanitize -> Protected Storage -> Convert PNG -> Public Storage
+                    $rawContent = file_get_contents($tmpName);
+                    $sanitized = SecurityUtil::sanitizeSVG($rawContent);
+                    
+                    if ($sanitized) {
+                        // Save Original (Sanitized) to protected
+                        $protectedDir = __DIR__ . '/../protected_uploads/';
+                        if (!is_dir($protectedDir)) mkdir($protectedDir, 0700, true);
+                        file_put_contents($protectedDir . $uuid . '.svg', $sanitized);
 
-            // Allowlist of safe extensions
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'txt', 'zip'];
+                        // Convert to PNG for display
+                        $publicDir = __DIR__ . '/uploads/';
+                        if (!is_dir($publicDir)) mkdir($publicDir, 0755, true);
+                        
+                        $pngName = $uuid . '.png';
+                        $publicPath = $publicDir . $pngName;
+                        
+                        if (SecurityUtil::convertSvgToPng($protectedDir . $uuid . '.svg', $publicPath)) {
+                            // Success: DB stores PNG path. 
+                            $attachmentPath = 'frontend/uploads/' . $pngName;
+                        } else {
+                            echo json_encode(['error' => 'SVG Conversion Failed']);
+                            exit;
+                        }
+                    } else {
+                         echo json_encode(['error' => 'Invalid SVG content']);
+                         exit;
+                    }
 
-            if (in_array($fileExt, $allowedExtensions)) {
-                $fileName = uniqid() . '.' . $fileExt;
-                $destPath = $uploadDir . $fileName;
-                if (move_uploaded_file($_FILES['attachment']['tmp_name'], $destPath)) {
-                    $attachmentPath = 'frontend/uploads/' . $fileName;
+                } else {
+                    // Standard File Flow
+                    $uploadDir = __DIR__ . '/uploads/'; 
+                    if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+                    
+                    $newFileName = $uuid . '.' . $ext;
+                    
+                    if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
+                        $attachmentPath = 'frontend/uploads/' . $newFileName;
+                    }
                 }
             } else {
-                echo json_encode(['error' => 'File type not allowed']);
+                echo json_encode(['error' => 'Invalid file type or content']);
                 exit;
             }
         }
@@ -635,7 +715,7 @@ if ($isLoggedIn) {
         <div class="app-container">
             <aside class="sidebar">
                 <div class="sidebar-top">
-                    <div class="logo-container"><img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo"></div>
+                    <div class="logo-container"><img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo"><span style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.0.4</span></div>
                     <nav>
                         <ul class="nav-list">
                             <li class="nav-item active" data-tab="threads">
@@ -1037,7 +1117,7 @@ if ($isLoggedIn) {
                 container.innerText = ''; // Clear safely
                 if (messages.length === 0) {
                     const p = document.createElement('p');
-                    p.innerText = 'メッセージはありません';
+                    p.innerText = 'ｼｰﾝ...静かな場所ですね。\n少し世間話でもどうでしょうか?';
                     const div = document.createElement('div');
                     div.className = 'empty-state';
                     div.appendChild(p);
@@ -1157,6 +1237,27 @@ if ($isLoggedIn) {
                     img.style.marginTop = '10px';
                     img.onclick = () => window.open(m.attachment_path, '_blank');
                     contentDiv.appendChild(img);
+
+                    // If it is a converted SVG (detected by filename convention or just providing download option for all images?)
+                    // Requirement: "Download Original" for SVGs. 
+                    // Since we convert SVG -> PNG, the path ends in .png. 
+                    // We can check if a download link is viable or just always offer download for images.
+                    // Let's deduce: If file is .png, check if we can download .svg? 
+                    // No, that causes 404 for real PNGs. 
+                    // Cleanest way: Just add a "Download" button for all files, but for converted ones it hits download.php? 
+                    // Use the `download.php?file=...` for everything safely?
+                    // Yes. Let's make the image click open the image, but add a small [Download] link below.
+                    
+                    const dlLink = document.createElement('a');
+                    const fileName = m.attachment_path.split('/').pop();
+                    dlLink.href = 'download.php?file=' + fileName;
+                    dlLink.target = '_blank'; // Trigger download
+                    dlLink.innerText = '⬇️ ダウンロード';
+                    dlLink.style.display = 'inline-block';
+                    dlLink.style.fontSize = '0.75rem';
+                    dlLink.style.marginTop = '5px';
+                    dlLink.style.color = 'var(--accent-color)';
+                    contentDiv.appendChild(dlLink);
                 }
 
                 info.appendChild(header);
@@ -1319,14 +1420,11 @@ if ($isLoggedIn) {
 
                     if (tabId === 'dm') {
                         isDmMode = true;
-                        // Hide thread/fav sidebars if they exist or ensure layout correct
-                        document.getElementById('thread-browser').style.display = 'none'; // Re-use old sidebar or hide it
-                        // Set Hub View
+                        document.getElementById('thread-browser').classList.remove('active'); // CSS based toggle
                         backToHub();
                     } else if (tabId === 'threads') {
                         isDmMode = false;
-                        document.getElementById('thread-browser').style.display = 'block';
-                        document.getElementById('thread-browser').classList.add('active');
+                        document.getElementById('thread-browser').classList.add('active'); // CSS based toggle
                     } else if (tabId === 'favorites') {
                         isDmMode = false;
                         loadFavorites();
