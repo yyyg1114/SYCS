@@ -214,7 +214,7 @@ if (isset($_GET['api'])) {
             FROM direct_messages dm
             JOIN users u ON dm.sender_id = u.id
             WHERE (dm.sender_id = ? AND dm.receiver_id = ?) 
-            OR (dm.sender_id = ? AND dm.receiver_id = ?)
+               OR (dm.sender_id = ? AND dm.receiver_id = ?)
             ORDER BY dm.created_at ASC
         ");
         $stmt->bind_param("iiii", $userId, $partnerId, $partnerId, $userId);
@@ -232,18 +232,62 @@ if (isset($_GET['api'])) {
 
         // Reuse file upload logic
         if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = __DIR__ . '/frontend/uploads/';
-            if (!is_dir($uploadDir))
-                mkdir($uploadDir, 0777, true);
-            $fileInfo = pathinfo($_FILES['attachment']['name']);
-            $fileExt = strtolower($fileInfo['extension'] ?? '');
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'txt', 'zip'];
-            if (in_array($fileExt, $allowedExtensions)) {
-                $fileName = uniqid() . '.' . $fileExt;
-                $destPath = $uploadDir . $fileName;
-                if (move_uploaded_file($_FILES['attachment']['tmp_name'], $destPath)) {
-                    $attachmentPath = 'frontend/uploads/' . $fileName;
+            $tmpName = $_FILES['attachment']['tmp_name'];
+            $fileName = $_FILES['attachment']['name'];
+            $fileInfo = pathinfo($fileName);
+            $ext = strtolower($fileInfo['extension'] ?? '');
+
+            require_once __DIR__ . '/../backend/SecurityUtil.php';
+
+            if (SecurityUtil::validateFile($tmpName, $ext)) {
+                $uuid = SecurityUtil::generateUuid();
+
+                if ($ext === 'svg') {
+                    // Logic for SVG: Sanitize -> Protected Storage -> Convert PNG -> Public Storage
+                    $rawContent = file_get_contents($tmpName);
+                    $sanitized = SecurityUtil::sanitizeSVG($rawContent);
+
+                    if ($sanitized) {
+                        // Save Original (Sanitized) to protected
+                        $protectedDir = __DIR__ . '/../protected_uploads/';
+                        if (!is_dir($protectedDir)) mkdir($protectedDir, 0700, true);
+                        file_put_contents($protectedDir . $uuid . '.svg', $sanitized);
+
+                        // Convert to PNG for display
+                        $publicDir = __DIR__ . '/uploads/';
+                        if (!is_dir($publicDir)) mkdir($publicDir, 0755, true);
+
+                        $pngName = $uuid . '.png';
+                        $publicPath = $publicDir . $pngName;
+
+                        if (SecurityUtil::convertSvgToPng($protectedDir . $uuid . '.svg', $publicPath)) {
+                            // Success: DB stores PNG path. 
+                            // *Download Logic will infer SVG availability via UUID match.*
+                            $attachmentPath = 'frontend/uploads/' . $pngName;
+                        } else {
+                            // Fallback? If conversion fails, maybe we reject or just don't show image?
+                            // Rejecting is safer as requirement says "Display as PNG".
+                            echo json_encode(['error' => 'SVG Conversion Failed']);
+                            exit;
+                        }
+                    } else {
+                        echo json_encode(['error' => 'Invalid SVG content']);
+                        exit;
+                    }
+                } else {
+                    // Standard File Flow
+                    $uploadDir = __DIR__ . '/uploads/'; // use relative path consistency
+                    if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+                    $newFileName = $uuid . '.' . $ext;
+                    // Move
+                    if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
+                        $attachmentPath = 'frontend/uploads/' . $newFileName;
+                    }
                 }
+            } else {
+                echo json_encode(['error' => 'Invalid file type or content']);
+                exit;
             }
         }
 
@@ -267,24 +311,58 @@ if (isset($_GET['api'])) {
 
         // Handle File Upload (ALLOWLIST approach)
         if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = __DIR__ . '/frontend/uploads/';
-            if (!is_dir($uploadDir))
-                mkdir($uploadDir, 0777, true);
+            $tmpName = $_FILES['attachment']['tmp_name'];
+            $fileName = $_FILES['attachment']['name'];
+            $fileInfo = pathinfo($fileName);
+            $ext = strtolower($fileInfo['extension'] ?? '');
 
-            $fileInfo = pathinfo($_FILES['attachment']['name']);
-            $fileExt = strtolower($fileInfo['extension'] ?? '');
+            require_once __DIR__ . '/../backend/SecurityUtil.php';
 
-            // Allowlist of safe extensions
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'txt', 'zip'];
+            if (SecurityUtil::validateFile($tmpName, $ext)) {
+                $uuid = SecurityUtil::generateUuid();
 
-            if (in_array($fileExt, $allowedExtensions)) {
-                $fileName = uniqid() . '.' . $fileExt;
-                $destPath = $uploadDir . $fileName;
-                if (move_uploaded_file($_FILES['attachment']['tmp_name'], $destPath)) {
-                    $attachmentPath = 'frontend/uploads/' . $fileName;
+                if ($ext === 'svg') {
+                    // Logic for SVG: Sanitize -> Protected Storage -> Convert PNG -> Public Storage
+                    $rawContent = file_get_contents($tmpName);
+                    $sanitized = SecurityUtil::sanitizeSVG($rawContent);
+
+                    if ($sanitized) {
+                        // Save Original (Sanitized) to protected
+                        $protectedDir = __DIR__ . '/../protected_uploads/';
+                        if (!is_dir($protectedDir)) mkdir($protectedDir, 0700, true);
+                        file_put_contents($protectedDir . $uuid . '.svg', $sanitized);
+
+                        // Convert to PNG for display
+                        $publicDir = __DIR__ . '/uploads/';
+                        if (!is_dir($publicDir)) mkdir($publicDir, 0755, true);
+
+                        $pngName = $uuid . '.png';
+                        $publicPath = $publicDir . $pngName;
+
+                        if (SecurityUtil::convertSvgToPng($protectedDir . $uuid . '.svg', $publicPath)) {
+                            // Success: DB stores PNG path. 
+                            $attachmentPath = 'frontend/uploads/' . $pngName;
+                        } else {
+                            echo json_encode(['error' => 'SVG Conversion Failed']);
+                            exit;
+                        }
+                    } else {
+                        echo json_encode(['error' => 'Invalid SVG content']);
+                        exit;
+                    }
+                } else {
+                    // Standard File Flow
+                    $uploadDir = __DIR__ . '/uploads/';
+                    if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+                    $newFileName = $uuid . '.' . $ext;
+
+                    if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
+                        $attachmentPath = 'frontend/uploads/' . $newFileName;
+                    }
                 }
             } else {
-                echo json_encode(['error' => 'File type not allowed']);
+                echo json_encode(['error' => 'Invalid file type or content']);
                 exit;
             }
         }
@@ -402,8 +480,8 @@ if (isset($_GET['api'])) {
                 (dm.sender_id = ? AND dm.receiver_id = u.id)
             )
             WHERE (f.user_id_1 = ? OR f.user_id_2 = ?) 
-            AND f.status = 'accepted' 
-            AND u.id != ?
+              AND f.status = 'accepted' 
+              AND u.id != ?
             GROUP BY u.id
             ORDER BY last_msg_at DESC, u.username ASC
         ");
@@ -597,7 +675,6 @@ if ($isLoggedIn) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="assets/img/SYCS_favicon.svg" type="image/x-icon">
     <title>SYCS - Shinjuku Yamabuki Chat System</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -636,7 +713,7 @@ if ($isLoggedIn) {
         <div class="app-container">
             <aside class="sidebar">
                 <div class="sidebar-top">
-                    <div class="logo-container"><img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo"></div>
+                    <div class="logo-container"><img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo"><span style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.0.4</span></div>
                     <nav>
                         <ul class="nav-list">
                             <li class="nav-item active" data-tab="threads">
@@ -699,14 +776,17 @@ if ($isLoggedIn) {
                                     <line x1="16" y1="3" x2="14" y2="21" />
                                 </svg>
                                 <span
-                                    id="current-thread-name"><?= htmlspecialchars($currentThreadName ?? '$currentThreadName') ?></span>
+                                    id="current-thread-name"><?= htmlspecialchars($currentThreadName ?? 'general') ?></span>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
                                     <polyline points="6 9 12 15 18 9" />
                                 </svg>
                             </div>
-                            <button class="icon-btn" onclick="editCurrentThread()" title="編集">✏️</button>
-                            <button class="icon-btn" onclick="deleteCurrentThread()" title="削除" style="color:red;">🗑️</button>
+                            <div class="thread-actions" id="thread-actions-block" style="display:none; margin-left: auto;">
+                                <button class="icon-btn" onclick="editCurrentThread()" title="編集">✏️</button>
+                                <button class="icon-btn" onclick="deleteCurrentThread()" title="削除"
+                                    style="color:red;">🗑️</button>
+                            </div>
                         </header>
                         <div id="message-container" class="chat-messages"></div>
                         <div class="drag-overlay">ファイルをドロップしてアップロード</div>
@@ -747,7 +827,16 @@ if ($isLoggedIn) {
                                 </svg></div>
                         </div>
                         <div id="thread-list" class="thread-list"></div>
-                        <div class="create-thread-area">
+                        <div id="create-thread-toggle-container"
+                            style="padding: 20px; border-top: 1px solid var(--border-color);">
+                            <button onclick="showCreateThread()" class="btn-primary" style="width:100%;">+ 新規スレッド作成</button>
+                        </div>
+                        <div id="create-thread-area" class="create-thread-area" style="border-top: none;">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <span style="font-weight:600; font-size:0.9rem;">新規スレッド</span>
+                                <div class="close-btn" onclick="hideCreateThread()">✕</div>
+                            </div>
                             <input type="text" id="new-thread-name" class="create-input" placeholder="新スレッド名">
                             <button onclick="createThread()" class="btn-primary" style="padding:0.6rem;">作成</button>
                         </div>
@@ -1028,7 +1117,7 @@ if ($isLoggedIn) {
                 container.innerText = ''; // Clear safely
                 if (messages.length === 0) {
                     const p = document.createElement('p');
-                    p.innerText = 'メッセージはありません';
+                    p.innerText = 'ｼｰﾝ...静かな場所ですね。\n少し世間話でもどうでしょうか?';
                     const div = document.createElement('div');
                     div.className = 'empty-state';
                     div.appendChild(p);
@@ -1148,6 +1237,27 @@ if ($isLoggedIn) {
                     img.style.marginTop = '10px';
                     img.onclick = () => window.open(m.attachment_path, '_blank');
                     contentDiv.appendChild(img);
+
+                    // If it is a converted SVG (detected by filename convention or just providing download option for all images?)
+                    // Requirement: "Download Original" for SVGs. 
+                    // Since we convert SVG -> PNG, the path ends in .png. 
+                    // We can check if a download link is viable or just always offer download for images.
+                    // Let's deduce: If file is .png, check if we can download .svg? 
+                    // No, that causes 404 for real PNGs. 
+                    // Cleanest way: Just add a "Download" button for all files, but for converted ones it hits download.php? 
+                    // Use the `download.php?file=...` for everything safely?
+                    // Yes. Let's make the image click open the image, but add a small [Download] link below.
+
+                    const dlLink = document.createElement('a');
+                    const fileName = m.attachment_path.split('/').pop();
+                    dlLink.href = 'download.php?file=' + fileName;
+                    dlLink.target = '_blank'; // Trigger download
+                    dlLink.innerText = '⬇️ ダウンロード';
+                    dlLink.style.display = 'inline-block';
+                    dlLink.style.fontSize = '0.75rem';
+                    dlLink.style.marginTop = '5px';
+                    dlLink.style.color = 'var(--accent-color)';
+                    contentDiv.appendChild(dlLink);
                 }
 
                 info.appendChild(header);
@@ -1282,7 +1392,6 @@ if ($isLoggedIn) {
                 previewContent.textContent = ''; // Clear safely
             }
 
-            //create_thread
             async function createThread() {
                 const input = document.getElementById('new-thread-name');
                 const name = input.value.trim();
@@ -1290,8 +1399,8 @@ if ($isLoggedIn) {
                 const body = new FormData();
                 body.append('name', name);
                 await api('create_thread', 'POST', body);
-                input.value = '';
                 loadThreads();
+                hideCreateThread();
             }
 
             function toggleThreadBrowser() {
@@ -1313,14 +1422,11 @@ if ($isLoggedIn) {
 
                     if (tabId === 'dm') {
                         isDmMode = true;
-                        // Hide thread/fav sidebars if they exist or ensure layout correct
-                        document.getElementById('thread-browser').style.display = 'none'; // Re-use old sidebar or hide it
-                        // Set Hub View
+                        document.getElementById('thread-browser').classList.remove('active'); // CSS based toggle
                         backToHub();
                     } else if (tabId === 'threads') {
                         isDmMode = false;
-                        document.getElementById('thread-browser').style.display = 'block';
-                        document.getElementById('thread-browser').classList.add('active');
+                        document.getElementById('thread-browser').classList.add('active'); // CSS based toggle
                     } else if (tabId === 'favorites') {
                         isDmMode = false;
                         loadFavorites();
@@ -1685,6 +1791,18 @@ if ($isLoggedIn) {
             }
 
 
+
+            function showCreateThread() {
+                document.getElementById('create-thread-area').classList.add('active');
+                document.getElementById('create-thread-toggle-container').style.display = 'none';
+                document.getElementById('new-thread-name').focus();
+            }
+
+            function hideCreateThread() {
+                document.getElementById('create-thread-area').classList.remove('active');
+                document.getElementById('create-thread-toggle-container').style.display = 'block';
+                document.getElementById('new-thread-name').value = '';
+            }
 
             document.addEventListener('DOMContentLoaded', () => {
                 const avatarEl = document.getElementById('global-user-avatar');
