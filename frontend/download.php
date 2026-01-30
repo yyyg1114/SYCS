@@ -41,16 +41,40 @@ if (!file_exists($targetPath)) {
     die('Original source not found');
 }
 
-// TODO: Ownership/Access Check
-// Ideally, check if 'file' is present in 'messages' or 'direct_messages' table 
-// AND if the current User ID has access to that thread/DM.
-// For MVP/Task Scope, authentication + known UUID is the baseline. 
-// Adding DB check would be robust:
-/*
+// Ownership/Access Check
 require_once __DIR__ . '/../backend/db.php';
-$stmt = $mysqli->prepare("SELECT id FROM messages WHERE attachment_path LIKE ? AND ... check user access ...");
-// ...
-*/
+
+$userId = $_SESSION['user_id'];
+$dbPath = 'frontend/uploads/' . $uuid . '.png'; // DB stores the public PNG path
+
+$isAuthorized = false;
+
+// 1. Check Private DMs
+$stmt = $mysqli->prepare("SELECT id FROM direct_messages WHERE attachment_path = ? AND (sender_id = ? OR receiver_id = ?)");
+$stmt->bind_param("sii", $dbPath, $userId, $userId);
+$stmt->execute();
+if ($stmt->get_result()->num_rows > 0) {
+    $isAuthorized = true;
+}
+$stmt->close();
+
+// 2. Check Public Threads (If not found in DM)
+if (!$isAuthorized) {
+    // In this app, threads are public. If it exists in messages, it's accessible.
+    // If you add private threads later, add a join to threads table and check perms.
+    $stmt = $mysqli->prepare("SELECT id FROM messages WHERE attachment_path = ?");
+    $stmt->bind_param("s", $dbPath);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        $isAuthorized = true;
+    }
+    $stmt->close();
+}
+
+if (!$isAuthorized) {
+    http_response_code(403);
+    die('Forbidden: You do not have permission to access this file.');
+}
 
 // Serve File
 $mime = 'image/svg+xml';
