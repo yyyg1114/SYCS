@@ -7,12 +7,23 @@ class SecurityUtil
      * map extension => mime
      */
     private const ALLOWED_MIME_TYPES = [
+        // Images
         'jpg' => 'image/jpeg',
         'jpeg' => 'image/jpeg',
         'png' => 'image/png',
         'gif' => 'image/gif',
         'webp' => 'image/webp',
         'svg' => 'image/svg+xml',
+        // Audio
+        'mp3' => 'audio/mpeg',
+        'wav' => 'audio/wav',
+        'm4a' => 'audio/mp4',
+        // Video
+        'mov' => 'video/quicktime',
+        'webm' => 'video/webm',
+        'mkv' => 'video/x-matroska',
+        'mp4' => 'video/mp4',
+        // Docs
         'pdf' => 'application/pdf',
         'txt' => 'text/plain',
         'zip' => 'application/zip',
@@ -127,19 +138,22 @@ class SecurityUtil
         }
 
         try {
-            // Use fully qualified global class names
-            $imagick = new \Imagick();
+            // Use dynamic class names to avoid IDE errors if extension is missing in dev env
+            $imagickClass = '\Imagick';
+            $pixelClass = '\ImagickPixel';
+            
+            $imagick = new $imagickClass();
             
             // Security configuration
-            // Note: Constants might be flagged if extension is missing in IDE, but exist at runtime.
-            if (defined('\Imagick::RESOURCETYPE_MEMORY')) {
-                $imagick->setResourceLimit(\Imagick::RESOURCETYPE_MEMORY, 256 * 1024 * 1024); // 256MB
+            // Use constant() to avoid IDE warnings about undefined constants
+            if (defined($imagickClass . '::RESOURCETYPE_MEMORY')) {
+                $imagick->setResourceLimit(constant($imagickClass . '::RESOURCETYPE_MEMORY'), 256 * 1024 * 1024); // 256MB
             }
-            if (defined('\Imagick::RESOURCETYPE_MAP')) {
-                $imagick->setResourceLimit(\Imagick::RESOURCETYPE_MAP, 256 * 1024 * 1024); // 256MB
+            if (defined($imagickClass . '::RESOURCETYPE_MAP')) {
+                $imagick->setResourceLimit(constant($imagickClass . '::RESOURCETYPE_MAP'), 256 * 1024 * 1024); // 256MB
             }
-            if (defined('\Imagick::RESOURCETYPE_THREAD')) {
-                $imagick->setResourceLimit(\Imagick::RESOURCETYPE_THREAD, 1); // Single thread
+            if (defined($imagickClass . '::RESOURCETYPE_THREAD')) {
+                $imagick->setResourceLimit(constant($imagickClass . '::RESOURCETYPE_THREAD'), 1); // Single thread
             }
             
             // Disable external resources
@@ -149,7 +163,7 @@ class SecurityUtil
                 // Option might not be supported on all versions
             }
 
-            $imagick->setBackgroundColor(new \ImagickPixel('transparent'));
+            $imagick->setBackgroundColor(new $pixelClass('transparent'));
             $imagick->readImage($svgPath);
             $imagick->setImageFormat('png');
             

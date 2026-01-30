@@ -18,8 +18,11 @@ if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
     if ($check && $check->num_rows > 0) {
         $err = 'このメールアドレスまたはユーザー名は既に使用されています';
     } else {
+        // Hashing Password
+        $hashed_password = password_hash($p, PASSWORD_DEFAULT);
+        
         $stmt_insert = $mysqli->prepare("INSERT INTO users (email, username, password) VALUES (?, ?, ?)");
-        $stmt_insert->bind_param("sss", $e, $u, $p);
+        $stmt_insert->bind_param("sss", $e, $u, $hashed_password);
         if ($stmt_insert->execute()) {
             $msg = '登録が完了しました。ログイン画面へ移動します。';
             $success = true;

@@ -85,6 +85,8 @@ function verify_csrf()
 // --- API Logic (AJAX Handlers) ---
 if (isset($_GET['api'])) {
     header('Content-Type: application/json');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
     $action = $_GET['api'];
     $userId = $_SESSION['user_id'] ?? null;
 
@@ -99,71 +101,25 @@ if (isset($_GET['api'])) {
         exit;
     }
 
-    if ($action === 'create_thread') {
-        verify_csrf(); // Enforce CSRF Check
-        $name = $_POST['name'] ?? '';
-        if ($name) {
-            $stmt = $mysqli->prepare("INSERT INTO threads (name, creator_id) VALUES (?, ?)");
-            $stmt->bind_param("si", $name, $userId);
-            $stmt->execute();
-            echo json_encode(['success' => true, 'id' => $stmt->insert_id]);
-            $stmt->close();
-        } else {
-            echo json_encode(['error' => 'Name required']);
-        }
+    // --- THREAD API REMOVED / MODIFIED FOR OPEN CHAT ---
+    
+    // Ensure "Open Chat" exists (ID=1) using current user as creator to satisfy FK.
+    $stmt = $mysqli->prepare("INSERT IGNORE INTO threads (id, name, creator_id) VALUES (1, 'Open Chat', ?)");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    
+    // Ensure name is 'Open Chat' even if it existed before as 'general'
+    $mysqli->query("UPDATE threads SET name = 'Open Chat' WHERE id = 1");
+
+    if ($action === 'get_threads') {
+        // Only return Open Chat
+        $res = $mysqli->query("SELECT * FROM threads WHERE id = 1");
+        echo json_encode($res->fetch_all(MYSQLI_ASSOC));
         exit;
     }
 
-    if ($action === 'edit_thread') {
-        verify_csrf();
-        $threadId = $_POST['thread_id'] ?? 0;
-        $newName = $_POST['name'] ?? '';
+    // `create_thread`, `edit_thread`, `delete_thread` REMOVED
 
-        // Verify ownership
-        $stmt = $mysqli->prepare("SELECT creator_id FROM threads WHERE id = ?");
-        $stmt->bind_param("i", $threadId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($row = $res->fetch_assoc()) {
-            if ($row['creator_id'] == $userId) {
-                $upd = $mysqli->prepare("UPDATE threads SET name = ? WHERE id = ?");
-                $upd->bind_param("si", $newName, $threadId);
-                $upd->execute();
-                echo json_encode(['success' => true]);
-            } else {
-                echo json_encode(['error' => 'Forbidden']);
-            }
-        } else {
-            echo json_encode(['error' => 'Not found']);
-        }
-        exit;
-    }
-
-    if ($action === 'delete_thread') {
-        verify_csrf();
-        $threadId = $_POST['thread_id'] ?? 0;
-
-        // Verify ownership
-        $stmt = $mysqli->prepare("SELECT creator_id FROM threads WHERE id = ?");
-        $stmt->bind_param("i", $threadId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($row = $res->fetch_assoc()) {
-            if ($row['creator_id'] == $userId) {
-                // Delete messages first (if no CASCADE) - Assuming CASCADE or manual cleanup
-                $mysqli->query("DELETE FROM messages WHERE thread_id = $threadId");
-                $del = $mysqli->prepare("DELETE FROM threads WHERE id = ?");
-                $del->bind_param("i", $threadId);
-                $del->execute();
-                echo json_encode(['success' => true]);
-            } else {
-                echo json_encode(['error' => 'Forbidden']);
-            }
-        } else {
-            echo json_encode(['error' => 'Not found']);
-        }
-        exit;
-    }
 
     if ($action === 'get_messages') {
         $threadId = $_GET['thread_id'] ?? 0;
@@ -263,7 +219,7 @@ if (isset($_GET['api'])) {
                         if (SecurityUtil::convertSvgToPng($protectedDir . $uuid . '.svg', $publicPath)) {
                             // Success: DB stores PNG path. 
                             // *Download Logic will infer SVG availability via UUID match.*
-                            $attachmentPath = 'frontend/uploads/' . $pngName;
+                            $attachmentPath = 'uploads/' . $pngName;
                         } else {
                             // Fallback? If conversion fails, maybe we reject or just don't show image?
                             // Rejecting is safer as requirement says "Display as PNG".
@@ -283,7 +239,7 @@ if (isset($_GET['api'])) {
                     $newFileName = $uuid . '.' . $ext;
                     // Move
                     if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
-                        $attachmentPath = 'frontend/uploads/' . $newFileName;
+                        $attachmentPath = 'uploads/' . $newFileName;
                     }
                 }
             } else {
@@ -617,23 +573,44 @@ if (isset($_POST['action']) && $_POST['action'] === 'login') {
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         $error = 'セッションが無効です。再読み込みしてください。';
     } else {
-        $u = $_POST['username'] ?? '';
-        $p = $_POST['password'] ?? '';
+        require_once __DIR__ . '/../backend/RateLimiter.php';
+        $limiter = new RateLimiter();
+        $ip = $_SERVER['REMOTE_ADDR'];
 
-        $stmt = $mysqli->prepare("SELECT id, username, last_thread_id FROM users WHERE username = ? AND password = ? LIMIT 1");
-        $stmt->bind_param("ss", $u, $p);
-        $stmt->execute();
-        $res = $stmt->get_result();
-
-        if ($res && $res->num_rows === 1) {
-            $row = $res->fetch_assoc();
-            $_SESSION['user_id'] = $row['id'];
-            $_SESSION['user'] = $row['username'];
-            $_SESSION['last_thread_id'] = $row['last_thread_id'] ?: 1;
-            header('Location: index.php');
-            exit;
+        if (!$limiter->check($ip)) {
+            $error = 'ログイン試行回数が多すぎます。しばらく待ってから再試行してください。';
         } else {
-            $error = 'ログインに失敗しました。ユーザー名またはパスワードが正しくありません。';
+            $u = $_POST['username'] ?? '';
+            $p = $_POST['password'] ?? '';
+
+            // Fetch hash by username
+            $stmt = $mysqli->prepare("SELECT id, username, password, last_thread_id FROM users WHERE username = ? LIMIT 1");
+            $stmt->bind_param("s", $u);
+            $stmt->execute();
+            $res = $stmt->get_result();
+
+            if ($res && $res->num_rows === 1) {
+                $row = $res->fetch_assoc();
+                // Verify Password
+                if (password_verify($p, $row['password'])) {
+                    // Success
+                    $limiter->clear($ip);
+                    $_SESSION['user_id'] = $row['id'];
+                    $_SESSION['user'] = $row['username'];
+                    
+                    // Fixed: Always redirect to Open Chat (ID=1)
+                    $_SESSION['last_thread_id'] = 1;
+                    
+                    header('Location: index.php');
+                    exit;
+                } else {
+                    $limiter->increment($ip);
+                    $error = 'ログインに失敗しました。ユーザー名またはパスワードが正しくありません。';
+                }
+            } else {
+                $limiter->increment($ip);
+                $error = 'ログインに失敗しました。ユーザー名またはパスワードが正しくありません。';
+            }
         }
     }
     if (isset($stmt))
@@ -677,7 +654,7 @@ if ($isLoggedIn) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SYCS - Shinjuku Yamabuki Chat System</title>
+    <title>SYCS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -721,12 +698,9 @@ if ($isLoggedIn) {
                             <li class="nav-item active" data-tab="threads">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="4" y1="9" x2="20" y2="9" />
-                                    <line x1="4" y1="15" x2="20" y2="15" />
-                                    <line x1="10" y1="3" x2="8" y2="21" />
-                                    <line x1="16" y1="3" x2="14" y2="21" />
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                                 </svg>
-                                <span>スレッド</span>
+                                <span>Open Chat</span>
                             </li>
                             <li class="nav-item" data-tab="dm">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -734,14 +708,6 @@ if ($isLoggedIn) {
                                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                                 </svg>
                                 <span>DM</span>
-                            </li>
-                            <li class="nav-item" data-tab="favorites">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <polygon
-                                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                                </svg>
-                                <span>お気に入り</span>
                             </li>
                         </ul>
                     </nav>
@@ -765,11 +731,7 @@ if ($isLoggedIn) {
                 <section id="threads-pane" class="content-pane active">
                     <div class="chat-area">
                         <header class="chat-header">
-                            <div class="thread-name-clickable" onclick="toggleThreadBrowser()">
-                                <button id="fav-btn" class="icon-btn" onclick="event.stopPropagation(); toggleFavorite()"
-                                    title="お気に入り" style="margin-right: 8px;">
-                                    ☆
-                                </button>
+                            <div class="thread-name-clickable">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="4" y1="9" x2="20" y2="9" />
@@ -777,17 +739,7 @@ if ($isLoggedIn) {
                                     <line x1="10" y1="3" x2="8" y2="21" />
                                     <line x1="16" y1="3" x2="14" y2="21" />
                                 </svg>
-                                <span
-                                    id="current-thread-name"><?= htmlspecialchars($currentThreadName ?? 'general') ?></span>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
-                                    <polyline points="6 9 12 15 18 9" />
-                                </svg>
-                            </div>
-                            <div class="thread-actions" id="thread-actions-block" style="display:none; margin-left: auto;">
-                                <button class="icon-btn" onclick="editCurrentThread()" title="編集">✏️</button>
-                                <button class="icon-btn" onclick="deleteCurrentThread()" title="削除"
-                                    style="color:red;">🗑️</button>
+                                <span id="current-thread-name">Open Chat</span>
                             </div>
                         </header>
                         <div id="message-container" class="chat-messages"></div>
@@ -984,7 +936,24 @@ if ($isLoggedIn) {
                     </aside>
                 </section>
             </main>
+            </main>
         </div>
+
+        <!-- Media Preview Modal -->
+        <dialog id="media-modal" class="modal" style="background: rgba(0,0,0,0.9); border:none; max-width:90vw; max-height:90vh; padding:0; overflow:hidden; z-index:9999;">
+            <div style="position:relative; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <button onclick="document.getElementById('media-modal').close()" style="position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.2); border:none; color:white; font-size:2rem; width:40px; height:40px; border-radius:50%; cursor:pointer; z-index:10;">×</button>
+                <div id="media-modal-content" style="max-width:100%; max-height:80vh; display:flex; justify-content:center; align-items:center;">
+                    <!-- Content injected here -->
+                </div>
+                <div style="margin-top:20px;">
+                    <a id="media-download-btn" href="#" target="_blank" class="btn-primary" style="text-decoration:none; padding:10px 20px; display:inline-flex; align-items:center; gap:5px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        ダウンロード
+                    </a>
+                </div>
+            </div>
+        </dialog>
 
         <script>
             let currentThreadId = <?= (int) ($initialThreadId ?? 1) ?>;
@@ -1019,6 +988,18 @@ if ($isLoggedIn) {
                 return div;
             }
 
+            // Notification Sound
+            const notificationSound = new Audio('notice.wav');
+
+            async function playNotification() {
+                try {
+                    await notificationSound.play();
+                } catch (e) {
+                    // Autoplay policy might block this until user interaction
+                    console.log('Notification sound blocked:', e);
+                }
+            }
+
             async function api(path, method = 'GET', body = null) {
                 const opts = { method };
                 if (body) {
@@ -1028,8 +1009,23 @@ if ($isLoggedIn) {
                     }
                     opts.body = body;
                 }
-                const res = await fetch(`index.php?api=${path}`, opts);
-                return res.json();
+                const sep = '&'; // Always & because we start with ?api=
+                const url = `index.php?api=${path}${sep}_=${Date.now()}`;
+                try {
+                    const res = await fetch(url, opts);
+                    const text = await res.text();
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('JSON Parse Error:', text);
+                        alert('サーバーエラーが発生しました: ' + text.substring(0, 100)); // Show beginning of error
+                        return { success: false, error: 'Server Error' };
+                    }
+                } catch (e) {
+                    console.error('Network Error:', e);
+                    alert('通信エラーが発生しました');
+                    return { success: false, error: 'Network Error' };
+                }
             }
 
             async function loadThreads() {
@@ -1048,6 +1044,7 @@ if ($isLoggedIn) {
             async function switchThread(id, name, creatorId) {
                 currentThreadId = id;
                 currentThreadCreatorId = creatorId;
+                window.lastMessagesJson = null; // Force reload
                 updateThreadActions();
                 document.getElementById('current-thread-name').innerText = name;
                 document.querySelectorAll('.thread-item').forEach(el => {
@@ -1066,12 +1063,13 @@ if ($isLoggedIn) {
                 cancelReply();
                 cancelUpload();
                 loadMessages();
-                checkFavoriteStatus(); // Check fav status on switch
+                // checkFavoriteStatus(); // Removed fav feature
                 api(`set_last_thread&thread_id=${id}`);
             }
 
             function updateThreadActions() {
                 const block = document.getElementById('thread-actions-block');
+                if (!block) return;
                 if (parseInt(currentThreadCreatorId) === parseInt(currentUserId)) {
                     block.style.display = 'flex';
                 } else {
@@ -1108,8 +1106,30 @@ if ($isLoggedIn) {
                 }
             }
 
-            async function loadMessages() {
-                const messages = await api(`get_messages&thread_id=${currentThreadId}`);
+            async function loadMessages(silent = false) {
+                const messages = await api(`get_messages&thread_id=${currentThreadId}`, 'GET', null, silent);
+                if (!Array.isArray(messages)) return;
+                
+                // Simple Diff Check to prevent flickering
+                const currentJson = JSON.stringify(messages);
+                if (window.lastMessagesJson === currentJson) return;
+                
+                // Notification Check
+                // If we have cached messages, compare length or last ID
+                if (window.lastMessagesJson) {
+                    const oldMessages = JSON.parse(window.lastMessagesJson);
+                    // Basic check: if new messages have arrived
+                    if (messages.length > oldMessages.length) {
+                        // Check if the latest message is NOT from me
+                        const latest = messages[messages.length - 1];
+                        if (latest.username !== currentUserName) {
+                            playNotification();
+                        }
+                    }
+                }
+
+                window.lastMessagesJson = currentJson;
+
                 const container = document.getElementById('message-container');
                 // Auto-scroll logic needs to be smarter or just stick to bottom if already at bottom
                 const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
@@ -1230,34 +1250,143 @@ if ($isLoggedIn) {
                 if (m.content) contentDiv.innerText = m.content;
 
                 if (m.attachment_path) {
-                    const img = document.createElement('img');
-                    img.src = m.attachment_path;
-                    img.className = 'preview-img';
-                    img.style.display = 'block';
-                    img.style.marginTop = '10px';
-                    img.onclick = () => window.open(m.attachment_path, '_blank');
-                    contentDiv.appendChild(img);
-
-                    // If it is a converted SVG (detected by filename convention or just providing download option for all images?)
-                    // Requirement: "Download Original" for SVGs. 
-                    // Since we convert SVG -> PNG, the path ends in .png. 
-                    // We can check if a download link is viable or just always offer download for images.
-                    // Let's deduce: If file is .png, check if we can download .svg? 
-                    // No, that causes 404 for real PNGs. 
-                    // Cleanest way: Just add a "Download" button for all files, but for converted ones it hits download.php? 
-                    // Use the `download.php?file=...` for everything safely?
-                    // Yes. Let's make the image click open the image, but add a small [Download] link below.
+                    // Fix path if it contains 'frontend/' prefix erroneously from previous saves
+                    // or if logic needs consistency.
+                    let displayPath = m.attachment_path;
+                    if (displayPath.startsWith('frontend/')) {
+                         displayPath = displayPath.replace('frontend/', '');
+                    }
                     
-                    const dlLink = document.createElement('a');
-                    const fileName = m.attachment_path.split('/').pop();
-                    dlLink.href = 'download.php?file=' + fileName;
-                    dlLink.target = '_blank'; // Trigger download
-                    dlLink.innerText = '⬇️ ダウンロード';
-                    dlLink.style.display = 'inline-block';
-                    dlLink.style.fontSize = '0.75rem';
-                    dlLink.style.marginTop = '5px';
-                    dlLink.style.color = 'var(--accent-color)';
-                    contentDiv.appendChild(dlLink);
+                    const ext = displayPath.split('.').pop().toLowerCase();
+                    const fileName = displayPath.split('/').pop();
+                    const downloadUrl = 'download.php?file=' + fileName;
+
+                    let mediaEl = null;
+
+                    // MIME Type Deduction (Simple)
+                    const videoExts = ['mp4', 'webm', 'mov', 'mkv'];
+                    const audioExts = ['mp3', 'wav', 'm4a'];
+                    const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
+
+                    if (imageExts.includes(ext)) {
+                        const img = document.createElement('img');
+                        img.src = displayPath;
+                        img.className = 'preview-img';
+                        img.onload = () => {
+                             // Clean layout callback?
+                        };
+                        img.style.cursor = 'zoom-in';
+                        img.onclick = () => openMediaModal('image', displayPath, downloadUrl);
+                        mediaEl = img;
+                    } else if (videoExts.includes(ext)) {
+                        const vid = document.createElement('video');
+                        vid.src = displayPath;
+                        vid.controls = true; // Show controls inline too? Or just thumbnail?
+                        // User said: "Attached file is pressed -> popup... download button there."
+                        // And "Preview screen can play on the spot". 
+                        // So inline player is good.
+                        vid.className = 'preview-img'; // reuse style for sizing
+                        vid.style.cursor = 'pointer';
+                        // For video, clicking usually plays. We need a way to popup.
+                        // Add a "Expand" button/icon or rely on user using the download?
+                        // "Attachment pressed -> Popup". 
+                        // HTML5 Video eats click events for controls.
+                        // Let's wrap it or add a "Enlarge" btn? 
+                        // Or just let inline player be enough? "Download button THERE" (in popup).
+                        // If inline player has no download button (we can hide it in controlsList), user needs popup.
+                        // Let's make the video clickable (overlay?) or just add an icon.
+                        
+                        // Simplest: Tiny video that plays inline. Click expands? 
+                        // Let's try: Video with controls. 
+                        // AND a button "🔍 拡大" next to it?
+                        // Or just render a video tag.
+                        // Wait, "popup as large display".
+                        // I'll render the video inline. I'll add a "Enlarge/Download" button below it? 
+                        // User request: "Attached file is pressed -> popup". 
+                        // Maybe cover with an overlay if we want strict click-to-popup?
+                        // No, "Preview screen can play on the spot" implies inline playback.
+                        // So: Inline playback works. 
+                        // To get popup/download: Add a specific button or make the filename clickable?
+                        // Let's add a wrapper with an "Expand" icon.
+                        vid.style.maxWidth = '100%';
+                        vid.style.maxHeight = '300px';
+                        
+                        const wrapper = document.createElement('div');
+                        wrapper.style.position = 'relative';
+                        wrapper.style.display = 'inline-block';
+                        wrapper.appendChild(vid);
+                        
+                        const expandBtn = document.createElement('button');
+                        expandBtn.innerHTML = '⤢';
+                        expandBtn.title = '拡大・ダウンロード';
+                        expandBtn.style.position = 'absolute';
+                        expandBtn.style.top = '5px';
+                        expandBtn.style.right = '5px';
+                        expandBtn.style.background = 'rgba(0,0,0,0.6)';
+                        expandBtn.style.color = 'white';
+                        expandBtn.style.border = 'none';
+                        expandBtn.style.borderRadius = '4px';
+                        expandBtn.style.cursor = 'pointer';
+                        expandBtn.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation(); // Prevent play
+                            vid.pause();
+                            openMediaModal('video', displayPath, downloadUrl);
+                        };
+                        wrapper.appendChild(expandBtn);
+                        mediaEl = wrapper;
+
+                    } else if (audioExts.includes(ext)) {
+                        const aud = document.createElement('audio');
+                        aud.src = displayPath;
+                        aud.controls = true;
+                        aud.style.marginTop = '10px';
+                        // Audio usually doesn't need "Large Popup".
+                        // But we need a download button.
+                        // We can add a download link below it.
+                        mediaEl = aud;
+                    } else {
+                        // Other files
+                        const div = document.createElement('div');
+                        div.className = 'file-attachment';
+                        div.style.padding = '10px';
+                        div.style.background = 'rgba(255,255,255,0.05)';
+                        div.style.borderRadius = '8px';
+                        div.style.marginTop = '10px';
+                        div.innerHTML = `
+                            <span style="font-size:1.5rem; margin-right:10px;">📄</span>
+                            <span style="word-break:break-all;">${fileName}</span>
+                        `;
+                        // Click to download
+                        const link = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.appendChild(div);
+                        link.style.textDecoration = 'none';
+                        link.style.color = 'inherit';
+                        mediaEl = link;
+                    }
+
+                    if (mediaEl) {
+                        contentDiv.appendChild(mediaEl);
+                        
+                        // Always add explicit download link below for clarity if not covered by "file-attachment" link
+                        if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mov', 'mkv', 'mp3', 'wav', 'm4a'].includes(ext)) {
+                            // "Download button in popup" was requested for popup. 
+                            // But user might want quick download too?
+                            // I will rely on the popup for Images/Video as requested.
+                            // For Audio, I'll add a small link because no popup.
+                            if (audioExts.includes(ext)) {
+                                const dl = document.createElement('a');
+                                dl.href = downloadUrl;
+                                dl.innerText = '⬇️ ダウンロード';
+                                dl.style.display = 'block';
+                                dl.style.fontSize = '0.8rem';
+                                dl.style.marginTop = '5px';
+                                dl.style.color = 'var(--accent-color)';
+                                contentDiv.appendChild(dl);
+                            }
+                        }
+                    }
                 }
 
                 info.appendChild(header);
@@ -1305,7 +1434,12 @@ if ($isLoggedIn) {
                 if (replyToId) body.append('reply_to_id', replyToId);
                 if (fileToUpload) body.append('attachment', fileToUpload);
 
-                await api('send_message', 'POST', body);
+                const res = await api('send_message', 'POST', body);
+                
+                if (!res.success) {
+                    alert('送信エラー: ' + (res.error || '不明なエラー'));
+                    return;
+                }
 
                 // Clear UI
                 msgInput.value = '';
@@ -1334,6 +1468,33 @@ if ($isLoggedIn) {
                 replyBar.classList.remove('active');
             }
 
+            function openMediaModal(type, src, downloadUrl) {
+                const modal = document.getElementById('media-modal');
+                const content = document.getElementById('media-modal-content');
+                const btn = document.getElementById('media-download-btn');
+                
+                content.innerHTML = '';
+                btn.href = downloadUrl;
+                
+                if (type === 'image') {
+                    const img = document.createElement('img');
+                    img.src = src;
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = '80vh';
+                    img.style.objectFit = 'contain';
+                    content.appendChild(img);
+                } else if (type === 'video') {
+                    const vid = document.createElement('video');
+                    vid.src = src;
+                    vid.controls = true;
+                    vid.autoplay = true;
+                    vid.style.maxWidth = '100%';
+                    vid.style.maxHeight = '80vh';
+                    content.appendChild(vid);
+                }
+                
+                modal.showModal();
+            }
             // --- Drag & Drop Logic ---
             const chatArea = document.querySelector('.chat-area');
             const dropOverlay = document.querySelector('.drag-overlay');
@@ -1391,19 +1552,7 @@ if ($isLoggedIn) {
                 previewContent.textContent = ''; // Clear safely
             }
 
-            async function createThread() {
-                const input = document.getElementById('new-thread-name');
-                const name = input.value.trim();
-                if (!name) return;
-                const body = new FormData(); body.append('name', name);
-                await api('create_thread', 'POST', body);
-                loadThreads();
-                hideCreateThread();
-            }
 
-            function toggleThreadBrowser() {
-                document.getElementById('thread-browser').classList.toggle('active');
-            }
 
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.addEventListener('click', () => {
@@ -1420,73 +1569,17 @@ if ($isLoggedIn) {
 
                     if (tabId === 'dm') {
                         isDmMode = true;
-                        document.getElementById('thread-browser').classList.remove('active'); // CSS based toggle
+                        document.getElementById('thread-browser').classList.remove('active'); // Ensure hidden
                         backToHub();
                     } else if (tabId === 'threads') {
                         isDmMode = false;
-                        document.getElementById('thread-browser').classList.add('active'); // CSS based toggle
-                    } else if (tabId === 'favorites') {
-                        isDmMode = false;
-                        loadFavorites();
+                        // For Open Chat, we don't need the browser list, just load the chat.
+                        switchThread(1, 'Open Chat', 0);
                     }
                 });
             });
 
-            // --- Favorites Logic ---
-            async function toggleFavorite() {
-                const body = new FormData();
-                body.append('thread_id', currentThreadId);
-                const res = await api('toggle_favorite', 'POST', body);
-                if (res.success) {
-                    updateFavoriteIcon(res.status === 'added');
-                    if (document.querySelector('.nav-item[data-tab="favorites"]').classList.contains('active')) {
-                        loadFavorites();
-                    }
-                }
-            }
 
-            async function checkFavoriteStatus() {
-                const res = await api(`check_favorite&thread_id=${currentThreadId}`);
-                updateFavoriteIcon(res.is_favorite);
-            }
-
-            function updateFavoriteIcon(isFav) {
-                const btn = document.getElementById('fav-btn');
-                if (isFav) {
-                    btn.innerText = '★';
-                    btn.style.color = 'gold';
-                } else {
-                    btn.innerText = '☆';
-                    btn.style.color = 'var(--text-secondary)';
-                }
-            }
-
-            async function loadFavorites() {
-                const threads = await api('get_favorites');
-                const list = document.getElementById('fav-thread-list');
-                list.innerText = '';
-                if (threads.length === 0) {
-                    const d = document.createElement('div');
-                    d.style.padding = '1rem';
-                    d.style.color = 'var(--text-secondary)';
-                    d.style.fontSize = '0.85rem';
-                    d.innerText = 'お気に入りスレッドがありません。\nスレッドタイトルの☆を押して追加できます。';
-                    list.appendChild(d);
-                    return;
-                }
-                threads.forEach(t => {
-                    const item = document.createElement('div');
-                    item.className = `thread-item ${t.id == currentThreadId ? 'active' : ''}`;
-                    item.textContent = '# ' + t.name;
-                    item.onclick = () => {
-                        // Switch to Threads tab context implicitly but keep view? 
-                        // Better UX: Switch to Threads tab and load this thread.
-                        document.querySelector('.nav-item[data-tab="threads"]').click();
-                        switchThread(t.id, t.name, t.creator_id);
-                    };
-                    list.appendChild(item);
-                });
-            }
 
             // --- Discord-like Friend & DM Logic ---
 
@@ -1653,9 +1746,27 @@ if ($isLoggedIn) {
                 loadHubFriends();
             }
 
-            async function loadDms() {
+            async function loadDms(silent = false) {
                 if (!currentPartnerId) return;
-                const dms = await api(`get_direct_messages&partner_id=${currentPartnerId}`);
+                const dms = await api(`get_direct_messages&partner_id=${currentPartnerId}`, 'GET', null, silent);
+                if (!Array.isArray(dms)) return;
+                
+                // Simple Diff Check to prevent flickering
+                const currentJson = JSON.stringify(dms);
+                if (window.lastDmsJson === currentJson) return;
+
+                // Notification Check
+                if (window.lastDmsJson) {
+                    const oldDms = JSON.parse(window.lastDmsJson);
+                    if (dms.length > oldDms.length) {
+                        const latest = dms[dms.length - 1];
+                        if (latest.username !== currentUserName) {
+                            playNotification();
+                        }
+                    }
+                }
+                window.lastDmsJson = currentJson;
+
                 const container = document.getElementById('dm-message-container');
                 const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
                 container.innerText = '';
@@ -1795,6 +1906,11 @@ if ($isLoggedIn) {
                 document.getElementById('new-thread-name').value = '';
             }
 
+            function playNotification() {
+                const audio = new Audio('notice.wav');
+                audio.play().catch(e => console.log('Audio autoplay blocked:', e));
+            }
+
             document.addEventListener('DOMContentLoaded', () => {
                 const avatarEl = document.getElementById('global-user-avatar');
                 if (avatarEl) {
@@ -1809,12 +1925,20 @@ if ($isLoggedIn) {
                 // Also update thread actions logic initially
                 updateThreadActions();
 
-                // Polling
-                setInterval(() => {
-                    if (isDmMode && currentPartnerId) loadDms();
-                    else if (!isDmMode && currentThreadId) loadMessages();
-                }, 3000);
+                // Polling Logic (Recursive to avoid overlap)
+                async function poll() {
+                    if (isDmMode && currentPartnerId) {
+                        await loadDms(true);
+                    } else if (!isDmMode && currentThreadId) {
+                        await loadMessages(true);
+                    }
+                    setTimeout(poll, 1000);
+                }
+                poll(); // Start polling
             });
+
+
+
         </script>
     <?php endif; ?>
 </body>

@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION['user'])) {
-    header("Location: login.php");
+    header("Location: index.php"); // Updated redirect to index.php (login)
     exit();
 }
 $user = $_SESSION['user'] ?? null;
@@ -12,308 +12,266 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['confirm_delete']) && $_POST['confirm_delete'] === 'yes') {
         include '../backend/db.php';
+        $user_id = $_SESSION['user_id']; // Use session ID directly for safety
 
-        // セッションのユーザー情報からID取得
-        // ここではusernameでユーザーを特定
-        $sql = "SELECT id FROM users WHERE username = ?";
-        $stmt = $mysqli->prepare($sql);
-        $stmt->bind_param('s', $user);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
-        $stmt->close();
-
-        if ($row) {
-            $user_id = $row['id'];
-
-            // トランザクション開始
+        if ($user_id) {
             $mysqli->begin_transaction();
-
             try {
-                // 関連するラジオログを削除
-                $delete_logs_sql = "DELETE FROM radio_logs WHERE source IN (
-                    SELECT username FROM users WHERE id = ?
-                )";
-                $delete_logs_stmt = $mysqli->prepare($delete_logs_sql);
-                $delete_logs_stmt->bind_param('i', $user_id);
-                $delete_logs_stmt->execute();
-                $delete_logs_stmt->close();
-
-                // GPSログを削除
-                $delete_gps_sql = "DELETE FROM gps_logs WHERE id IN (
-                    SELECT id FROM users WHERE id = ?
-                )";
-                $delete_gps_stmt = $mysqli->prepare($delete_gps_sql);
-                $delete_gps_stmt->bind_param('i', $user_id);
-                $delete_gps_stmt->execute();
-                $delete_gps_stmt->close();
-
-                // ユーザーアカウントを削除
-                $delete_user_sql = "DELETE FROM users WHERE id = ?";
-                $delete_user_stmt = $mysqli->prepare($delete_user_sql);
-                $delete_user_stmt->bind_param('i', $user_id);
-
-                if ($delete_user_stmt->execute()) {
-                    $delete_user_stmt->close();
-
-                    // コミット
+                // Keep minimal logic: just delete user. 
+                // Assumes CASCADING deletes in DB schema for related data (messages, friends, etc),
+                // otherwise we should manually delete them.
+                // Given the init.sql seen earlier, cascading handles most things?
+                // init.sql had ON DELETE CASCADE for foreign keys.
+                
+                $stmt = $mysqli->prepare("DELETE FROM users WHERE id = ?");
+                $stmt->bind_param('i', $user_id);
+                
+                if ($stmt->execute()) {
+                    $stmt->close();
                     $mysqli->commit();
                     $mysqli->close();
-
-                    // セッション削除
                     session_destroy();
-
-                    // ログインページへリダイレクト
-                    header('Location: login.php?deleted=1');
+                    header('Location: index.php?deleted=1');
                     exit();
                 } else {
                     throw new Exception('ユーザーの削除に失敗しました');
                 }
             } catch (Exception $e) {
-                // ロールバック
                 $mysqli->rollback();
                 $error = 'エラーが発生しました: ' . $e->getMessage();
             }
-        } else {
-            $error = 'ユーザー情報が見つかりません';
         }
-
         $mysqli->close();
-    } else {
-        $error = '削除の確認がされていません';
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
     <meta charset="UTF-8">
-    <title>アカウント削除 - Tactical-Ops-Dashboard</title>
-    <link rel="stylesheet" href="css/style-index.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete Account | SYCS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .delete-account-container {
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 30px;
-            background-color: #f5f5f5;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        :root {
+            --bg-color: #0f0f10;
+            --accent-color: #ef4444; /* Red for Danger */
+            --accent-hover: #dc2626;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: #2d2e32;
+            --card-bg: #1e1f23;
+            --input-bg: #2a2b2f;
         }
 
-        .alert {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            border-left: 4px solid;
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            background: radial-gradient(circle at top right, #1e1b4b, #0f0f10);
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .card {
+            background: rgba(30, 31, 35, 0.8);
+            backdrop-filter: blur(12px);
+            padding: 3rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 1.5rem;
+            color: var(--accent-color);
+            font-weight: 700;
+            font-size: 1.8rem;
         }
 
         .alert-warning {
-            background-color: #fff3cd;
-            color: #856404;
-            border-left-color: #ffc107;
-        }
-
-        .alert-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border-left-color: #dc3545;
-        }
-
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border-left-color: #28a745;
-        }
-
-        .delete-warning {
-            background-color: #fff3cd;
-            border: 2px solid #ffc107;
-            padding: 20px;
-            border-radius: 6px;
-            margin: 20px 0;
-        }
-
-        .delete-warning h3 {
-            color: #dc3545;
-            margin-top: 0;
-        }
-
-        .delete-warning ul {
-            margin: 10px 0;
-            padding-left: 20px;
-        }
-
-        .delete-warning li {
-            margin-bottom: 8px;
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+            color: #fca5a5;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            text-align: left;
+            line-height: 1.6;
         }
 
         .checkbox-group {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: white;
-            border-radius: 4px;
+            text-align: left;
+            margin: 1.5rem 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
         }
 
         .checkbox-group label {
             display: flex;
             align-items: center;
-            margin-bottom: 10px;
             cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            transition: color 0.2s;
         }
 
-        .checkbox-group input[type="checkbox"] {
-            margin-right: 10px;
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
+        .checkbox-group label:hover {
+            color: var(--text-primary);
         }
 
-        .button-group {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 30px;
-        }
-
-        .btn {
-            padding: 12px 30px;
-            border: none;
+        .checkbox-group input {
+            appearance: none;
+            width: 1.25em;
+            height: 1.25em;
+            border: 2px solid var(--border-color);
             border-radius: 4px;
-            font-size: 16px;
+            margin-right: 0.75rem;
+            display: grid;
+            place-content: center;
+            transition: 0.2s;
             cursor: pointer;
-            transition: background-color 0.3s;
+            background: var(--input-bg);
+        }
+
+        .checkbox-group input::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 0.12s transform ease-in-out;
+            box-shadow: inset 1em 1em white;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+
+        .checkbox-group input:checked {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .checkbox-group input:checked::before {
+            transform: scale(1);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        button, .btn-cancel {
+            flex: 1;
+            padding: 0.8rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            text-decoration: none;
+            font-size: 0.9rem;
+            border: none;
+            display: inline-block;
         }
 
         .btn-danger {
-            background-color: #dc3545;
+            background-color: var(--accent-color);
             color: white;
+            opacity: 0.5;
+            pointer-events: none;
         }
 
-        .btn-danger:hover:not(:disabled) {
-            background-color: #c82333;
+        .btn-danger.active {
+            opacity: 1;
+            pointer-events: auto;
         }
 
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
+        .btn-danger.active:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
         }
 
-        .btn-secondary:hover {
-            background-color: #545b62;
+        .btn-cancel {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
         }
 
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .info-text {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 20px;
+        .btn-cancel:hover {
+            background-color: rgba(255,255,255,0.05);
+            color: var(--text-primary);
         }
     </style>
 </head>
-
 <body>
+    <div class="card">
+        <h2>アカウント削除</h2>
+        
+        <?php if ($error): ?>
+            <div style="color: #ef4444; margin-bottom: 1rem; text-align: left; padding: 10px; background: rgba(255,0,0,0.1); border-radius: 8px;">
+                <?= htmlspecialchars($error) ?>
+            </div>
+        <?php endif; ?>
 
-    <header>
-        <div class="header-inner" style="display:flex; align-items:center; justify-content:space-between;">
-            <h1>Tactical-Ops-Dashboard</h1>
-            <nav>
-                <?php if ($user): ?>
-                    <span>ようこそ <?= htmlspecialchars($user) ?> さん</span>
-                    <a href="index.php">Dashboard</a>
-                    <a href="logout.php">Logout</a>
-                <?php else: ?>
-                    <a href="login.php" class="no-style-link">Login</a>
-                    <a href="signup.php" class="no-style-link">Sign up</a>
-                <?php endif; ?>
-            </nav>
+        <div class="alert-warning">
+            <strong>⚠ 警告:</strong><br>
+            この操作は取り消せません。<br>
+            メッセージ履歴、フレンドリスト、アップロードしたファイルを含む全てのデータが永久に削除されます。
         </div>
-    </header>
 
-    <main>
-        <div class="delete-account-container">
-            <h2>アカウント削除</h2>
-
-            <?php if ($error): ?>
-                <div class="alert alert-danger">
-                    <strong>エラー:</strong> <?= htmlspecialchars($error) ?>
-                </div>
-            <?php endif; ?>
-
-            <div class="info-text">
-                <p>アカウント削除は取り消せません。以下の内容をよくご確認ください。</p>
+        <form method="POST">
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="confirm1" name="confirm1" value="yes">
+                    すべてのデータが削除されることを理解しました
+                </label>
+                <label>
+                    <input type="checkbox" id="confirm2" name="confirm2" value="yes">
+                    この操作は復元できないことを理解しました
+                </label>
+                <label>
+                    <input type="checkbox" id="confirm3" name="confirm3" value="yes">
+                    アカウント削除を実行します
+                </label>
             </div>
 
-            <div class="delete-warning">
-                <h3>⚠ 削除対象</h3>
-                <ul>
-                    <li><strong>アカウント情報</strong>: メールアドレス、ユーザー名、パスワード</li>
-                    <li><strong>セッション</strong>: ログイン状態は削除後、再度ログインが必要</li>
-                </ul>
-                <p style="margin-top: 15px; color: #721c24;">
-                    <strong>注意:</strong> この処理は取り消せません。削除されたデータは復元できません。
-                </p>
+            <div class="btn-group">
+                <a href="index.php" class="btn-cancel">キャンセル</a>
+                <button type="submit" name="confirm_delete" value="yes" class="btn-danger" id="deleteBtn">
+                    削除を実行
+                </button>
             </div>
-
-            <form method="POST">
-                <div class="checkbox-group">
-                    <label>
-                        <input type="checkbox" id="confirm1" name="confirm1" value="yes">
-                        <span>すべてのデータが削除されることを理解しました</span>
-                    </label>
-                    <label>
-                        <input type="checkbox" id="confirm2" name="confirm2" value="yes">
-                        <span>この操作は取り消せないことを理解しました</span>
-                    </label>
-                    <label>
-                        <input type="checkbox" id="confirm3" name="confirm3" value="yes">
-                        <span>アカウント削除を実行します</span>
-                    </label>
-                </div>
-
-                <div class="button-group">
-                    <a href="index.php" class="btn btn-secondary">キャンセル</a>
-                    <button type="submit" name="confirm_delete" value="yes" class="btn btn-danger" id="deleteBtn" disabled>
-                        アカウントを削除
-                    </button>
-                </div>
-            </form>
-        </div>
-    </main>
-
-    <footer>
-        © 2025 Tactical-Ops-Dashboard · Terms · Privacy
-    </footer>
+        </form>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const confirm1 = document.getElementById('confirm1');
-            const confirm2 = document.getElementById('confirm2');
-            const confirm3 = document.getElementById('confirm3');
+            const checkboxes = [
+                document.getElementById('confirm1'),
+                document.getElementById('confirm2'),
+                document.getElementById('confirm3')
+            ];
             const deleteBtn = document.getElementById('deleteBtn');
 
-            function updateButtonState() {
-                deleteBtn.disabled = !(confirm1.checked && confirm2.checked && confirm3.checked);
+            function updateButton() {
+                const allChecked = checkboxes.every(cb => cb.checked);
+                if (allChecked) {
+                    deleteBtn.classList.add('active');
+                } else {
+                    deleteBtn.classList.remove('active');
+                }
             }
 
-            confirm1.addEventListener('change', updateButtonState);
-            confirm2.addEventListener('change', updateButtonState);
-            confirm3.addEventListener('change', updateButtonState);
-
-            // フォーム送信時の追加確認
-            document.querySelector('form').addEventListener('submit', (e) => {
-                if (!confirm('本当にアカウントを削除しますか？この操作は取り消せません。')) {
-                    e.preventDefault();
-                }
-            });
+            checkboxes.forEach(cb => cb.addEventListener('change', updateButton));
         });
     </script>
-
 </body>
-
 </html>
