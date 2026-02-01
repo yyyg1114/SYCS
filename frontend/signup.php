@@ -125,7 +125,7 @@ if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
         }
 
         button {
-            width: 100%;
+            width: 109%;
             padding: 0.8rem;
             background-color: var(--accent-color);
             color: white;
