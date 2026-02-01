@@ -1,4 +1,5 @@
 <?php
+
 // 1. Secure Session Settings (Must be before session_start)
 session_set_cookie_params([
     'lifetime' => 0,
@@ -24,7 +25,47 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Ensure DM table exists
+// Ensure basic tables exist
+$mysqli->query("CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(255) DEFAULT NULL,
+    last_thread_id INT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
+
+$mysqli->query("CREATE TABLE IF NOT EXISTS threads (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    creator_id INT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
+
+// Ensure at least one user exists for foreign key constraints
+$res = $mysqli->query("SELECT id FROM users WHERE id = 1");
+if ($res->num_rows === 0) {
+    $mysqli->query("INSERT INTO users (id, username, password) VALUES (1, 'admin', 'admin_pass')");
+}
+
+// Ensure ID 1 exists specifically since it's the default
+$res = $mysqli->query("SELECT id FROM threads WHERE id = 1");
+if ($res->num_rows === 0) {
+    $mysqli->query("INSERT INTO threads (id, name, creator_id) VALUES (1, 'general', 1)");
+}
+
+$mysqli->query("CREATE TABLE IF NOT EXISTS messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    thread_id INT NOT NULL,
+    user_id INT NOT NULL,
+    content TEXT,
+    reply_to_id INT DEFAULT NULL,
+    attachment_path VARCHAR(255) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)");
+
 $mysqli->query("CREATE TABLE IF NOT EXISTS direct_messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sender_id INT NOT NULL,
@@ -37,7 +78,6 @@ $mysqli->query("CREATE TABLE IF NOT EXISTS direct_messages (
     FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
 )");
 
-// Ensure Friends table exists
 $mysqli->query("CREATE TABLE IF NOT EXISTS friends (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id_1 INT NOT NULL,
@@ -49,7 +89,6 @@ $mysqli->query("CREATE TABLE IF NOT EXISTS friends (
     UNIQUE KEY unique_friendship (user_id_1, user_id_2)
 )");
 
-// Ensure Favorites table exists
 $mysqli->query("CREATE TABLE IF NOT EXISTS favorites (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -60,7 +99,6 @@ $mysqli->query("CREATE TABLE IF NOT EXISTS favorites (
     UNIQUE KEY unique_fav (user_id, thread_id)
 )");
 
-// Ensure Blocked Users table exists
 $mysqli->query("CREATE TABLE IF NOT EXISTS blocked_users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     blocker_id INT NOT NULL,
@@ -70,6 +108,28 @@ $mysqli->query("CREATE TABLE IF NOT EXISTS blocked_users (
     FOREIGN KEY (blocked_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY unique_block (blocker_id, blocked_id)
 )");
+
+// Migrations for existing schemas
+$mysqli->query("IF NOT EXISTS (SELECT * FROM information_schema.COLUMNS WHERE TABLE_NAME='messages' AND COLUMN_NAME='reply_to_id') THEN ALTER TABLE messages ADD COLUMN reply_to_id INT DEFAULT NULL AFTER content; END IF;");
+// 実際には PHP の SHOW COLUMNS の方が確実なので以前の方式にします
+
+$res = $mysqli->query("SHOW COLUMNS FROM threads LIKE 'creator_id'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE threads ADD COLUMN creator_id INT DEFAULT 1");
+}
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'last_thread_id'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN last_thread_id INT DEFAULT 1");
+}
+$res = $mysqli->query("SHOW COLUMNS FROM messages LIKE 'reply_to_id'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE messages ADD COLUMN reply_to_id INT DEFAULT NULL AFTER content");
+    $mysqli->query("ALTER TABLE messages ADD FOREIGN KEY (reply_to_id) REFERENCES messages(id) ON DELETE SET NULL");
+}
+$res = $mysqli->query("SHOW COLUMNS FROM messages LIKE 'attachment_path'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE messages ADD COLUMN attachment_path VARCHAR(255) DEFAULT NULL AFTER reply_to_id");
+}
 
 // Helper to verify CSRF
 function verify_csrf()
@@ -792,7 +852,10 @@ if ($isLoggedIn) {
                         <div class="drag-overlay">ファイルをドロップしてアップロード</div>
 
                         <div id="reply-bar" class="reply-bar">
-                            <span>Replying to <strong id="reply-target-name">User</strong></span>
+                            <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden;">
+                                <span style="font-size: 0.75rem; opacity: 0.8;">Replying to <strong id="reply-target-name">User</strong></span>
+                                <div id="reply-preview-text" style="font-size: 0.8rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; opacity: 0.6;">...</div>
+                            </div>
                             <span class="close-btn" onclick="cancelReply()">✕</span>
                         </div>
                         <div id="upload-preview" class="upload-preview">
@@ -1028,8 +1091,30 @@ if ($isLoggedIn) {
                     }
                     opts.body = body;
                 }
-                const res = await fetch(`index.php?api=${path}`, opts);
-                return res.json();
+                
+                try {
+                    const res = await fetch(`index.php?api=${path}`, opts);
+                    
+                    // Get response text first
+                    const text = await res.text();
+                    
+                    // Try to parse as JSON
+                    try {
+                        const json = JSON.parse(text);
+                        return json;
+                    } catch (parseError) {
+                        console.error('JSON parse error:', parseError);
+                        return {
+                            error: 'サーバーエラー: JSONパースに失敗しました',
+                            details: text.substring(0, 200)
+                        };
+                    }
+                } catch (fetchError) {
+                    console.error('Fetch error:', fetchError);
+                    return {
+                        error: 'ネットワークエラー: ' + fetchError.message
+                    };
+                }
             }
 
             async function loadThreads() {
@@ -1156,6 +1241,9 @@ if ($isLoggedIn) {
                 // If it's a child (implied by context, but we handle visual indent via nesting divs)
                 // We create the message group, then a child container.
 
+                // Add ID for jumping
+                wrapper.id = 'message-' + m.id;
+
                 const group = document.createElement('div');
                 group.className = 'message-group';
 
@@ -1180,49 +1268,45 @@ if ($isLoggedIn) {
                 const actions = document.createElement('div');
                 actions.className = 'message-actions';
 
-                // Add Reply/Delete buttons
+                // Always allow reply
+                const replyBtn = document.createElement('button');
+                replyBtn.className = 'msg-action-btn';
+                replyBtn.innerText = '↩️';
+                replyBtn.title = '返信';
+                replyBtn.onclick = () => startReply(m.id, m.username, m.content);
+                actions.appendChild(replyBtn);
+
+                // Add Delete buttons only if owner
                 if (m.username === currentUserName) {
-                    const btn = document.createElement('button');
-                    btn.className = 'msg-action-btn';
-                    btn.innerText = '🗑️';
-                    btn.title = '削除';
-                    btn.onclick = () => deleteMessage(m.id);
-                    actions.appendChild(btn);
-                }
-                // Always allow reply? Yes.
-                // Just to be safe, avoid self-reply loop? No, users reply to themselves sometimes.
-                // But typically UI shows reply button always unless readonly.
-                // Original logic: else { Reply } -> meaning I can't reply to myself? 
-                // Let's keep original logic for consistency or improve it?
-                // User requirement: "existing features remain". 
-                // Original: if (m.username === currentUserName) { delete } else { reply }
-                // So I can't reply to my own message. I'll stick to that.
-                if (m.username !== currentUserName) {
-                    const btn = document.createElement('button');
-                    btn.className = 'msg-action-btn';
-                    btn.innerText = '↩️';
-                    btn.title = '返信';
-                    btn.onclick = () => startReply(m.id, m.username);
-                    actions.appendChild(btn);
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'msg-action-btn';
+                    delBtn.innerText = '🗑️';
+                    delBtn.title = '削除';
+                    delBtn.onclick = () => deleteMessage(m.id);
+                    actions.appendChild(delBtn);
                 }
 
                 header.appendChild(user);
                 header.appendChild(time);
                 header.appendChild(actions);
 
-                // Note: We don't need the "Replying to X" text in the body if it's visually indented, 
-                // but user said "existing features remain", so maybe keeping it is safer?
-                // However, visual indentation makes "Replying to..." redundant and cluttery.
-                // "Indented under that message" suggests visual hierarchy replaces the text quote.
-                // I will Comment it out or remove it to make UI cleaner, as indentation IS the quote indication.
-                /*
+                // If it's a reply but NOT the direct child in visual tree (redundant check but safe)
+                // Or just always show who it's replying to if it's not a root message
                 if (m.reply_to_id && m.reply_username) {
                     const quote = document.createElement('div');
                     quote.className = 'reply-quote';
-                    quote.textContent = `Replying to ${m.reply_username}...`;
+                    quote.style.cursor = 'pointer';
+                    quote.innerHTML = `<span style="opacity:0.6; font-size:0.8rem;">↩️ 返信先: </span><strong>${m.reply_username}</strong>`;
+                    quote.onclick = () => {
+                        const target = document.getElementById('message-' + m.reply_to_id);
+                        if (target) {
+                            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            target.style.backgroundColor = 'rgba(99, 102, 241, 0.2)';
+                            setTimeout(() => target.style.backgroundColor = '', 2000);
+                        }
+                    };
                     info.appendChild(quote);
                 }
-                */
 
                 // Content
                 const contentDiv = document.createElement('div');
@@ -1297,7 +1381,9 @@ if ($isLoggedIn) {
             async function sendMessage() {
                 const content = msgInput.value.trim();
 
-                if (!content && !fileToUpload) return;
+                if (!content && !fileToUpload) {
+                    return;
+                }
 
                 const body = new FormData();
                 body.append('thread_id', currentThreadId);
@@ -1305,13 +1391,20 @@ if ($isLoggedIn) {
                 if (replyToId) body.append('reply_to_id', replyToId);
                 if (fileToUpload) body.append('attachment', fileToUpload);
 
-                await api('send_message', 'POST', body);
+                const result = await api('send_message', 'POST', body);
+                
+                if (result.error) {
+                    alert('メッセージの送信に失敗しました: ' + result.error);
+                    return;
+                }
 
                 // Clear UI
                 msgInput.value = '';
+                msgInput.style.height = 'auto';
                 cancelReply();
                 cancelUpload();
-                loadMessages();
+                
+                await loadMessages();
             }
 
             async function deleteMessage(id) {
@@ -1323,9 +1416,13 @@ if ($isLoggedIn) {
             }
 
             // --- Reply Logic ---
-            function startReply(id, username) {
+            function startReply(id, username, content = '') {
                 replyToId = id;
                 document.getElementById('reply-target-name').innerText = username;
+                const preview = document.getElementById('reply-preview-text');
+                if (preview) {
+                    preview.innerText = content.substring(0, 50) + (content.length > 50 ? '...' : '');
+                }
                 replyBar.classList.add('active');
                 msgInput.focus();
             }
@@ -1398,9 +1495,20 @@ if ($isLoggedIn) {
                 if (!name) return;
                 const body = new FormData();
                 body.append('name', name);
-                await api('create_thread', 'POST', body);
-                loadThreads();
+                const result = await api('create_thread', 'POST', body);
+                
+                if (result.error) {
+                    alert('スレッドの作成に失敗しました: ' + result.error);
+                    return;
+                }
+                
+                await loadThreads();
                 hideCreateThread();
+                
+                // Switch to the newly created thread
+                if (result.id) {
+                    switchThread(result.id, name, currentUserId);
+                }
             }
 
             function toggleThreadBrowser() {
@@ -1751,11 +1859,18 @@ if ($isLoggedIn) {
                 body.append('content', content);
                 if (dmFileToUpload) body.append('attachment', dmFileToUpload);
 
-                await api('send_direct_message', 'POST', body);
+                const result = await api('send_direct_message', 'POST', body);
+                
+                if (result.error) {
+                    alert('DMの送信に失敗しました: ' + result.error);
+                    return;
+                }
+                
                 input.value = '';
+                input.style.height = 'auto';
                 cancelDmUpload();
-                loadDms();
-                loadDmPartners(); // Refresh logic to put recent at top if sorted
+                await loadDms();
+                await loadDmPartners(); // Refresh logic to put recent at top if sorted
             }
 
             function handleDmInputKey(e) {

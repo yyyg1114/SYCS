@@ -445,14 +445,15 @@ a:hover {
 
 /* Reply & Upload UI */
 .reply-bar {
-    background-color: #2a2b2f;
-    padding: 8px 15px;
+    background-color: var(--sidebar-bg);
+    padding: 10px 25px;
     display: none;
     align-items: center;
     justify-content: space-between;
     font-size: 0.85rem;
+    border-top: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
 .reply-bar.active {
@@ -525,12 +526,17 @@ a:hover {
 .reply-quote {
     font-size: 0.8rem;
     color: var(--text-secondary);
-    border-left: 2px solid var(--accent-color);
-    padding-left: 8px;
-    margin-bottom: 4px;
-    background: rgba(255, 255, 255, 0.02);
-    padding: 4px 8px;
-    border-radius: 0 4px 4px 0;
+    border-left: 3px solid var(--accent-color);
+    padding: 6px 12px;
+    margin-bottom: 8px;
+    background: rgba(99, 102, 241, 0.05);
+    border-radius: 0 8px 8px 0;
+    transition: 0.2s;
+    max-width: fit-content;
+}
+
+.reply-quote:hover {
+    background: rgba(99, 102, 241, 0.1);
 }
 
 /* Drag Overlay */
