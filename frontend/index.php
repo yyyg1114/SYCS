@@ -19,6 +19,7 @@ header("X-Content-Type-Options: nosniff");
 header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';");
 
 require_once __DIR__ . '/../backend/db.php';
+require_once __DIR__ . '/../backend/SecurityUtil.php';
 
 // 3. CSRF Token Generation
 if (empty($_SESSION['csrf_token'])) {
@@ -42,10 +43,43 @@ $mysqli->query("CREATE TABLE IF NOT EXISTS threads (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )");
 
+// Ensure users table has email protection and verification columns
+$mysqli->query("ALTER TABLE users MODIFY COLUMN email VARCHAR(500)"); // Increase length for encrypted email
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'email_hash'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN email_hash VARCHAR(64) NULL AFTER email");
+}
+
+$res = $mysqli->query("SHOW INDEX FROM users WHERE Key_name = 'idx_email_hash'");
+if ($res->num_rows === 0) {
+    $mysqli->query("CREATE INDEX idx_email_hash ON users(email_hash)");
+}
+
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'is_verified'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN is_verified TINYINT DEFAULT 0");
+}
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'verification_token'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN verification_token VARCHAR(255) NULL");
+}
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'reset_token'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN reset_token VARCHAR(255) NULL");
+}
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'reset_expires'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN reset_expires DATETIME NULL");
+}
+
 // Ensure at least one user exists for foreign key constraints
 $res = $mysqli->query("SELECT id FROM users WHERE id = 1");
 if ($res->num_rows === 0) {
-    $mysqli->query("INSERT INTO users (id, username, password) VALUES (1, 'admin', 'admin_pass')");
+    $hashedAdminPass = password_hash('admin_pass', PASSWORD_DEFAULT);
+    $email = 'admin@example.com';
+    $encryptedEmail = SecurityUtil::encrypt($email);
+    $emailHash = hash('sha256', $email);
+    $mysqli->query("INSERT INTO users (id, email, email_hash, username, password, is_verified) VALUES (1, '$encryptedEmail', '$emailHash', 'admin', '$hashedAdminPass', 1)");
 }
 
 // Ensure ID 1 exists specifically since it's the default
@@ -678,18 +712,48 @@ if (isset($_POST['action']) && $_POST['action'] === 'login') {
         $u = $_POST['username'] ?? '';
         $p = $_POST['password'] ?? '';
 
-        $stmt = $mysqli->prepare("SELECT id, username, last_thread_id FROM users WHERE username = ? AND password = ? LIMIT 1");
-        $stmt->bind_param("ss", $u, $p);
+        $stmt = $mysqli->prepare("SELECT id, username, password, is_verified, last_thread_id FROM users WHERE username = ? LIMIT 1");
+        $stmt->bind_param("s", $u);
         $stmt->execute();
         $res = $stmt->get_result();
 
         if ($res && $res->num_rows === 1) {
             $row = $res->fetch_assoc();
-            $_SESSION['user_id'] = $row['id'];
-            $_SESSION['user'] = $row['username'];
-            $_SESSION['last_thread_id'] = $row['last_thread_id'] ?: 1;
-            header('Location: index.php');
-            exit;
+            if (password_verify($p, $row['password'])) {
+                if ($row['is_verified'] != 1) {
+                    $error = '本登録が完了していません。メール内のリンクを確認してください。';
+                } else {
+                    // Update hash if needed
+                    if (password_needs_rehash($row['password'], PASSWORD_DEFAULT)) {
+                        $newHash = password_hash($p, PASSWORD_DEFAULT);
+                        $upd = $mysqli->prepare("UPDATE users SET password = ? WHERE id = ?");
+                        $upd->bind_param("si", $newHash, $row['id']);
+                        $upd->execute();
+                        $upd->close();
+                    }
+                    
+                    $_SESSION['user_id'] = $row['id'];
+                    $_SESSION['user'] = $row['username'];
+                    $_SESSION['last_thread_id'] = $row['last_thread_id'] ?: 1;
+                    header('Location: index.php');
+                    exit;
+                }
+            } else {
+                // Compatibility for transition ... (re-applying legacy logic here)
+                if ($p === $row['password']) {
+                    $newHash = password_hash($p, PASSWORD_DEFAULT);
+                    $upd = $mysqli->prepare("UPDATE users SET password = ? WHERE id = ?");
+                    $upd->bind_param("si", $newHash, $row['id']);
+                    $upd->execute();
+                    $upd->close();
+                    $_SESSION['user_id'] = $row['id'];
+                    $_SESSION['user'] = $row['username'];
+                    $_SESSION['last_thread_id'] = $row['last_thread_id'] ?: 1;
+                    header('Location: index.php');
+                    exit;
+                }
+                $error = 'ログインに失敗しました。ユーザー名またはパスワードが正しくありません。';
+            }
         } else {
             $error = 'ログインに失敗しました。ユーザー名またはパスワードが正しくありません。';
         }
@@ -708,7 +772,6 @@ $isLoggedIn = isset($_SESSION['user']);
 $currentUser = $_SESSION['user'] ?? null;
 $initialThreadId = $_SESSION['last_thread_id'] ?? 1;
 
-// さらに最新の last_thread_id をDBから取得（ページリロード時など）
 if ($isLoggedIn) {
     $stmt = $mysqli->prepare("SELECT last_thread_id FROM users WHERE id = ?");
     $stmt->bind_param("i", $_SESSION['user_id']);
@@ -719,7 +782,7 @@ if ($isLoggedIn) {
     }
     $stmt->close();
 
-    $stmt = $mysqli->prepare("SELECT * FROM threads WHERE id = ?"); // Fetch * for creator check
+    $stmt = $mysqli->prepare("SELECT * FROM threads WHERE id = ?");
     $stmt->bind_param("i", $initialThreadId);
     $stmt->execute();
     $tres = $stmt->get_result();
@@ -739,14 +802,11 @@ if ($isLoggedIn) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Markdown & Sanitize Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
-
     <?php if (!$isLoggedIn): ?>
         <div class="auth-container">
             <div class="auth-card">
@@ -764,7 +824,8 @@ if ($isLoggedIn) {
                             placeholder="••••••••"></div>
                     <button type="submit" class="btn-primary">ログイン</button>
                 </form>
-                <div style="margin-top:2rem; font-size:0.9rem; color:var(--text-secondary);">
+                <div style="margin-top:2rem; font-size:0.85rem; color:var(--text-secondary);">
+                    <a href="forgot_password.php" style="margin-bottom: 0.5rem; display: block;">パスワードを忘れましたか？</a>
                     アカウントをお持ちでないですか？ <a href="signup.php">新規登録</a>
                 </div>
             </div>

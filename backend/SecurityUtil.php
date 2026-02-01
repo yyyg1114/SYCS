@@ -168,6 +168,41 @@ class SecurityUtil
         }
     }
 
+    /**
+     * Generate a cryptographically secure random token
+     */
+    public static function generateToken(int $length = 32): string
+    {
+        return bin2hex(random_bytes($length));
+    }
+
+    /**
+     * Encrypt data using AES-256-CBC
+     * Note: In production, store the key in an environment variable or secure config.
+     */
+    private const ENCRYPTION_KEY = 'sycs-secret-key-change-this-in-production'; // 32 bytes recommended for AES-256
+
+    public static function encrypt(string $data): string
+    {
+        $key = hash('sha256', self::ENCRYPTION_KEY, true);
+        $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
+        $encrypted = openssl_encrypt($data, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+        return base64_encode($iv . '::' . $encrypted);
+    }
+
+    public static function decrypt(string $data): ?string
+    {
+        $key = hash('sha256', self::ENCRYPTION_KEY, true);
+        $decoded = base64_decode($data);
+        if (!$decoded || strpos($decoded, '::') === false) return null;
+        
+        list($iv, $encrypted) = explode('::', $decoded, 2);
+        if (strlen($iv) !== openssl_cipher_iv_length('aes-256-cbc')) return null;
+
+        $decrypted = openssl_decrypt($encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+        return $decrypted ?: null;
+    }
+
     public static function generateUuid(): string
     {
         return sprintf(

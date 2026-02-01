@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Tokyo');
 $mysqli = new mysqli(
     "localhost",
     "root",

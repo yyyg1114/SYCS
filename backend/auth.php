@@ -25,13 +25,14 @@ function requireLogin()
 /**
  * 現在のログインユーザー情報を取得
  */
-function getCurrentUser($pdo)
+function getCurrentUser($mysqli)
 {
-    if (!isLoggedIn()) return null;
+    if (!isset($_SESSION['user_id'])) return null;
 
-    $stmt = $pdo->prepare("SELECT id, username, email FROM users WHERE id=?");
-    $stmt->execute([$_SESSION['user_id']]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $mysqli->prepare("SELECT id, username, email FROM users WHERE id=?");
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc();
 }
 
 /**

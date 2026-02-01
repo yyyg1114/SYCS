@@ -1,30 +1,41 @@
 <?php
 require_once __DIR__ . '/../backend/db.php';
+require_once __DIR__ . '/../backend/SecurityUtil.php';
+require_once __DIR__ . '/../backend/Mailer.php';
 
 $msg = '';
 $err = '';
 $success = false;
+$pending = isset($_GET['pending']);
 
 if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
-    $e = $_POST['email'];
-    $u = $_POST['username'];
-    $p = $_POST['password'];
+    $email = $_POST['email'];
+    $username = $_POST['username'];
+    $password = $_POST['password'];
 
-    $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ? OR username = ?");
-    $stmt->bind_param("ss", $e, $u);
+    // Search by username or email_hash
+    $emailHash = hash('sha256', $email);
+    $stmt = $mysqli->prepare("SELECT id FROM users WHERE email_hash = ? OR username = ?");
+    $stmt->bind_param("ss", $emailHash, $username);
     $stmt->execute();
     $check = $stmt->get_result();
 
     if ($check && $check->num_rows > 0) {
         $err = 'このメールアドレスまたはユーザー名は既に使用されています';
     } else {
-        $stmt_insert = $mysqli->prepare("INSERT INTO users (email, username, password) VALUES (?, ?, ?)");
-        $stmt_insert->bind_param("sss", $e, $u, $p);
+        $encryptedEmail = SecurityUtil::encrypt($email);
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        $token = SecurityUtil::generateToken();
+
+        $stmt_insert = $mysqli->prepare("INSERT INTO users (email, email_hash, username, password, verification_token, is_verified) VALUES (?, ?, ?, ?, ?, 0)");
+        $stmt_insert->bind_param("sssss", $encryptedEmail, $emailHash, $username, $hashedPassword, $token);
+        
         if ($stmt_insert->execute()) {
-            $msg = '登録が完了しました。ログイン画面へ移動します。';
+            Mailer::sendVerification($email, $username, $token);
+            $msg = '仮登録が完了しました。届いたメール内のリンクをクリックして本登録を完了してください。';
             $success = true;
         } else {
-            $err = '登録に失敗しました';
+            $err = '登録に失敗しました: ' . $mysqli->error;
         }
         $stmt_insert->close();
     }

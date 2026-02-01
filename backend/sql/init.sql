@@ -8,11 +8,17 @@ USE SYCS_suchgamer;
 -- ユーザー
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  email VARCHAR(255) NOT NULL UNIQUE,
+  email VARCHAR(500) NOT NULL,
+  email_hash VARCHAR(64) NULL,
   username VARCHAR(50) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
+  is_verified TINYINT DEFAULT 0,
+  verification_token VARCHAR(255) NULL,
+  reset_token VARCHAR(255) NULL,
+  reset_expires DATETIME NULL,
   last_thread_id INT DEFAULT 1,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_email_hash (email_hash)
 );
 
 -- セッション管理
@@ -96,6 +102,8 @@ CREATE TABLE IF NOT EXISTS blocked_users (
 
 -- 初期データ投入
 -- 外部キー制約を満たすため、まずダミーユーザーを一人作成
-INSERT IGNORE INTO users (id, email, username, password) VALUES (1, 'admin@example.com', 'admin', 'admin_pass');
+-- パスワードは 'admin_pass' のハッシュ値
+-- メールは 'admin@example.com' の暗号化+ハッシュ値 (固定キーでの例)
+INSERT IGNORE INTO users (id, email, email_hash, username, password, is_verified) VALUES (1, 'V3oyZ3g4R0V5dFl0OWt3T285ODVqdz09OjpkMmZjNjE5ZDRmOTI0YzY4ZmZmM2ExY2M1NzkxZGY1ZA==', '73686866633633393033653139366361366266383636306331306361313431633534343063383030386134373462373037613531313264366635393433393863', 'admin', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 1);
 -- 初期スレッド作成 (INSERT IGNORE で重複防止)
 INSERT IGNORE INTO threads (id, name, creator_id) VALUES (1, 'general', 1);

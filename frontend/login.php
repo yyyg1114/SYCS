@@ -1,33 +1,46 @@
 <?php
 session_start();
 require_once __DIR__ . '/../backend/db.php';
+require_once __DIR__ . '/../backend/SecurityUtil.php';
 
 $error = '';
 
-if (isset($_POST['username'], $_POST['password'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['password'])) {
     $u = $_POST['username'];
     $p = $_POST['password'];
 
-    $sql = "SELECT * FROM users WHERE username='$u' AND password='$p' LIMIT 1";
-    $res = $mysqli->query($sql);
+    $stmt = $mysqli->prepare("SELECT id, username, password, is_verified, last_thread_id FROM users WHERE username = ?");
+    $stmt->bind_param("s", $u);
+    $stmt->execute();
+    $res = $stmt->get_result();
 
-    if ($res && $res->num_rows === 1) {
-        $_SESSION['user'] = $u;
-        header('Location: index.php');
-        exit;
+    if ($row = $res->fetch_assoc()) {
+        if (password_verify($p, $row['password'])) {
+            if ($row['is_verified'] == 0) {
+                $error = 'メールアドレスの本登録が完了していません。';
+            } else {
+                $_SESSION['user_id'] = $row['id'];
+                $_SESSION['user'] = $row['username'];
+                $_SESSION['last_thread_id'] = $row['last_thread_id'] ?: 1;
+                header('Location: index.php');
+                exit;
+            }
+        } else {
+            $error = 'ユーザー名またはパスワードが正しくありません。';
+        }
     } else {
-        $error = 'ログインに失敗しました';
+        $error = 'ユーザー名またはパスワードが正しくありません。';
     }
 }
 ?>
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="assets/img/SYCS_favicon.svg" type="image/x-icon">
-    <title>Login | SYCS Shinjuku Yamabuki Chat System</title>
-    <link rel="stylesheet" href="css/style-login.css">
+    <title>Login | SYCS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: #0f0f10;
@@ -35,113 +48,180 @@ if (isset($_POST['username'], $_POST['password'])) {
             --accent-hover: #818cf8;
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
-            --border-color: #2d2e32;
-            --card-bg: #1e1f23;
-            --input-bg: #2a2b2f;
+            --card-bg: rgba(30, 31, 35, 0.7);
+            --input-bg: rgba(255, 255, 255, 0.05);
         }
 
         body {
-            font-family: 'Inter', system-ui, sans-serif;
+            font-family: 'Inter', sans-serif;
             background-color: var(--bg-color);
-            background: radial-gradient(circle at top right, #1e1b4b, #0f0f10);
+            background: radial-gradient(circle at 0% 0%, #1e1b4b 0%, #0f0f10 50%),
+                        radial-gradient(circle at 100% 100%, #312e81 0%, #0f0f10 50%);
             color: var(--text-primary);
+            display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
         }
 
         .card {
-            background: rgba(30, 31, 35, 0.8);
-            backdrop-filter: blur(12px);
-            padding: 3rem;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            padding: 3.5rem;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
             width: 100%;
-            max-width: 440px;
+            max-width: 420px;
             text-align: center;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        h2 {
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
             margin-bottom: 2rem;
-            color: var(--accent-color);
-            font-weight: 700;
-            font-size: 1.8rem;
+            color: var(--text-primary);
+            font-weight: 800;
+            font-size: 2.2rem;
+            letter-spacing: -0.025em;
+        }
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            margin-left: 0.5rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 1rem;
+            background: var(--input-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            transition: 0.3s;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
         }
 
         button {
             width: 100%;
-            padding: 0.8rem;
-            background-color: var(--accent-color);
+            padding: 1rem;
+            background: var(--accent-color);
             color: white;
             border: none;
-            border-radius: 10px;
-            font-weight: 600;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
             cursor: pointer;
-            transition: 0.2s;
+            transition: 0.3s;
+            margin-top: 1rem;
         }
 
         button:hover {
-            background-color: var(--accent-hover);
-            transform: translateY(-1px);
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
         }
 
-        .success {
-            background-color: rgba(40, 167, 69, 0.1);
-            color: #4ade80;
-            border: 1px solid rgba(40, 167, 69, 0.2);
+        .error-box {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(239, 68, 68, 0.2);
         }
 
-        .error {
-            background-color: rgba(220, 53, 69, 0.1);
-            color: #f87171;
-            border: 1px solid rgba(220, 53, 69, 0.2);
+        .links {
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
         }
 
-        a {
-            color: var(--accent-color);
+        .forgot-link {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
             text-decoration: none;
             transition: 0.2s;
         }
 
-        a:hover {
-            color: var(--accent-hover);
+        .forgot-link:hover {
+            color: var(--accent-color);
+        }
+
+        .signup-promo {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .signup-promo a {
+            color: var(--accent-color);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        footer {
+            position: fixed;
+            bottom: 2rem;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.3);
         }
     </style>
 </head>
-
 <body>
+    <div class="card">
+        <h1>SYCS</h1>
+        
+        <?php if ($error): ?>
+            <div class="error-box"><?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
 
-    <main>
-        <div class="card">
-            <h2>Login</h2>
+        <form method="POST">
+            <div class="input-group">
+                <label for="username">ユーザー名</label>
+                <input type="text" id="username" name="username" placeholder="Username" required autofocus>
+            </div>
+            <div class="input-group">
+                <label for="password">パスワード</label>
+                <input type="password" id="password" name="password" placeholder="Password" required>
+            </div>
+            <button type="submit">ログイン</button>
+        </form>
 
-            <?php if ($error): ?>
-                <div class="message error"><?= htmlspecialchars($error) ?></div>
-            <?php endif; ?>
-
-            <form method="POST">
-                <label>
-                    Username
-                    <input type="text" name="username" placeholder="username" aria-required="true">
-                </label>
-                <label>
-                    Password
-                    <input type="password" name="password" placeholder="password" aria-required="true">
-                </label>
-                <button class="button" type="submit">Log in</button>
-                <a class="button" href="signup.php" class="btn">Sign up</a>
-                <a class="button" href="top.php" class="btn">Top</a>
-            </form>
+        <div class="links">
+            <a href="forgot_password.php" class="forgot-link">パスワードを忘れましたか？</a>
+            <p class="signup-promo">
+                アカウントをお持ちでないですか？ <a href="signup.php">新規登録</a>
+            </p>
         </div>
-    </main>
+    </div>
 
     <footer>
-        © 2026 SYCS · Terms · Privacy
+        &copy; 2026 SYCS · Shinjuku Yamabuki Chat System
     </footer>
-
 </body>
-
 </html>
