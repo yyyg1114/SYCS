@@ -23,7 +23,7 @@ class Mailer
         // 設定ファイルの読み込み
         $configPath = __DIR__ . '/mail_config_sample.php';
         if (!file_exists($configPath)) {
-            error_log("Mailer: mail_config.php not found. Falling back to log only.");
+            error_log("Mailer: mail_config_sample.php not found. Falling back to log only.");
             return true;
         }
         $config = require $configPath;
