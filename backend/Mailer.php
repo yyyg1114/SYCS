@@ -21,7 +21,7 @@ class Mailer
         file_put_contents("$logDir/mail.log", $logEntry, FILE_APPEND);
 
         // 設定ファイルの読み込み
-        $configPath = __DIR__ . '/mail_config.php';
+        $configPath = __DIR__ . '/mail_config_sample.php';
         if (!file_exists($configPath)) {
             error_log("Mailer: mail_config.php not found. Falling back to log only.");
             return true;
