@@ -132,6 +132,9 @@ a:hover {
     align-items: center;
     justify-content: center;
     gap: 8px;
+    height: fit-content;
+    /* justify-content: center;
+    align-items: center; */
 }
 
 .btn-primary:hover {
@@ -362,6 +365,10 @@ a:hover {
 
 .chat-input-area {
     padding: 20px 25px;
+    position: relative;
+    bottom: 0;
+    background-color: var(--panel-bg);
+    border-top: 1px solid var(--border-color);
 }
 
 .input-wrapper {
@@ -640,7 +647,12 @@ a:hover {
 #dm-message-container {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
+    /* Take remaining space */
+    min-height: 0;
+    /* Crucial for scrolling in flex */
+    overflow-y: auto;
+    /* Enable scrolling */
     padding: 20px;
 }
 

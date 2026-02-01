@@ -24,6 +24,30 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
+// Ensure Messages table exists
+$mysqli->query("CREATE TABLE IF NOT EXISTS messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    thread_id INT NOT NULL,
+    user_id INT NOT NULL,
+    content TEXT,
+    attachment_path VARCHAR(255),
+    reply_to_id INT DEFAULT NULL,
+    is_edited BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (reply_to_id) REFERENCES messages(id) ON DELETE SET NULL
+)");
+
+// Dynamic Column Addition for Open Chat
+try {
+    $mysqli->query("ALTER TABLE messages ADD COLUMN reply_to_id INT DEFAULT NULL");
+    $mysqli->query("ALTER TABLE messages ADD CONSTRAINT fk_msg_reply FOREIGN KEY (reply_to_id) REFERENCES messages(id) ON DELETE SET NULL");
+} catch (Exception $e) {}
+try {
+    $mysqli->query("ALTER TABLE messages ADD COLUMN is_edited BOOLEAN DEFAULT FALSE");
+} catch (Exception $e) {}
+
 // Ensure DM table exists
 $mysqli->query("CREATE TABLE IF NOT EXISTS direct_messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -32,10 +56,22 @@ $mysqli->query("CREATE TABLE IF NOT EXISTS direct_messages (
     content TEXT,
     attachment_path VARCHAR(255),
     is_read BOOLEAN DEFAULT FALSE,
+    reply_to_id INT DEFAULT NULL,
+    is_edited BOOLEAN DEFAULT TRUE, /* Default to false actually, usually 0 */
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (reply_to_id) REFERENCES direct_messages(id) ON DELETE SET NULL
 )");
+
+// Dynamic Column Addition for existing deployments
+try {
+    $mysqli->query("ALTER TABLE direct_messages ADD COLUMN reply_to_id INT DEFAULT NULL");
+    $mysqli->query("ALTER TABLE direct_messages ADD CONSTRAINT fk_dm_reply FOREIGN KEY (reply_to_id) REFERENCES direct_messages(id) ON DELETE SET NULL");
+} catch (Exception $e) {}
+try {
+    $mysqli->query("ALTER TABLE direct_messages ADD COLUMN is_edited BOOLEAN DEFAULT FALSE");
+} catch (Exception $e) {}
 
 // Ensure Friends table exists
 $mysqli->query("CREATE TABLE IF NOT EXISTS friends (
@@ -140,6 +176,47 @@ if (isset($_GET['api'])) {
         exit;
     }
 
+    if ($action === 'edit_message') {
+        verify_csrf();
+        $msgId = $_POST['message_id'] ?? 0;
+        $content = $_POST['content'] ?? '';
+        
+        $stmt = $mysqli->prepare("SELECT user_id FROM messages WHERE id = ?");
+        $stmt->bind_param("i", $msgId);
+        $stmt->execute();
+        if ($row = $stmt->get_result()->fetch_assoc()) {
+            if ($row['user_id'] == $userId) {
+                $upd = $mysqli->prepare("UPDATE messages SET content = ?, is_edited = 1 WHERE id = ?");
+                $upd->bind_param("si", $content, $msgId);
+                $upd->execute();
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['error' => 'Forbidden']);
+            }
+        }
+        exit;
+    }
+
+    if ($action === 'delete_message') {
+        verify_csrf();
+        $msgId = $_POST['message_id'] ?? 0;
+        
+        $stmt = $mysqli->prepare("SELECT user_id FROM messages WHERE id = ?");
+        $stmt->bind_param("i", $msgId);
+        $stmt->execute();
+        if ($row = $stmt->get_result()->fetch_assoc()) {
+            if ($row['user_id'] == $userId) {
+                $del = $mysqli->prepare("DELETE FROM messages WHERE id = ?");
+                $del->bind_param("i", $msgId);
+                $del->execute();
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['error' => 'Forbidden']);
+            }
+        }
+        exit;
+    }
+
     if ($action === 'get_dm_partners') {
         // Get users I have sent to OR received from
         $query = "
@@ -166,9 +243,11 @@ if (isset($_GET['api'])) {
     if ($action === 'get_direct_messages') {
         $partnerId = $_GET['partner_id'] ?? 0;
         $stmt = $mysqli->prepare("
-            SELECT dm.*, u.username 
+            SELECT dm.*, u.username, r.content as reply_content, ru.username as reply_username 
             FROM direct_messages dm
             JOIN users u ON dm.sender_id = u.id
+            LEFT JOIN direct_messages r ON dm.reply_to_id = r.id
+            LEFT JOIN users ru ON r.sender_id = ru.id
             WHERE (dm.sender_id = ? AND dm.receiver_id = ?) 
                OR (dm.sender_id = ? AND dm.receiver_id = ?)
             ORDER BY dm.created_at ASC
@@ -180,13 +259,59 @@ if (isset($_GET['api'])) {
         exit;
     }
 
+    if ($action === 'edit_dm') {
+        verify_csrf();
+        $msgId = $_POST['message_id'] ?? 0;
+        $content = $_POST['content'] ?? '';
+        
+        $stmt = $mysqli->prepare("SELECT sender_id FROM direct_messages WHERE id = ?");
+        $stmt->bind_param("i", $msgId);
+        $stmt->execute();
+        if ($row = $stmt->get_result()->fetch_assoc()) {
+            if ($row['sender_id'] == $userId) {
+                $upd = $mysqli->prepare("UPDATE direct_messages SET content = ?, is_edited = 1 WHERE id = ?");
+                $upd->bind_param("si", $content, $msgId);
+                $upd->execute();
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['error' => 'Forbidden']);
+            }
+        }
+        exit;
+    }
+
+    if ($action === 'delete_dm') {
+        verify_csrf();
+        $msgId = $_POST['message_id'] ?? 0;
+        
+        $stmt = $mysqli->prepare("SELECT sender_id FROM direct_messages WHERE id = ?");
+        $stmt->bind_param("i", $msgId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($row = $res->fetch_assoc()) {
+            if ($row['sender_id'] == $userId) {
+                // Hard delete
+                $del = $mysqli->prepare("DELETE FROM direct_messages WHERE id = ?");
+                $del->bind_param("i", $msgId);
+                $del->execute();
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['error' => 'Forbidden']);
+            }
+        } else {
+             echo json_encode(['error' => 'Not found']);
+        }
+        exit;
+    }
+
     if ($action === 'send_direct_message') {
         verify_csrf();
         $receiverId = $_POST['receiver_id'] ?? 0;
         $content = $_POST['content'] ?? '';
+        $replyToId = !empty($_POST['reply_to_id']) ? $_POST['reply_to_id'] : null;
         $attachmentPath = null;
 
-        // Reuse file upload logic
+        // Reuse file upload logic (Copied from previous implementation for consistency)
         if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
             $tmpName = $_FILES['attachment']['tmp_name'];
             $fileName = $_FILES['attachment']['name'];
@@ -199,17 +324,13 @@ if (isset($_GET['api'])) {
                 $uuid = SecurityUtil::generateUuid();
                 
                 if ($ext === 'svg') {
-                    // Logic for SVG: Sanitize -> Protected Storage -> Convert PNG -> Public Storage
                     $rawContent = file_get_contents($tmpName);
                     $sanitized = SecurityUtil::sanitizeSVG($rawContent);
-                    
                     if ($sanitized) {
-                        // Save Original (Sanitized) to protected
                         $protectedDir = __DIR__ . '/../protected_uploads/';
                         if (!is_dir($protectedDir)) mkdir($protectedDir, 0700, true);
                         file_put_contents($protectedDir . $uuid . '.svg', $sanitized);
 
-                        // Convert to PNG for display
                         $publicDir = __DIR__ . '/uploads/';
                         if (!is_dir($publicDir)) mkdir($publicDir, 0755, true);
                         
@@ -217,12 +338,9 @@ if (isset($_GET['api'])) {
                         $publicPath = $publicDir . $pngName;
                         
                         if (SecurityUtil::convertSvgToPng($protectedDir . $uuid . '.svg', $publicPath)) {
-                            // Success: DB stores PNG path. 
-                            // *Download Logic will infer SVG availability via UUID match.*
+                            // Correct path storage as per previous fix
                             $attachmentPath = 'uploads/' . $pngName;
                         } else {
-                            // Fallback? If conversion fails, maybe we reject or just don't show image?
-                            // Rejecting is safer as requirement says "Display as PNG".
                             echo json_encode(['error' => 'SVG Conversion Failed']);
                             exit;
                         }
@@ -230,15 +348,12 @@ if (isset($_GET['api'])) {
                          echo json_encode(['error' => 'Invalid SVG content']);
                          exit;
                     }
-
                 } else {
-                    // Standard File Flow
-                    $uploadDir = __DIR__ . '/uploads/'; // use relative path consistency
+                    $uploadDir = __DIR__ . '/uploads/'; 
                     if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
-                    
                     $newFileName = $uuid . '.' . $ext;
-                    // Move
                     if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
+                        // Correct path storage
                         $attachmentPath = 'uploads/' . $newFileName;
                     }
                 }
@@ -249,8 +364,8 @@ if (isset($_GET['api'])) {
         }
 
         if (($receiverId && $content !== '') || ($receiverId && $attachmentPath)) {
-            $stmt = $mysqli->prepare("INSERT INTO direct_messages (sender_id, receiver_id, content, attachment_path) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("iiss", $userId, $receiverId, $content, $attachmentPath);
+            $stmt = $mysqli->prepare("INSERT INTO direct_messages (sender_id, receiver_id, content, attachment_path, reply_to_id) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("iissi", $userId, $receiverId, $content, $attachmentPath, $replyToId);
             $stmt->execute();
             echo json_encode(['success' => true]);
         } else {
@@ -430,7 +545,14 @@ if (isset($_GET['api'])) {
         // Accepted friends, sorted by most recent conversation
         $stmt = $mysqli->prepare("
             SELECT u.id, u.username, 
-            MAX(dm.created_at) as last_msg_at
+            MAX(dm.created_at) as last_msg_at,
+            (SELECT content FROM direct_messages 
+             WHERE (sender_id = u.id AND receiver_id = ?) OR (sender_id = ? AND receiver_id = u.id)
+             ORDER BY created_at DESC LIMIT 1) as last_msg_content,
+            (SELECT attachment_path FROM direct_messages 
+             WHERE (sender_id = u.id AND receiver_id = ?) OR (sender_id = ? AND receiver_id = u.id)
+             ORDER BY created_at DESC LIMIT 1) as last_msg_attach,
+            (SELECT COUNT(*) FROM direct_messages WHERE sender_id = u.id AND receiver_id = ? AND is_read = 0) as unread_count
             FROM friends f
             JOIN users u ON (f.user_id_1 = u.id OR f.user_id_2 = u.id)
             LEFT JOIN direct_messages dm ON (
@@ -443,7 +565,7 @@ if (isset($_GET['api'])) {
             GROUP BY u.id
             ORDER BY last_msg_at DESC, u.username ASC
         ");
-        $stmt->bind_param("iiiii", $userId, $userId, $userId, $userId, $userId);
+        $stmt->bind_param("iiiiiiiiii", $userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId);
         $stmt->execute();
         echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
         exit;
@@ -655,7 +777,9 @@ if ($isLoggedIn) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SYCS</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="shortcut icon" href="assets/img/Logo.png" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Markdown & Sanitize Libraries -->
@@ -745,9 +869,12 @@ if ($isLoggedIn) {
                         <div id="message-container" class="chat-messages"></div>
                         <div class="drag-overlay">ファイルをドロップしてアップロード</div>
 
-                        <div id="reply-bar" class="reply-bar">
-                            <span>Replying to <strong id="reply-target-name">User</strong></span>
-                            <span class="close-btn" onclick="cancelReply()">✕</span>
+                        <div id="reply-bar" class="reply-bar" style="display:none; align-items:center; justify-content:space-between; padding:8px 10px; background:var(--bg-secondary); border-bottom:1px solid var(--border-color); font-size:0.85rem;">
+                             <div style="display:flex; align-items:center; gap:5px; flex:1; overflow:hidden;">
+                                <span class="action-label" style="font-weight:bold; color:var(--accent-color);">返信中</span>
+                                <span style="color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="reply-target-name">...</span>
+                            </div>
+                            <span class="close-btn" onclick="cancelAction()" style="cursor:pointer; font-size:1.2rem; color:var(--text-secondary);">✕</span>
                         </div>
                         <div id="upload-preview" class="upload-preview">
                             <span style="font-size:0.85rem; color:var(--text-secondary);">添付ファイル: </span>
@@ -810,11 +937,11 @@ if ($isLoggedIn) {
                         <div class="chat-header">
                             <h3>Friend Hub</h3>
                             <div style="margin-left:auto; display:flex; gap:10px;">
-                                <button class="btn-primary" onclick="showAddFriendModal()">フレンド申請</button>
+                                <button class="btn-primary" onclick="showAddFriendModal()">申請</button>
                                 <button class="btn-primary" onclick="showPendingRequestsModal()"
-                                    id="btn-pending-req">フレンド承認</button>
+                                    id="btn-pending-req">承認</button>
                                 <button class="btn-secondary" style="background-color:#333;"
-                                    onclick="showBlockedModal()">ブロック一覧</button>
+                                    onclick="showBlockedModal()"><i class='bx bx-block'></i></button>
                             </div>
                         </div>
                         <div class="scroller" style="flex:1; padding:20px; overflow-y:auto;">
@@ -853,15 +980,23 @@ if ($isLoggedIn) {
                             </div>
                         </div>
 
+                        <div id="dm-reply-bar" style="display:none; align-items:center; justify-content:space-between; padding:8px 10px; background:var(--bg-secondary); border-bottom:1px solid var(--border-color); font-size:0.85rem;">
+                            <div style="display:flex; align-items:center; gap:5px; flex:1; overflow:hidden;">
+                                <span class="action-label" style="font-weight:bold; color:var(--accent-color);">返信中</span>
+                                <span style="color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="dm-reply-info">Message content...</span>
+                            </div>
+                            <button onclick="cancelDmAction()" style="background:none; border:none; cursor:pointer; color:var(--text-secondary); font-size:1.2rem;">×</button>
+                        </div>
+
                         <div id="dm-upload-preview" class="upload-preview-bar"
                             style="display:none; padding:10px; border-bottom:1px solid var(--border-color);">
                             <div id="dm-preview-content"></div>
                             <button class="close-btn" onclick="cancelDmUpload()">×</button>
                         </div>
 
-                        <div class="chat-input-area" id="dm-chat-area">
+                        <div class="chat-input-area" id="dm-input-container">
                             <div class="input-wrapper">
-                                <textarea id="dm-msg-input" class="chat-input" placeholder="DMを送信..." rows="1"
+                                <textarea id="dm-chat-area" class="chat-input" placeholder="DMを送信..." rows="1"
                                     onkeydown="handleDmInputKey(event)"></textarea>
                                 <button class="icon-btn" onclick="document.getElementById('dm-file-input').click()"
                                     style="margin-right:5px;">
@@ -966,6 +1101,7 @@ if ($isLoggedIn) {
             let isDmMode = false;
             const csrfToken = "<?= htmlspecialchars($_SESSION['csrf_token']) ?>";
             let replyToId = null;
+            let editingId = null;
             let fileToUpload = null;
 
             // DOM Elements
@@ -1170,20 +1306,42 @@ if ($isLoggedIn) {
             }
 
             function renderMessageNode(m, parentContainer) {
-                // Wrapper for indentation
-                const wrapper = document.createElement('div');
-                wrapper.className = 'message-wrapper';
-                // If it's a child (implied by context, but we handle visual indent via nesting divs)
-                // We create the message group, then a child container.
-
                 const group = document.createElement('div');
                 group.className = 'message-group';
+                
+                // NEW: Hover to show actions
+                group.onmouseover = () => {
+                    const acts = group.querySelector('.message-actions');
+                    if(acts) acts.style.opacity = '1';
+                };
+                group.onmouseleave = () => {
+                    const acts = group.querySelector('.message-actions');
+                    if(acts) acts.style.opacity = '0';
+                };
 
-                // Avatar
                 group.appendChild(getAvatarElement(m.username));
 
                 const info = document.createElement('div');
                 info.className = 'message-info';
+                
+                // Reply Quote
+                if (m.reply_to_id && m.reply_content) {
+                    const quote = document.createElement('div');
+                     quote.className = 'reply-quote';
+                     quote.style.fontSize='0.8rem'; 
+                     quote.style.color='var(--text-secondary)';
+                     quote.style.marginBottom='2px';
+                     quote.style.display='flex';
+                     quote.style.alignItems='center';
+                     quote.style.gap='5px';
+                     quote.innerHTML = `
+                         <span style="color:var(--text-secondary); opacity:0.7;">┌ </span>
+                         <span class="avatar-sm" style="width:16px;height:16px;font-size:10px;">${m.reply_username?m.reply_username.charAt(0).toUpperCase():'?'}</span>
+                         <span style="font-weight:bold;">${m.reply_username}</span>
+                         <span>${m.reply_content.length > 20 ? m.reply_content.substring(0,20)+'...' : m.reply_content}</span>
+                     `;
+                     info.appendChild(quote);
+                }
 
                 const header = document.createElement('div');
                 header.className = 'message-header';
@@ -1196,53 +1354,60 @@ if ($isLoggedIn) {
                 time.className = 'message-time';
                 time.textContent = m.created_at;
 
-                // Actions
-                const actions = document.createElement('div');
-                actions.className = 'message-actions';
-
-                // Add Reply/Delete buttons
-                if (m.username === currentUserName) {
-                    const btn = document.createElement('button');
-                    btn.className = 'msg-action-btn';
-                    btn.innerText = '🗑️';
-                    btn.title = '削除';
-                    btn.onclick = () => deleteMessage(m.id);
-                    actions.appendChild(btn);
-                }
-                // Always allow reply? Yes.
-                // Just to be safe, avoid self-reply loop? No, users reply to themselves sometimes.
-                // But typically UI shows reply button always unless readonly.
-                // Original logic: else { Reply } -> meaning I can't reply to myself? 
-                // Let's keep original logic for consistency or improve it?
-                // User requirement: "existing features remain". 
-                // Original: if (m.username === currentUserName) { delete } else { reply }
-                // So I can't reply to my own message. I'll stick to that.
-                if (m.username !== currentUserName) {
-                    const btn = document.createElement('button');
-                    btn.className = 'msg-action-btn';
-                    btn.innerText = '↩️';
-                    btn.title = '返信';
-                    btn.onclick = () => startReply(m.id, m.username);
-                    actions.appendChild(btn);
-                }
-
                 header.appendChild(user);
                 header.appendChild(time);
-                header.appendChild(actions);
-
-                // Note: We don't need the "Replying to X" text in the body if it's visually indented, 
-                // but user said "existing features remain", so maybe keeping it is safer?
-                // However, visual indentation makes "Replying to..." redundant and cluttery.
-                // "Indented under that message" suggests visual hierarchy replaces the text quote.
-                // I will Comment it out or remove it to make UI cleaner, as indentation IS the quote indication.
-                /*
-                if (m.reply_to_id && m.reply_username) {
-                    const quote = document.createElement('div');
-                    quote.className = 'reply-quote';
-                    quote.textContent = `Replying to ${m.reply_username}...`;
-                    info.appendChild(quote);
+                
+                if (m.is_edited == 1) {
+                    const edited = document.createElement('span');
+                    edited.innerText = '(編集済み)';
+                    edited.style.fontSize = '0.7rem';
+                    edited.style.color = 'var(--text-secondary)';
+                    edited.style.marginLeft = '5px';
+                    header.appendChild(edited);
                 }
-                */
+
+                // Actions (Overlay style)
+                const actions = document.createElement('div');
+                actions.className = 'message-actions';
+                actions.style.opacity = '0'; // Hidden by default
+                actions.style.transition = 'opacity 0.2s';
+                actions.style.display = 'flex';
+                actions.style.gap = '8px';
+                actions.style.position = 'absolute';
+                actions.style.right = '10px';
+                actions.style.top = '-10px';
+                actions.style.background = 'var(--panel-bg)';
+                actions.style.border = '1px solid var(--border-color)';
+                actions.style.borderRadius = '4px';
+                actions.style.padding = '2px 5px';
+                actions.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+
+                // Reply Button
+                const replyBtn = document.createElement('div');
+                replyBtn.innerText = '↩️'; 
+                replyBtn.title = '返信';
+                replyBtn.style.cursor = 'pointer';
+                replyBtn.onclick = () => startReply(m.id, m.username, m.content); // Pass content for UI
+                actions.appendChild(replyBtn);
+
+                if (m.username === currentUserName) {
+                    const editBtn = document.createElement('div');
+                    editBtn.innerText = '✏️';
+                    editBtn.title = '編集';
+                    editBtn.style.cursor = 'pointer';
+                    editBtn.onclick = () => editMessage(m.id, m.content);
+                    actions.appendChild(editBtn);
+
+                    const delBtn = document.createElement('div');
+                    delBtn.innerText = '🗑️';
+                    delBtn.title = '削除';
+                    delBtn.style.cursor = 'pointer';
+                    delBtn.onclick = () => deleteMessage(m.id);
+                    actions.appendChild(delBtn);
+                }
+
+                group.style.position = 'relative'; 
+                group.appendChild(actions);
 
                 // Content
                 const contentDiv = document.createElement('div');
@@ -1250,165 +1415,43 @@ if ($isLoggedIn) {
                 if (m.content) contentDiv.innerText = m.content;
 
                 if (m.attachment_path) {
-                    // Fix path if it contains 'frontend/' prefix erroneously from previous saves
-                    // or if logic needs consistency.
+                    // Reuse Attachment Logic
                     let displayPath = m.attachment_path;
-                    if (displayPath.startsWith('frontend/')) {
-                         displayPath = displayPath.replace('frontend/', '');
-                    }
-                    
+                    if (displayPath.startsWith('frontend/')) displayPath = displayPath.replace('frontend/', '');
                     const ext = displayPath.split('.').pop().toLowerCase();
                     const fileName = displayPath.split('/').pop();
                     const downloadUrl = 'download.php?file=' + fileName;
-
-                    let mediaEl = null;
-
-                    // MIME Type Deduction (Simple)
-                    const videoExts = ['mp4', 'webm', 'mov', 'mkv'];
-                    const audioExts = ['mp3', 'wav', 'm4a'];
-                    const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
-
-                    if (imageExts.includes(ext)) {
-                        const img = document.createElement('img');
-                        img.src = displayPath;
-                        img.className = 'preview-img';
-                        img.onload = () => {
-                             // Clean layout callback?
-                        };
-                        img.style.cursor = 'zoom-in';
-                        img.onclick = () => openMediaModal('image', displayPath, downloadUrl);
-                        mediaEl = img;
-                    } else if (videoExts.includes(ext)) {
-                        const vid = document.createElement('video');
-                        vid.src = displayPath;
-                        vid.controls = true; // Show controls inline too? Or just thumbnail?
-                        // User said: "Attached file is pressed -> popup... download button there."
-                        // And "Preview screen can play on the spot". 
-                        // So inline player is good.
-                        vid.className = 'preview-img'; // reuse style for sizing
-                        vid.style.cursor = 'pointer';
-                        // For video, clicking usually plays. We need a way to popup.
-                        // Add a "Expand" button/icon or rely on user using the download?
-                        // "Attachment pressed -> Popup". 
-                        // HTML5 Video eats click events for controls.
-                        // Let's wrap it or add a "Enlarge" btn? 
-                        // Or just let inline player be enough? "Download button THERE" (in popup).
-                        // If inline player has no download button (we can hide it in controlsList), user needs popup.
-                        // Let's make the video clickable (overlay?) or just add an icon.
-                        
-                        // Simplest: Tiny video that plays inline. Click expands? 
-                        // Let's try: Video with controls. 
-                        // AND a button "🔍 拡大" next to it?
-                        // Or just render a video tag.
-                        // Wait, "popup as large display".
-                        // I'll render the video inline. I'll add a "Enlarge/Download" button below it? 
-                        // User request: "Attached file is pressed -> popup". 
-                        // Maybe cover with an overlay if we want strict click-to-popup?
-                        // No, "Preview screen can play on the spot" implies inline playback.
-                        // So: Inline playback works. 
-                        // To get popup/download: Add a specific button or make the filename clickable?
-                        // Let's add a wrapper with an "Expand" icon.
-                        vid.style.maxWidth = '100%';
-                        vid.style.maxHeight = '300px';
-                        
-                        const wrapper = document.createElement('div');
-                        wrapper.style.position = 'relative';
-                        wrapper.style.display = 'inline-block';
-                        wrapper.appendChild(vid);
-                        
-                        const expandBtn = document.createElement('button');
-                        expandBtn.innerHTML = '⤢';
-                        expandBtn.title = '拡大・ダウンロード';
-                        expandBtn.style.position = 'absolute';
-                        expandBtn.style.top = '5px';
-                        expandBtn.style.right = '5px';
-                        expandBtn.style.background = 'rgba(0,0,0,0.6)';
-                        expandBtn.style.color = 'white';
-                        expandBtn.style.border = 'none';
-                        expandBtn.style.borderRadius = '4px';
-                        expandBtn.style.cursor = 'pointer';
-                        expandBtn.onclick = (e) => {
-                            e.preventDefault();
-                            e.stopPropagation(); // Prevent play
-                            vid.pause();
-                            openMediaModal('video', displayPath, downloadUrl);
-                        };
-                        wrapper.appendChild(expandBtn);
-                        mediaEl = wrapper;
-
-                    } else if (audioExts.includes(ext)) {
-                        const aud = document.createElement('audio');
-                        aud.src = displayPath;
-                        aud.controls = true;
-                        aud.style.marginTop = '10px';
-                        // Audio usually doesn't need "Large Popup".
-                        // But we need a download button.
-                        // We can add a download link below it.
-                        mediaEl = aud;
+                    const imgExts = ['png','jpg','jpeg','gif','webp','svg'];
+                    
+                    if (imgExts.includes(ext)) {
+                         const img = document.createElement('img');
+                         img.src = displayPath;
+                         img.className = 'preview-img';
+                         img.onclick = () => openMediaModal('image', displayPath, downloadUrl);
+                         contentDiv.appendChild(img);
                     } else {
-                        // Other files
-                        const div = document.createElement('div');
-                        div.className = 'file-attachment';
-                        div.style.padding = '10px';
-                        div.style.background = 'rgba(255,255,255,0.05)';
-                        div.style.borderRadius = '8px';
-                        div.style.marginTop = '10px';
-                        div.innerHTML = `
-                            <span style="font-size:1.5rem; margin-right:10px;">📄</span>
-                            <span style="word-break:break-all;">${fileName}</span>
-                        `;
-                        // Click to download
-                        const link = document.createElement('a');
-                        link.href = downloadUrl;
-                        link.appendChild(div);
-                        link.style.textDecoration = 'none';
-                        link.style.color = 'inherit';
-                        mediaEl = link;
-                    }
-
-                    if (mediaEl) {
-                        contentDiv.appendChild(mediaEl);
-                        
-                        // Always add explicit download link below for clarity if not covered by "file-attachment" link
-                        if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mov', 'mkv', 'mp3', 'wav', 'm4a'].includes(ext)) {
-                            // "Download button in popup" was requested for popup. 
-                            // But user might want quick download too?
-                            // I will rely on the popup for Images/Video as requested.
-                            // For Audio, I'll add a small link because no popup.
-                            if (audioExts.includes(ext)) {
-                                const dl = document.createElement('a');
-                                dl.href = downloadUrl;
-                                dl.innerText = '⬇️ ダウンロード';
-                                dl.style.display = 'block';
-                                dl.style.fontSize = '0.8rem';
-                                dl.style.marginTop = '5px';
-                                dl.style.color = 'var(--accent-color)';
-                                contentDiv.appendChild(dl);
-                            }
-                        }
+                         const link = document.createElement('a');
+                         link.href = downloadUrl;
+                         link.innerHTML = `<div class="file-attachment">📄 ${fileName}</div>`;
+                         contentDiv.appendChild(link);
                     }
                 }
 
                 info.appendChild(header);
                 info.appendChild(contentDiv);
-                group.appendChild(info);
-
-                wrapper.appendChild(group);
-
-                // Children Container
-                if (m.children.length > 0) {
-                    const childrenDiv = document.createElement('div');
-                    childrenDiv.className = 'message-children';
-                    childrenDiv.style.marginLeft = '20px'; // Indent
-                    childrenDiv.style.marginTop = '8px';
-                    childrenDiv.style.paddingLeft = '10px';
-                    childrenDiv.style.borderLeft = '2px solid var(--border-color)';
-
-                    m.children.forEach(child => renderMessageNode(child, childrenDiv));
-                    wrapper.appendChild(childrenDiv);
+                
+                // Recursion for children
+                if (m.children && m.children.length > 0) {
+                    const childContainer = document.createElement('div');
+                    childContainer.className = 'message-children';
+                    childContainer.style.marginLeft = '20px';
+                    childContainer.style.borderLeft = '2px solid var(--border-color)';
+                    m.children.forEach(c => renderMessageNode(c, childContainer));
+                    info.appendChild(childContainer);
                 }
 
-                parentContainer.appendChild(wrapper);
+                group.appendChild(info);
+                parentContainer.appendChild(group);
             }
 
             function handleInputKey(e) {
@@ -1423,8 +1466,30 @@ if ($isLoggedIn) {
                 if (el.value === '') el.style.height = 'auto';
             }
 
+            function handleDmInputKey(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendDm();
+                }
+                const el = e.target;
+                el.style.height = 'auto';
+                el.style.height = (el.scrollHeight) + 'px';
+                if (el.value === '') el.style.height = 'auto';
+            }
+
             async function sendMessage() {
                 const content = msgInput.value.trim();
+
+                if (editingId) {
+                    if (!content) return;
+                    const body = new FormData();
+                    body.append('message_id', editingId);
+                    body.append('content', content);
+                    await api('edit_message', 'POST', body);
+                    cancelAction();
+                    loadMessages();
+                    return;
+                }
 
                 if (!content && !fileToUpload) return;
 
@@ -1443,7 +1508,7 @@ if ($isLoggedIn) {
 
                 // Clear UI
                 msgInput.value = '';
-                cancelReply();
+                cancelAction(); // Replaces cancelReply
                 cancelUpload();
                 loadMessages();
             }
@@ -1456,16 +1521,33 @@ if ($isLoggedIn) {
             }
 
             // --- Reply Logic ---
+            // --- Reply & Edit Logic ---
             function startReply(id, username) {
                 replyToId = id;
-                document.getElementById('reply-target-name').innerText = username;
-                replyBar.classList.add('active');
+                editingId = null;
+                // Update UI
+                replyBar.style.display = 'flex';
+                document.querySelector('#reply-bar .action-label').innerText = '返信中';
+                document.getElementById('reply-target-name').innerText = `Replying to ${username}`;
                 msgInput.focus();
             }
 
-            function cancelReply() {
+            function editMessage(id, content) {
+                editingId = id;
                 replyToId = null;
-                replyBar.classList.remove('active');
+                // Update UI
+                replyBar.style.display = 'flex';
+                document.querySelector('#reply-bar .action-label').innerText = '編集モード';
+                document.getElementById('reply-target-name').innerText = content && content.length > 20 ? content.substring(0, 20) + '...' : 'Editing...';
+                msgInput.value = content;
+                msgInput.focus();
+            }
+
+            function cancelAction() {
+                replyToId = null;
+                editingId = null;
+                replyBar.style.display = 'none';
+                msgInput.value = '';
             }
 
             function openMediaModal(type, src, downloadUrl) {
@@ -1570,10 +1652,12 @@ if ($isLoggedIn) {
                     if (tabId === 'dm') {
                         isDmMode = true;
                         document.getElementById('thread-browser').classList.remove('active'); // Ensure hidden
+                        localStorage.setItem('sycs_last_tab', 'dm');
                         backToHub();
                     } else if (tabId === 'threads') {
                         isDmMode = false;
                         // For Open Chat, we don't need the browser list, just load the chat.
+                        localStorage.setItem('sycs_last_tab', 'threads');
                         switchThread(1, 'Open Chat', 0);
                     }
                 });
@@ -1599,6 +1683,8 @@ if ($isLoggedIn) {
                 document.getElementById('dm-hub-view').style.display = 'none';
                 document.getElementById('dm-chat-view').style.display = 'flex';
                 document.getElementById('current-dm-partner-name').innerText = name;
+                localStorage.setItem('sycs_last_dm_id', id);
+                localStorage.setItem('sycs_last_dm_name', name);
                 loadDms();
             }
 
@@ -1774,10 +1860,40 @@ if ($isLoggedIn) {
                 dms.forEach(m => {
                     const group = document.createElement('div');
                     group.className = 'message-group';
+                    // Hover to show actions
+                    group.onmouseover = () => {
+                        const acts = group.querySelector('.dm-actions');
+                        if(acts) acts.style.opacity = '1';
+                    };
+                    group.onmouseleave = () => {
+                        const acts = group.querySelector('.dm-actions');
+                        if(acts) acts.style.opacity = '0';
+                    };
+
                     group.appendChild(getAvatarElement(m.username));
 
                     const info = document.createElement('div');
                     info.className = 'message-info';
+
+                    // Reply Header ?
+                    if (m.reply_to_id && m.reply_content) {
+                        const quote = document.createElement('div');
+                        quote.className = 'reply-quote';
+                        quote.style.fontSize='0.8rem'; 
+                        quote.style.color='var(--text-secondary)';
+                        // quote.style.borderLeft='2px solid var(--border-color)';
+                        quote.style.marginBottom='2px';
+                        quote.style.display='flex';
+                        quote.style.alignItems='center';
+                        quote.style.gap='5px';
+                        quote.innerHTML = `
+                            <span style="color:var(--text-secondary); opacity:0.7;">┌ </span>
+                            <span class="avatar-sm" style="width:16px;height:16px;font-size:10px;">${m.reply_username?m.reply_username.charAt(0).toUpperCase():'?'}</span>
+                            <span style="font-weight:bold;">${m.reply_username}</span>
+                            <span>${m.reply_content.length > 20 ? m.reply_content.substring(0,20)+'...' : m.reply_content}</span>
+                        `;
+                        info.appendChild(quote);
+                    }
 
                     const header = document.createElement('div');
                     header.className = 'message-header';
@@ -1792,28 +1908,197 @@ if ($isLoggedIn) {
 
                     header.appendChild(user);
                     header.appendChild(time);
+                    
+                    if (m.is_edited == 1) {
+                        const edited = document.createElement('span');
+                        edited.innerText = '(編集済み)';
+                        edited.style.fontSize = '0.7rem';
+                        edited.style.color = 'var(--text-secondary)';
+                        edited.style.marginLeft = '5px';
+                        header.appendChild(edited);
+                    }
 
                     const contentDiv = document.createElement('div');
                     contentDiv.className = 'message-content';
                     if (m.content) contentDiv.innerText = m.content;
 
+                    // Attachments (Reuse logic if possible, or simple replication)
                     if (m.attachment_path) {
-                        const img = document.createElement('img');
-                        img.src = m.attachment_path;
-                        img.className = 'preview-img';
-                        img.style.display = 'block';
-                        img.style.marginTop = '10px';
-                        img.onclick = () => window.open(m.attachment_path, '_blank');
-                        contentDiv.appendChild(img);
+                        let displayPath = m.attachment_path;
+                        if (displayPath.startsWith('frontend/')) displayPath = displayPath.replace('frontend/', '');
+                        const ext = displayPath.split('.').pop().toLowerCase();
+                        const fileName = displayPath.split('/').pop();
+                        const downloadUrl = 'download.php?file=' + fileName;
+
+                        // Simplified renderer
+                        const imgExts = ['png','jpg','jpeg','gif','webp','svg'];
+                        if (imgExts.includes(ext)) {
+                            const img = document.createElement('img');
+                            img.src = displayPath;
+                            img.className = 'preview-img';
+                            img.onclick = () => openMediaModal('image', displayPath, downloadUrl);
+                            contentDiv.appendChild(img);
+                        } else {
+                            const link = document.createElement('a');
+                            link.href = downloadUrl;
+                            link.innerHTML = `<div class="file-attachment">📄 ${fileName}</div>`;
+                            contentDiv.appendChild(link);
+                        }
                     }
+
+                    // Actions
+                    const actions = document.createElement('div');
+                    actions.className = 'dm-actions';
+                    actions.style.opacity = '0'; // Hidden by default
+                    actions.style.transition = 'opacity 0.2s';
+                    actions.style.display = 'flex';
+                    actions.style.gap = '8px';
+                    actions.style.position = 'absolute';
+                    actions.style.right = '10px';
+                    actions.style.top = '-10px';
+                    actions.style.background = 'var(--panel-bg)';
+                    actions.style.border = '1px solid var(--border-color)';
+                    actions.style.borderRadius = '4px';
+                    actions.style.padding = '2px 5px';
+                    actions.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+
+                    // Reply Button
+                    const replyBtn = document.createElement('div');
+                    replyBtn.innerText = '↩️'; 
+                    replyBtn.title = '返信';
+                    replyBtn.style.cursor = 'pointer';
+                    replyBtn.onclick = () => replyToDm(m.id, m.username, m.content);
+                    actions.appendChild(replyBtn);
+
+                    // Edit/Delete if own message
+                    if (m.sender_id == currentUserId) {
+                        const editBtn = document.createElement('div');
+                        editBtn.innerText = '✏️';
+                        editBtn.title = '編集';
+                        editBtn.style.cursor = 'pointer';
+                        editBtn.onclick = () => editDm(m.id, m.content);
+                        actions.appendChild(editBtn);
+
+                        const delBtn = document.createElement('div');
+                        delBtn.innerText = '🗑️';
+                        delBtn.title = '削除';
+                        delBtn.style.cursor = 'pointer';
+                        delBtn.onclick = () => deleteDm(m.id);
+                        actions.appendChild(delBtn);
+                    }
+
+                    group.style.position = 'relative'; // For absolute positioning of actions
+                    group.appendChild(actions); // Append to group (overlay)
 
                     info.appendChild(header);
                     info.appendChild(contentDiv);
                     group.appendChild(info);
+
                     container.appendChild(group);
                 });
-                if (isAtBottom) container.scrollTop = container.scrollHeight;
+
+                if (isAtBottom) {
+                    container.scrollTop = container.scrollHeight;
+                }
             }
+
+            // Global State for DM Actions
+            let dmReplyToId = null;
+            let dmEditingId = null;
+
+            function replyToDm(id, username, content) {
+                dmReplyToId = id;
+                dmEditingId = null;
+                const bar = document.getElementById('dm-reply-bar'); // Need to create this element in HTML
+                const info = document.getElementById('dm-reply-info');
+                const area = document.getElementById('dm-chat-area');
+                
+                // If bar doesn't exist, we must add it to the DOM dynamically or ensure it exists
+                // We will assume I need to add it to HTML or inject it.
+                // Let's check HTML structure in next step or inject it now via JS if missing.
+                // Better: Update HTML structure in a separate step or add it dynamically now.
+                // I'll stick to JS logic here.
+                
+                if (bar && info) {
+                    bar.style.display = 'flex';
+                    info.innerText = `Replying to ${username}: ${content.substring(0, 30)}...`;
+                    bar.querySelector('.action-label').innerText = '返信中';
+                    area.focus();
+                }
+            }
+
+            function editDm(id, content) {
+                dmEditingId = id;
+                dmReplyToId = null;
+                const bar = document.getElementById('dm-reply-bar');
+                const info = document.getElementById('dm-reply-info');
+                const area = document.getElementById('dm-chat-area');
+                
+                if (bar && info) {
+                    bar.style.display = 'flex';
+                    info.innerText = `Editing: ${content.substring(0, 30)}...`;
+                    bar.querySelector('.action-label').innerText = '編集モード';
+                    area.value = content;
+                    area.focus();
+                }
+            }
+
+            function cancelDmAction() {
+                dmReplyToId = null;
+                dmEditingId = null;
+                const bar = document.getElementById('dm-reply-bar');
+                const area = document.getElementById('dm-chat-area');
+                if (bar) bar.style.display = 'none';
+                area.value = '';
+            }
+
+            async function deleteDm(id) {
+                if (!confirm('本当に削除しますか？')) return;
+                const body = new FormData();
+                body.append('message_id', id);
+                await api('delete_dm', 'POST', body);
+                loadDms();
+            }
+
+            async function sendDm() {
+                const area = document.getElementById('dm-chat-area');
+                const content = area.value.trim();
+                
+                if (dmEditingId) {
+                    // Edit Mode
+                     if (!content) return;
+                     const body = new FormData();
+                     body.append('message_id', dmEditingId);
+                     body.append('content', content);
+                     await api('edit_dm', 'POST', body);
+                     cancelDmAction();
+                     loadDms();
+                     return;
+                }
+
+                if (!content && !dmFileToUpload) return; // Allow content-less upload
+
+                const body = new FormData();
+                body.append('receiver_id', currentPartnerId);
+                body.append('content', content);
+                if (dmReplyToId) body.append('reply_to_id', dmReplyToId);
+                
+                if (dmFileToUpload) {
+                    body.append('attachment', dmFileToUpload);
+                }
+
+                const res = await api('send_direct_message', 'POST', body);
+                
+                if (res.success) {
+                    area.value = '';
+                    cancelDmUpload();
+                    cancelDmAction();
+                    loadDms();
+                } else {
+                    alert('送信エラー: ' + res.error);
+                }
+            }
+
 
             async function showUserPicker() {
                 const modal = document.getElementById('user-picker-modal');
@@ -1847,20 +2132,42 @@ if ($isLoggedIn) {
             }
 
             async function sendDm() {
-                const input = document.getElementById('dm-msg-input');
-                const content = input.value.trim();
-                if ((!content && !dmFileToUpload) || !currentPartnerId) return;
+                const area = document.getElementById('dm-chat-area');
+                const content = area.value.trim();
+                
+                if (dmEditingId) {
+                     // Edit Mode
+                     if (!content) return;
+                     const body = new FormData();
+                     body.append('message_id', dmEditingId);
+                     body.append('content', content);
+                     await api('edit_dm', 'POST', body);
+                     cancelDmAction();
+                     loadDms();
+                     return;
+                }
+
+                if ((!content && !dmFileToUpload) || !currentPartnerId) return; 
 
                 const body = new FormData();
                 body.append('receiver_id', currentPartnerId);
                 body.append('content', content);
-                if (dmFileToUpload) body.append('attachment', dmFileToUpload);
-
-                await api('send_direct_message', 'POST', body);
-                input.value = '';
-                cancelDmUpload();
-                loadDms();
-                loadDmPartners(); // Refresh logic to put recent at top if sorted
+                if (dmReplyToId) body.append('reply_to_id', dmReplyToId);
+                
+                if (dmFileToUpload) {
+                    body.append('attachment', dmFileToUpload);
+                }
+    
+                const res = await api('send_direct_message', 'POST', body);
+                if (res.success) {
+                    area.value = '';
+                    cancelDmUpload();
+                    cancelDmAction();
+                    loadDms();
+                    loadDmPartners();
+                } else {
+                    alert('送信エラー: ' + res.error);
+                }
             }
 
             function handleDmInputKey(e) {
@@ -1871,12 +2178,12 @@ if ($isLoggedIn) {
             }
 
             // Reusing drag drop logic for DM logic (simplified)
-            const dmChatArea = document.getElementById('dm-chat-area');
-            if (dmChatArea) {
+            const dmContainer = document.getElementById('dm-input-container');
+            if (dmContainer) {
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    dmChatArea.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+                    dmContainer.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
                 });
-                dmChatArea.addEventListener('drop', (e) => {
+                dmContainer.addEventListener('drop', (e) => {
                     const dt = e.dataTransfer;
                     if (dt.files.length > 0) {
                         dmFileToUpload = dt.files[0];
@@ -1917,10 +2224,46 @@ if ($isLoggedIn) {
                     avatarEl.innerText = currentUserName ? currentUserName.charAt(0).toUpperCase() : '?';
                 }
 
-                // Initial Load
+                // Persistence & Initial Load configuration
+                const lastTab = localStorage.getItem('sycs_last_tab') || 'threads';
+                const lastDmId = localStorage.getItem('sycs_last_dm_id');
+                const lastDmName = localStorage.getItem('sycs_last_dm_name');
+
+                if (lastTab === 'dm') {
+                     // Click handler should already be attached by previous script execution (it's in global scope/event listener)
+                     // Wait a tick to Ensure DOM is ready if needed, but DOMContentLoaded should be fine.
+                     const dmTab = document.querySelector('.nav-item[data-tab="dm"]');
+                     if(dmTab) dmTab.click();
+                     
+                     if (lastDmId && lastDmName) {
+                         setTimeout(() => switchToDmChat(lastDmId, lastDmName), 50);
+                     }
+                } else {
+                     const threadTab = document.querySelector('.nav-item[data-tab="threads"]');
+                     if(threadTab) threadTab.click();
+                }
+
+                // loadThreads(); // loadThreads is called by the click handler for 'threads' usually? 
+                // Let's check logic:
+                // nav-item click -> `loadThreads()` if tab is threads.
+                // Wait, the nav-item click listener logic (lines ~1550) calls `switchThread(1)` or `backToHub()`.
+                // If we click threads, it calls `switchThread(1)`.
+                // We typically need `loadThreads()` to populate the sidebar too.
+                // `loadThreads()` populates the list. `switchThread` loads the chat.
+                // So we should call `loadThreads()` regardless.
                 loadThreads();
-                if (isDmMode && currentPartnerId) loadDms();
-                else if (!isDmMode && currentThreadId) loadMessages();
+                
+                // If we are in DM mode, `loadDms` is called by `switchToDmChat`.
+                // If we are in threads mode, `switchThread` calls `loadMessages`.
+                
+                // Original code had:
+                // if (isDmMode && currentPartnerId) loadDms();
+                // else if (!isDmMode && currentThreadId) loadMessages();
+                
+                // My new logic relies on click() and switchToDmChat() to trigger these.
+                // But let's be safe.
+                
+
 
                 // Also update thread actions logic initially
                 updateThreadActions();
