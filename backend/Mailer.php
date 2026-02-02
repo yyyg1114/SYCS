@@ -14,24 +14,25 @@ class Mailer
 {
     private static function send(string $to, string $subject, string $body): bool
     {
-        // 開発用ログ出力の準備
-        $logDir = __DIR__ . '/../logs';
-        if (!is_dir($logDir)) mkdir($logDir, 0755, true);
-        $logEntry = "[" . date('Y-m-d H:i:s') . "] TO: $to\nSUBJECT: $subject\nBODY:\n$body\n" . str_repeat('-', 30) . "\n";
-        file_put_contents("$logDir/mail.log", $logEntry, FILE_APPEND);
-
         // 設定ファイルの読み込み
         $configPath = __DIR__ . '/mail_config.php';
         if (!file_exists($configPath)) {
-            error_log("Mailer: 'backend/mail_config.php' not found. Please create it by copying 'backend/mail_config_sample.php'. Falling back to log only.");
-            return true;
+            error_log("Mailer Error: 'backend/mail_config.php' not found. Please create it from 'backend/mail_config_sample.php'.");
+            return false;
         }
         $config = require $configPath;
+        $from = $config['from_email'] ?? 'unknown';
 
-        // 設定が初期状態のままの場合は実送信をスキップ
+        // 開発用ログ出力
+        $logDir = __DIR__ . '/../logs';
+        if (!is_dir($logDir)) mkdir($logDir, 0755, true);
+        $logEntry = "[" . date('Y-m-d H:i:s') . "] FROM: $from\nTO: $to\nSUBJECT: $subject\nBODY:\n$body\n" . str_repeat('-', 30) . "\n";
+        file_put_contents("$logDir/mail.log", $logEntry, FILE_APPEND);
+
+        // 設定が初期状態のままの場合は送信エラーとする
         if ($config['password'] === 'your-app-password') {
-            error_log("Mailer: SMTP password not configured. Falling back to log only.");
-            return true;
+            error_log("Mailer Error: SMTP password is not configured in 'mail_config.php'.");
+            return false;
         }
 
         $mail = new PHPMailer(true);

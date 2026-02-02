@@ -165,6 +165,16 @@ if ($res->num_rows === 0) {
     $mysqli->query("ALTER TABLE messages ADD COLUMN attachment_path VARCHAR(255) DEFAULT NULL AFTER reply_to_id");
 }
 
+// Account Status Migration
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'status'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN status ENUM('online', 'busy', 'away', 'offline') DEFAULT 'online' AFTER is_verified");
+}
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'custom_status'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN custom_status VARCHAR(100) NULL AFTER status");
+}
+
 // Helper to verify CSRF
 function verify_csrf()
 {
@@ -175,6 +185,49 @@ function verify_csrf()
         exit;
     }
 }
+
+    if ($action === 'update_status') {
+        verify_csrf();
+        $status = $_POST['status'] ?? 'online';
+        $customStatus = $_POST['custom_status'] ?? null;
+        $allowed = ['online', 'busy', 'away', 'offline'];
+        
+        if (in_array($status, $allowed)) {
+            $stmt = $mysqli->prepare("UPDATE users SET status = ?, custom_status = ? WHERE id = ?");
+            $stmt->bind_param("ssi", $status, $customStatus, $userId);
+            $stmt->execute();
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Invalid status']);
+        }
+        exit;
+    }
+
+    if ($action === 'get_user_status') {
+        $targetId = $_GET['user_id'] ?? 0;
+        $stmt = $mysqli->prepare("SELECT status, custom_status FROM users WHERE id = ?");
+        $stmt->bind_param("i", $targetId);
+        $stmt->execute();
+        $res = $stmt->get_result()->fetch_assoc();
+        echo json_encode($res ?: ['status' => 'offline', 'custom_status' => null]);
+        exit;
+    }
+
+    if ($action === 'get_friends_statuses') {
+        // Get statuses of all friends
+        $stmt = $mysqli->prepare("
+            SELECT u.id, u.status, u.custom_status
+            FROM friends f
+            JOIN users u ON (f.user_id_1 = u.id OR f.user_id_2 = u.id)
+            WHERE (f.user_id_1 = ? OR f.user_id_2 = ?) 
+              AND f.status = 'accepted' 
+              AND u.id != ?
+        ");
+        $stmt->bind_param("iii", $userId, $userId, $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
 
 // --- API Logic (AJAX Handlers) ---
 if (isset($_GET['api'])) {
@@ -262,7 +315,7 @@ if (isset($_GET['api'])) {
     if ($action === 'get_messages') {
         $threadId = $_GET['thread_id'] ?? 0;
         $stmt = $mysqli->prepare("
-            SELECT m.*, u.username, r.content as reply_content, ru.username as reply_username
+            SELECT m.*, u.username, u.status, r.content as reply_content, ru.username as reply_username
             FROM messages m 
             JOIN users u ON m.user_id = u.id 
             LEFT JOIN messages r ON m.reply_to_id = r.id
@@ -565,7 +618,7 @@ if (isset($_GET['api'])) {
     if ($action === 'get_friends') {
         // Accepted friends, sorted by most recent conversation
         $stmt = $mysqli->prepare("
-            SELECT u.id, u.username, 
+            SELECT u.id, u.username, u.status, u.custom_status,
             MAX(dm.created_at) as last_msg_at
             FROM friends f
             JOIN users u ON (f.user_id_1 = u.id OR f.user_id_2 = u.id)
@@ -773,12 +826,14 @@ $currentUser = $_SESSION['user'] ?? null;
 $initialThreadId = $_SESSION['last_thread_id'] ?? 1;
 
 if ($isLoggedIn) {
-    $stmt = $mysqli->prepare("SELECT last_thread_id FROM users WHERE id = ?");
+    $stmt = $mysqli->prepare("SELECT last_thread_id, status, custom_status FROM users WHERE id = ?");
     $stmt->bind_param("i", $_SESSION['user_id']);
     $stmt->execute();
     if ($row = $stmt->get_result()->fetch_assoc()) {
         $initialThreadId = $row['last_thread_id'] ?: 1;
         $_SESSION['last_thread_id'] = $initialThreadId;
+        $currentUserStatus = $row['status'] ?: 'online';
+        $currentUserCustomStatus = $row['custom_status'];
     }
     $stmt->close();
 
@@ -805,6 +860,50 @@ if ($isLoggedIn) {
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Status Indicators */
+        .avatar-container {
+            position: relative;
+            display: inline-block;
+        }
+        .status-indicator {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid var(--sidebar-bg, #1e1e2e);
+            background-color: #94a3b8; /* Default offline */
+        }
+        .status-online { background-color: #22c55e; }
+        .status-busy { background-color: #ef4444; }
+        .status-away { background-color: #eab308; }
+        .status-offline { background-color: #94a3b8; }
+
+        /* Status Dropdown */
+        .status-select-container {
+            position: relative;
+            margin-top: 4px;
+        }
+        .status-select {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            outline: none;
+        }
+        .status-select:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .status-select option {
+            background: #1e1e2e;
+            color: white;
+        }
+    </style>
 </head>
 <body>
     <?php if (!$isLoggedIn): ?>
@@ -867,10 +966,20 @@ if ($isLoggedIn) {
                 </div>
                 <div class="sidebar-bottom">
                     <div class="user-block">
-                        <div class="avatar" id="global-user-avatar">?</div>
+                        <div class="avatar-container">
+                            <div class="avatar" id="global-user-avatar">?</div>
+                            <div class="status-indicator status-<?= htmlspecialchars($currentUserStatus) ?>" id="global-status-indicator"></div>
+                        </div>
                         <div class="user-info">
                             <span class="user-name"><?= htmlspecialchars($currentUser) ?></span>
-                            <span class="user-status">オンライン</span>
+                            <div class="status-select-container">
+                                <select class="status-select" onchange="updateMyStatus(this.value)">
+                                    <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>応答可</option>
+                                    <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
+                                    <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>離席中</option>
+                                    <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div class="sidebar-actions">
@@ -1129,16 +1238,37 @@ if ($isLoggedIn) {
 
             // --- Markdown logic removed for strict security via innerText ---
 
-            function getAvatarElement(name) {
+            function getAvatarElement(name, status = 'none') {
                 const initial = name ? name.charAt(0).toUpperCase() : '?';
                 const colors = ['#6366f1', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b', '#3b82f6'];
                 const colorIdx = (name ? name.length : 0) % colors.length;
+
+                const container = document.createElement('div');
+                container.className = 'avatar-container';
 
                 const div = document.createElement('div');
                 div.className = 'avatar';
                 div.style.background = colors[colorIdx];
                 div.innerText = initial;
-                return div;
+                container.appendChild(div);
+
+                if (status !== 'none') {
+                    const indicator = document.createElement('div');
+                    indicator.className = `status-indicator status-${status}`;
+                    container.appendChild(indicator);
+                }
+
+                return container;
+            }
+
+            async function updateMyStatus(status) {
+                const body = new FormData();
+                body.append('status', status);
+                const res = await api('update_status', 'POST', body);
+                if (res.success) {
+                    const indicator = document.getElementById('global-status-indicator');
+                    indicator.className = `status-indicator status-${status}`;
+                }
             }
 
             async function api(path, method = 'GET', body = null) {
@@ -1255,6 +1385,8 @@ if ($isLoggedIn) {
             }
 
             async function loadMessages() {
+                // Fetch friends statuses first to show them accurately in chat if needed, 
+                // but get_messages JOIN users would be better. Let's update the query.
                 const messages = await api(`get_messages&thread_id=${currentThreadId}`);
                 const container = document.getElementById('message-container');
                 // Auto-scroll logic needs to be smarter or just stick to bottom if already at bottom
@@ -1309,7 +1441,7 @@ if ($isLoggedIn) {
                 group.className = 'message-group';
 
                 // Avatar
-                group.appendChild(getAvatarElement(m.username));
+                group.appendChild(getAvatarElement(m.username, m.status || 'online'));
 
                 const info = document.createElement('div');
                 info.className = 'message-info';
@@ -1697,7 +1829,7 @@ if ($isLoggedIn) {
                     d.style.cursor = 'pointer';
                     d.innerHTML = `
                         <div style="display:flex; align-items:center; gap:10px;">
-                            ${getAvatarElement(f.username).outerHTML}
+                            ${getAvatarElement(f.username, f.status || 'offline').outerHTML}
                             <span>${f.username}</span>
                         </div>
                         <span style="font-size:0.8rem; color:var(--text-secondary);">
