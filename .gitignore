@@ -1,4 +1,4 @@
 SYCS_docs
 logs
-mail_config.php
+/backend/mail_config.php
 .gitignore
