@@ -168,8 +168,10 @@ if ($res->num_rows === 0) {
 // Account Status Migration
 $res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'status'");
 if ($res->num_rows === 0) {
-    $mysqli->query("ALTER TABLE users ADD COLUMN status ENUM('online', 'busy', 'away', 'offline') DEFAULT 'online' AFTER is_verified");
+    $mysqli->query("ALTER TABLE users ADD COLUMN status ENUM('online', 'busy', 'away', 'offline', 'not_allowed', 'step_out', 'going_away') DEFAULT 'online' AFTER is_verified");
 }
+// Always update column definition to ensure new enums are available
+$mysqli->query("ALTER TABLE users MODIFY COLUMN status ENUM('online', 'busy', 'away', 'offline', 'not_allowed', 'step_out', 'going_away') DEFAULT 'online'");
 $res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'custom_status'");
 if ($res->num_rows === 0) {
     $mysqli->query("ALTER TABLE users ADD COLUMN custom_status VARCHAR(100) NULL AFTER status");
@@ -283,7 +285,7 @@ if (isset($_GET['api'])) {
         verify_csrf();
         $status = $_POST['status'] ?? 'online';
         $customStatus = $_POST['custom_status'] ?? null;
-        $allowed = ['online', 'busy', 'away', 'offline'];
+        $allowed = ['online', 'busy', 'away', 'offline', 'not_allowed', 'step_out', 'going_away'];
         
         if (in_array($status, $allowed)) {
             $stmt = $mysqli->prepare("UPDATE users SET status = ?, custom_status = ? WHERE id = ?");
@@ -961,10 +963,13 @@ if ($isLoggedIn) {
             border: 2px solid var(--sidebar-bg, #1e1e2e);
             background-color: #94a3b8; /* Default offline */
         }
-        .status-online { background-color: #22c55e; }
-        .status-busy { background-color: #ef4444; }
-        .status-away { background-color: #eab308; }
-        .status-offline { background-color: #94a3b8; }
+        .status-online { background-color: #6BB700; }
+        .status-busy { background-color: #C50F1F; }
+        .status-away { background-color: #FCD116; }
+        .status-offline { background-color: #747f8d; }
+        .status-not_allowed { background-color: #C50F1F; }
+        .status-step_out { background-color: #FCD116; }
+        .status-going_away { background-color: #e100ffff; }
 
         /* Status Dropdown */
         .status-select-container {
@@ -1203,11 +1208,14 @@ if ($isLoggedIn) {
                         <div class="user-info">
                             <span class="user-name"><?= htmlspecialchars($currentUser) ?></span>
                             <div class="status-select-container">
-                                <select class="status-select" onchange="updateMyStatus(this.value)">
-                                    <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>応答可</option>
+                                <select id="sidebar-status-input" class="modal-input" style="padding: 2px 4px; font-size: 0.75rem; width: auto; background-color: #2a2b2f; border: 1px solid #444; color: #fff;" onchange="updateMyStatus(this.value)">
+                                    <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>連絡可能</option>
                                     <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
-                                    <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>離席中</option>
-                                    <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン</option>
+                                    <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>>応答不可</option>
+                                    <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>>一時退席中</option>
+                                    <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>退席中</option>
+                                    <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン表示</option>
+                                    <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>>外出中</option>
                                 </select>
                             </div>
                         </div>
@@ -1470,11 +1478,14 @@ if ($isLoggedIn) {
 
                             <div class="modal-form-group">
                                 <label class="modal-label">ステータス</label>
-                                <select id="edit-status-input" class="modal-input" onchange="updatePreviewStatus(this.value)">
-                                    <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>応答可</option>
+                                <select id="modal-status-input" class="modal-input" onchange="updatePreviewStatus(this.value)">
+                                    <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>連絡可能</option>
                                     <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
-                                    <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>離席中</option>
-                                    <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン</option>
+                                    <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>>応答不可</option>
+                                    <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>>一時退席中</option>
+                                    <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>退席中</option>
+                                    <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン表示</option>
+                                    <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>>外出中</option>
                                 </select>
                             </div>
 
@@ -1566,13 +1577,24 @@ if ($isLoggedIn) {
                 return container;
             }
 
+
+
             async function updateMyStatus(status) {
                 const body = new FormData();
                 body.append('status', status);
                 const res = await api('update_status', 'POST', body);
                 if (res.success) {
+                    // Update Indicator
                     const indicator = document.getElementById('global-status-indicator');
-                    indicator.className = `status-indicator status-${status}`;
+                    if (indicator) indicator.className = `status-indicator status-${status}`;
+                    
+                    // Sync Inputs
+                    const sidebarInput = document.getElementById('sidebar-status-input');
+                    const modalInput = document.getElementById('modal-status-input');
+                    if (sidebarInput) {
+                        sidebarInput.value = status;
+                    }
+                    if (modalInput) modalInput.value = status;
                 }
             }
 
@@ -1735,7 +1757,7 @@ if ($isLoggedIn) {
             async function saveProfile() {
                 const bio = document.getElementById('edit-bio-input').value;
                 const banner = document.getElementById('edit-banner-input').value;
-                const status = document.getElementById('edit-status-input').value;
+                const status = document.getElementById('modal-status-input').value;
                 const avatarFile = document.getElementById('edit-avatar-input').files[0];
 
                 const body = new FormData();
@@ -2311,6 +2333,8 @@ if ($isLoggedIn) {
                     list.appendChild(d);
                 });
             }
+
+
 
             function showBlockedModal() {
                 document.getElementById('blocked-users-modal').showModal();
