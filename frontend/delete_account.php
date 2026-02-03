@@ -230,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <nav>
                 <?php if ($user): ?>
                     <span>ようこそ <?= htmlspecialchars($user) ?> さん</span>
-                    <a href="index.php">Dashboard</a>
+                    <a href="index.php">Home</a>
                     <a href="logout.php">Logout</a>
                 <?php else: ?>
                     <a href="login.php" class="no-style-link">Login</a>

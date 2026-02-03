@@ -165,6 +165,32 @@ if ($res->num_rows === 0) {
     $mysqli->query("ALTER TABLE messages ADD COLUMN attachment_path VARCHAR(255) DEFAULT NULL AFTER reply_to_id");
 }
 
+// Account Status Migration
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'status'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN status ENUM('online', 'busy', 'away', 'offline', 'not_allowed', 'step_out', 'going_away') DEFAULT 'online' AFTER is_verified");
+}
+// Always update column definition to ensure new enums are available
+$mysqli->query("ALTER TABLE users MODIFY COLUMN status ENUM('online', 'busy', 'away', 'offline', 'not_allowed', 'step_out', 'going_away') DEFAULT 'online'");
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'custom_status'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN custom_status VARCHAR(100) NULL AFTER status");
+}
+
+// Profile Column Migration
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'bio'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN bio TEXT NULL AFTER custom_status");
+}
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'avatar_url'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500) NULL AFTER bio");
+}
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'banner_color'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN banner_color VARCHAR(20) DEFAULT '#6366f1' AFTER avatar_url");
+}
+
 // Helper to verify CSRF
 function verify_csrf()
 {
@@ -176,6 +202,7 @@ function verify_csrf()
     }
 }
 
+
 // --- API Logic (AJAX Handlers) ---
 if (isset($_GET['api'])) {
     header('Content-Type: application/json');
@@ -184,6 +211,116 @@ if (isset($_GET['api'])) {
 
     if (!$userId) {
         echo json_encode(['error' => 'Unauthorized']);
+        exit;
+    }
+
+    if ($action === 'update_profile') {
+        verify_csrf();
+        $bio = $_POST['bio'] ?? null;
+        $bannerColor = $_POST['banner_color'] ?? '#6366f1';
+        $status = $_POST['status'] ?? 'online';
+        $removeAvatar = ($_POST['remove_avatar'] ?? 'false') === 'true';
+        
+        // Handle Avatar Deletion / Cleanup
+        if ($removeAvatar || (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK)) {
+            // Get current avatar to delete old file
+            $pStmt = $mysqli->prepare("SELECT avatar_url FROM users WHERE id = ?");
+            $pStmt->bind_param("i", $userId);
+            $pStmt->execute();
+            if ($row = $pStmt->get_result()->fetch_assoc()) {
+                $oldPath = $row['avatar_url'];
+                if ($oldPath) {
+                    $fullOldPath = __DIR__ . '/' . $oldPath; // Paths are relative to frontend/
+                    if (file_exists($fullOldPath)) {
+                        unlink($fullOldPath);
+                    }
+                }
+            }
+            $pStmt->close();
+
+            if ($removeAvatar) {
+                $updAva = $mysqli->prepare("UPDATE users SET avatar_url = NULL WHERE id = ?");
+                $updAva->bind_param("i", $userId);
+                $updAva->execute();
+                $updAva->close();
+            }
+        }
+
+        $stmt = $mysqli->prepare("UPDATE users SET bio = ?, banner_color = ?, status = ? WHERE id = ?");
+        $stmt->bind_param("sssi", $bio, $bannerColor, $status, $userId);
+        $stmt->execute();
+        $stmt->close();
+
+        // Handle Avatar Upload
+        if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+            require_once __DIR__ . '/../backend/SecurityUtil.php';
+            $tmpName = $_FILES['avatar']['tmp_name'];
+            $fileName = $_FILES['avatar']['name'];
+            $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+            if (SecurityUtil::validateFile($tmpName, $ext)) {
+                $uuid = SecurityUtil::generateUuid();
+                $uploadDir = __DIR__ . '/uploads/avatars/';
+                if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+                
+                $newFileName = $uuid . '.' . $ext;
+                if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
+                    // Store path relative to web root or current script?
+                    // Previous logic used 'frontend/uploads/'. If accessed from index.php in frontend/, 
+                    // it should be 'uploads/avatars/' if index.php is the entry point.
+                    // However, to keep consistency with existing attachment logic:
+                    $avatarPath = 'uploads/avatars/' . $newFileName;
+                    $upd = $mysqli->prepare("UPDATE users SET avatar_url = ? WHERE id = ?");
+                    $upd->bind_param("si", $avatarPath, $userId);
+                    $upd->execute();
+                }
+            }
+        }
+        
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    if ($action === 'update_status') {
+        verify_csrf();
+        $status = $_POST['status'] ?? 'online';
+        $customStatus = $_POST['custom_status'] ?? null;
+        $allowed = ['online', 'busy', 'away', 'offline', 'not_allowed', 'step_out', 'going_away'];
+        
+        if (in_array($status, $allowed)) {
+            $stmt = $mysqli->prepare("UPDATE users SET status = ?, custom_status = ? WHERE id = ?");
+            $stmt->bind_param("ssi", $status, $customStatus, $userId);
+            $stmt->execute();
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Invalid status']);
+        }
+        exit;
+    }
+
+    if ($action === 'get_user_status') {
+        $targetId = $_GET['user_id'] ?? 0;
+        $stmt = $mysqli->prepare("SELECT status, custom_status FROM users WHERE id = ?");
+        $stmt->bind_param("i", $targetId);
+        $stmt->execute();
+        $res = $stmt->get_result()->fetch_assoc();
+        echo json_encode($res ?: ['status' => 'offline', 'custom_status' => null]);
+        exit;
+    }
+
+    if ($action === 'get_friends_statuses') {
+        // Get statuses of all friends
+        $stmt = $mysqli->prepare("
+            SELECT u.id, u.status, u.custom_status
+            FROM friends f
+            JOIN users u ON (f.user_id_1 = u.id OR f.user_id_2 = u.id)
+            WHERE (f.user_id_1 = ? OR f.user_id_2 = ?) 
+              AND f.status = 'accepted' 
+              AND u.id != ?
+        ");
+        $stmt->bind_param("iii", $userId, $userId, $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
         exit;
     }
 
@@ -262,7 +399,7 @@ if (isset($_GET['api'])) {
     if ($action === 'get_messages') {
         $threadId = $_GET['thread_id'] ?? 0;
         $stmt = $mysqli->prepare("
-            SELECT m.*, u.username, r.content as reply_content, ru.username as reply_username
+            SELECT m.*, u.username, u.status, u.avatar_url, r.content as reply_content, ru.username as reply_username
             FROM messages m 
             JOIN users u ON m.user_id = u.id 
             LEFT JOIN messages r ON m.reply_to_id = r.id
@@ -281,7 +418,7 @@ if (isset($_GET['api'])) {
     if ($action === 'get_dm_partners') {
         // Get users I have sent to OR received from
         $query = "
-            SELECT DISTINCT u.id, u.username 
+            SELECT DISTINCT u.id, u.username, u.status, u.custom_status, u.avatar_url 
             FROM users u
             JOIN direct_messages dm ON (u.id = dm.sender_id OR u.id = dm.receiver_id)
             WHERE (dm.sender_id = ? OR dm.receiver_id = ?) AND u.id != ?
@@ -295,8 +432,8 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'get_all_users') {
-        // Logic to search all users to start new DM
-        $res = $mysqli->query("SELECT id, username FROM users WHERE id != $userId");
+        // Search all users to start new DM
+        $res = $mysqli->query("SELECT id, username, status, custom_status, avatar_url FROM users WHERE id != $userId");
         echo json_encode($res->fetch_all(MYSQLI_ASSOC));
         exit;
     }
@@ -304,7 +441,7 @@ if (isset($_GET['api'])) {
     if ($action === 'get_direct_messages') {
         $partnerId = $_GET['partner_id'] ?? 0;
         $stmt = $mysqli->prepare("
-            SELECT dm.*, u.username 
+            SELECT dm.*, u.username, u.avatar_url 
             FROM direct_messages dm
             JOIN users u ON dm.sender_id = u.id
             WHERE (dm.sender_id = ? AND dm.receiver_id = ?) 
@@ -357,7 +494,7 @@ if (isset($_GET['api'])) {
                         if (SecurityUtil::convertSvgToPng($protectedDir . $uuid . '.svg', $publicPath)) {
                             // Success: DB stores PNG path. 
                             // *Download Logic will infer SVG availability via UUID match.*
-                            $attachmentPath = 'frontend/uploads/' . $pngName;
+                            $attachmentPath = 'uploads/' . $pngName;
                         } else {
                             // Fallback? If conversion fails, maybe we reject or just don't show image?
                             // Rejecting is safer as requirement says "Display as PNG".
@@ -376,7 +513,7 @@ if (isset($_GET['api'])) {
                     $newFileName = $uuid . '.' . $ext;
                     // Move
                     if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
-                        $attachmentPath = 'frontend/uploads/' . $newFileName;
+                        $attachmentPath = 'uploads/' . $newFileName;
                     }
                 }
             } else {
@@ -435,7 +572,7 @@ if (isset($_GET['api'])) {
 
                         if (SecurityUtil::convertSvgToPng($protectedDir . $uuid . '.svg', $publicPath)) {
                             // Success: DB stores PNG path. 
-                            $attachmentPath = 'frontend/uploads/' . $pngName;
+                            $attachmentPath = 'uploads/' . $pngName;
                         } else {
                             echo json_encode(['error' => 'SVG Conversion Failed']);
                             exit;
@@ -452,7 +589,7 @@ if (isset($_GET['api'])) {
                     $newFileName = $uuid . '.' . $ext;
 
                     if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
-                        $attachmentPath = 'frontend/uploads/' . $newFileName;
+                        $attachmentPath = 'uploads/' . $newFileName;
                     }
                 }
             } else {
@@ -565,7 +702,7 @@ if (isset($_GET['api'])) {
     if ($action === 'get_friends') {
         // Accepted friends, sorted by most recent conversation
         $stmt = $mysqli->prepare("
-            SELECT u.id, u.username, 
+            SELECT u.id, u.username, u.status, u.custom_status, u.avatar_url, u.banner_color,
             MAX(dm.created_at) as last_msg_at
             FROM friends f
             JOIN users u ON (f.user_id_1 = u.id OR f.user_id_2 = u.id)
@@ -773,12 +910,17 @@ $currentUser = $_SESSION['user'] ?? null;
 $initialThreadId = $_SESSION['last_thread_id'] ?? 1;
 
 if ($isLoggedIn) {
-    $stmt = $mysqli->prepare("SELECT last_thread_id FROM users WHERE id = ?");
+    $stmt = $mysqli->prepare("SELECT last_thread_id, status, custom_status, bio, avatar_url, banner_color FROM users WHERE id = ?");
     $stmt->bind_param("i", $_SESSION['user_id']);
     $stmt->execute();
     if ($row = $stmt->get_result()->fetch_assoc()) {
         $initialThreadId = $row['last_thread_id'] ?: 1;
         $_SESSION['last_thread_id'] = $initialThreadId;
+        $currentUserStatus = $row['status'] ?: 'online';
+        $currentUserCustomStatus = $row['custom_status'];
+        $currentUserBio = $row['bio'];
+        $currentUserAvatar = $row['avatar_url'];
+        $currentUserBanner = $row['banner_color'] ?: '#6366f1';
     }
     $stmt->close();
 
@@ -805,6 +947,192 @@ if ($isLoggedIn) {
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Status Indicators */
+        .avatar-container {
+            position: relative;
+            display: inline-block;
+        }
+        .status-indicator {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid var(--sidebar-bg, #1e1e2e);
+            background-color: #94a3b8; /* Default offline */
+        }
+        .status-online { background-color: #6BB700; }
+        .status-busy { background-color: #C50F1F; }
+        .status-away { background-color: #FCD116; }
+        .status-offline { background-color: #747f8d; }
+        .status-not_allowed { background-color: #C50F1F; }
+        .status-step_out { background-color: #FCD116; }
+        .status-going_away { background-color: #e100ffff; }
+
+        /* Status Dropdown */
+        .status-select-container {
+            position: relative;
+            margin-top: 4px;
+        }
+        .status-select {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            outline: none;
+        }
+        .status-select:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .status-select option {
+            background: #1e1e2e;
+            color: white;
+        }
+
+        /* Discord-style Profile Modal */
+        .profile-modal {
+            background: #1e1e2e;
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            padding: 0;
+            width: 800px;
+            max-width: 90vw;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            overflow: hidden;
+            top: auto;
+            bottom: 20px;
+        }
+        .profile-modal::backdrop {
+            background: rgba(0,0,0,0.7);
+        }
+        .profile-content {
+            display: flex;
+            height: 650px; /* Increased from 500px to see more content */
+        }
+        .profile-edit-form {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+        .profile-preview-pane {
+            width: 340px;
+            background: #2b2d31;
+            padding: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Discord Card Preview */
+        .discord-card {
+            width: 300px;
+            background: #111214;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            font-family: 'Inter', sans-serif;
+        }
+        .discord-banner {
+            height: 60px;
+            background: var(--accent-color, #6366f1);
+        }
+        .discord-avatar-wrapper {
+            margin-top: -30px;
+            margin-left: 16px;
+            position: relative;
+            display: inline-block;
+        }
+        .discord-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 6px solid #111214;
+            background: #5865f2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            font-weight: bold;
+            object-fit: cover;
+        }
+        .discord-status-indicator {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 4px solid #111214;
+        }
+        .discord-body {
+            padding: 16px;
+        }
+        .discord-username {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+        .discord-custom-status {
+            font-size: 0.85rem;
+            color: #dbdee1;
+            margin-bottom: 12px;
+        }
+        .discord-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 12px 0;
+        }
+        .discord-section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #b5bac1;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .discord-bio {
+            font-size: 0.85rem;
+            color: #dbdee1;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        /* Form styling */
+        .modal-form-group {
+            margin-bottom: 20px;
+        }
+        .modal-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #b5bac1;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .modal-input, .modal-textarea {
+            width: 100%;
+            background: #1e1f22;
+            border: none;
+            border-radius: 4px;
+            padding: 10px;
+            color: #dbdee1;
+            font-size: 0.9rem;
+            outline: none;
+        }
+        .modal-textarea {
+            resize: none;
+            height: 80px;
+        }
+        .modal-input:focus, .modal-textarea:focus {
+            background: #000;
+        }
+    </style>
 </head>
 <body>
     <?php if (!$isLoggedIn): ?>
@@ -867,14 +1195,33 @@ if ($isLoggedIn) {
                 </div>
                 <div class="sidebar-bottom">
                     <div class="user-block">
-                        <div class="avatar" id="global-user-avatar">?</div>
+                        <div class="avatar-container">
+                            <div class="avatar" id="global-user-avatar">
+                                <?php if ($currentUserAvatar): ?>
+                                    <img src="<?= htmlspecialchars($currentUserAvatar) ?>" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                                <?php else: ?>
+                                    <?= htmlspecialchars(mb_substr($currentUser, 0, 1)) ?>
+                                <?php endif; ?>
+                            </div>
+                            <div class="status-indicator status-<?= htmlspecialchars($currentUserStatus) ?>" id="global-status-indicator"></div>
+                        </div>
                         <div class="user-info">
                             <span class="user-name"><?= htmlspecialchars($currentUser) ?></span>
-                            <span class="user-status">オンライン</span>
+                            <div class="status-select-container">
+                                <select id="sidebar-status-input" class="modal-input" style="padding: 2px 4px; font-size: 0.75rem; width: auto; background-color: #2a2b2f; border: 1px solid #444; color: #fff;" onchange="updateMyStatus(this.value)">
+                                    <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>連絡可能</option>
+                                    <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
+                                    <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>>応答不可</option>
+                                    <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>>一時退席中</option>
+                                    <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>退席中</option>
+                                    <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン表示</option>
+                                    <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>>外出中</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div class="sidebar-actions">
-                        <a href="delete_account.php" class="action-link">設定</a>
+                        <a href="javascript:void(0)" onclick="showProfileModal()" class="action-link">設定</a>
                         <a href="?logout=1" class="action-link" style="color:#f87171;">ログアウト</a>
                     </div>
                 </div>
@@ -951,10 +1298,6 @@ if ($isLoggedIn) {
                                 </svg></div>
                         </div>
                         <div id="thread-list" class="thread-list"></div>
-                        <div id="create-thread-toggle-container"
-                            style="padding: 20px; border-top: 1px solid var(--border-color);">
-                            <button onclick="showCreateThread()" class="btn-primary" style="width:100%;">+ 新規スレッド作成</button>
-                        </div>
                         <div id="create-thread-area" class="create-thread-area" style="border-top: none;">
                             <div
                                 style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -1002,7 +1345,7 @@ if ($isLoggedIn) {
                                     <path d="M19 12H5M12 19l-7-7 7-7" />
                                 </svg>
                             </button>
-                            <div class="thread-info">
+                            <div class="thread-info" id="current-dm-partner-info">
                                 <span class="thread-icon">@</span>
                                 <h3 class="thread-name" id="current-dm-partner-name">Select a user</h3>
                             </div>
@@ -1105,6 +1448,82 @@ if ($isLoggedIn) {
                         <div id="fav-thread-list" class="thread-list"></div>
                     </aside>
                 </section>
+
+                <!-- Profile Edit Modal -->
+                <dialog id="profile-modal" class="profile-modal">
+                    <div class="profile-content">
+                        <div class="profile-edit-form">
+                            <h3 style="margin-bottom: 24px;">ユーザー設定</h3>
+                            
+                            <div class="modal-form-group">
+                                <label class="modal-label">アバター画像</label>
+                                <input type="file" id="edit-avatar-input" accept="image/*" style="display:none" onchange="previewAvatar(this)">
+                                <div style="display:flex; gap:8px;">
+                                    <button class="btn-secondary" onclick="document.getElementById('edit-avatar-input').click()">画像を選択</button>
+                                    <button class="btn-secondary" id="btn-remove-avatar" onclick="removeAvatarPreview()" style="color:#f87171; display: <?= $currentUserAvatar ? 'inline-block' : 'none' ?>;">削除</button>
+                                </div>
+                            </div>
+
+                            <div class="modal-form-group">
+                                <label class="modal-label">バナー色</label>
+                                <input type="color" id="edit-banner-input" class="modal-input" style="height: 40px; padding: 5px;" 
+                                    oninput="updatePreviewBanner(this.value)" value="<?= htmlspecialchars($currentUserBanner) ?>">
+                            </div>
+
+                            <div class="modal-form-group">
+                                <label class="modal-label">自己紹介</label>
+                                <textarea id="edit-bio-input" class="modal-textarea" placeholder="自分について書こう" 
+                                    oninput="updatePreviewBio(this.value)"><?= htmlspecialchars($currentUserBio) ?></textarea>
+                            </div>
+
+                            <div class="modal-form-group">
+                                <label class="modal-label">ステータス</label>
+                                <select id="modal-status-input" class="modal-input" onchange="updatePreviewStatus(this.value)">
+                                    <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>連絡可能</option>
+                                    <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
+                                    <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>>応答不可</option>
+                                    <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>>一時退席中</option>
+                                    <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>退席中</option>
+                                    <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン表示</option>
+                                    <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>>外出中</option>
+                                </select>
+                            </div>
+
+                            <div style="margin-top:32px; display:flex; flex-direction:column; gap:12px;">
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <button class="btn-secondary" onclick="document.getElementById('profile-modal').close()" style="padding: 12px; flex: 1;">キャンセル</button>
+                                    <button class="btn-primary" onclick="saveProfile()" style="padding: 12px; flex: 1; font-weight: 600;">保存</button>
+                                </div>
+                                <div style="display:flex; justify-content: flex-end;">
+                                    <a href="delete_account.php" style="color:#f87171; font-size:0.8rem; text-decoration:none;">アカウント削除</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-preview-pane">
+                            <div class="discord-card">
+                                <div class="discord-banner" id="preview-banner" style="background: <?= htmlspecialchars($currentUserBanner) ?>"></div>
+                                <div class="discord-avatar-wrapper">
+                                    <div class="discord-avatar" id="preview-avatar-container">
+                                        <?php if ($currentUserAvatar): ?>
+                                            <img src="<?= htmlspecialchars($currentUserAvatar) ?>" class="discord-avatar" id="preview-avatar-img">
+                                        <?php else: ?>
+                                            <?= strtoupper(substr($currentUser, 0, 1)) ?>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="discord-status-indicator status-<?= htmlspecialchars($currentUserStatus) ?>" id="preview-status-indicator"></div>
+                                </div>
+                                <div class="discord-body">
+                                    <div class="discord-username"><?= htmlspecialchars($currentUser) ?></div>
+                                    <div class="discord-custom-status" id="preview-custom-status-text"></div>
+                                    <div class="discord-divider"></div>
+                                    <div class="discord-section-title">自己紹介</div>
+                                    <div class="discord-bio" id="preview-bio"><?= nl2br(htmlspecialchars($currentUserBio)) ?></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </dialog>
             </main>
         </div>
 
@@ -1129,16 +1548,54 @@ if ($isLoggedIn) {
 
             // --- Markdown logic removed for strict security via innerText ---
 
-            function getAvatarElement(name) {
+            function getAvatarElement(name, status = 'none', avatarUrl = null) {
                 const initial = name ? name.charAt(0).toUpperCase() : '?';
                 const colors = ['#6366f1', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b', '#3b82f6'];
                 const colorIdx = (name ? name.length : 0) % colors.length;
 
+                const container = document.createElement('div');
+                container.className = 'avatar-container';
+
                 const div = document.createElement('div');
                 div.className = 'avatar';
-                div.style.background = colors[colorIdx];
-                div.innerText = initial;
-                return div;
+                
+                if (avatarUrl) {
+                    div.innerHTML = `<img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+                } else {
+                    div.style.background = colors[colorIdx];
+                    div.innerText = initial;
+                }
+                
+                container.appendChild(div);
+
+                if (status !== 'none') {
+                    const indicator = document.createElement('div');
+                    indicator.className = `status-indicator status-${status}`;
+                    container.appendChild(indicator);
+                }
+
+                return container;
+            }
+
+
+
+            async function updateMyStatus(status) {
+                const body = new FormData();
+                body.append('status', status);
+                const res = await api('update_status', 'POST', body);
+                if (res.success) {
+                    // Update Indicator
+                    const indicator = document.getElementById('global-status-indicator');
+                    if (indicator) indicator.className = `status-indicator status-${status}`;
+                    
+                    // Sync Inputs
+                    const sidebarInput = document.getElementById('sidebar-status-input');
+                    const modalInput = document.getElementById('modal-status-input');
+                    if (sidebarInput) {
+                        sidebarInput.value = status;
+                    }
+                    if (modalInput) modalInput.value = status;
+                }
             }
 
             async function api(path, method = 'GET', body = null) {
@@ -1254,7 +1711,77 @@ if ($isLoggedIn) {
                 }
             }
 
+            // --- Profile Logic ---
+            function showProfileModal() {
+                document.getElementById('profile-modal').showModal();
+            }
+
+            function updatePreviewBanner(color) {
+                document.getElementById('preview-banner').style.background = color;
+            }
+
+            function updatePreviewBio(text) {
+                document.getElementById('preview-bio').innerText = text;
+            }
+
+            function updatePreviewStatus(status) {
+                const indicator = document.getElementById('preview-status-indicator');
+                indicator.className = `discord-status-indicator status-${status}`;
+            }
+
+            let shouldRemoveAvatar = false;
+
+            function previewAvatar(input) {
+                if (input.files && input.files[0]) {
+                    shouldRemoveAvatar = false;
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const container = document.getElementById('preview-avatar-container');
+                        container.innerHTML = `<img src="${e.target.result}" class="discord-avatar" id="preview-avatar-img">`;
+                        container.innerText = '';
+                        document.getElementById('btn-remove-avatar').style.display = 'inline-block';
+                    }
+                    reader.readAsDataURL(input.files[0]);
+                }
+            }
+
+            function removeAvatarPreview() {
+                shouldRemoveAvatar = true;
+                document.getElementById('edit-avatar-input').value = '';
+                const container = document.getElementById('preview-avatar-container');
+                container.innerHTML = currentUserName ? currentUserName.charAt(0).toUpperCase() : '?';
+                container.style.background = '#6366f1';
+                document.getElementById('btn-remove-avatar').style.display = 'none';
+            }
+
+            async function saveProfile() {
+                const bio = document.getElementById('edit-bio-input').value;
+                const banner = document.getElementById('edit-banner-input').value;
+                const status = document.getElementById('modal-status-input').value;
+                const avatarFile = document.getElementById('edit-avatar-input').files[0];
+
+                const body = new FormData();
+                body.append('csrf_token', '<?= $_SESSION["csrf_token"] ?>');
+                body.append('bio', bio);
+                body.append('banner_color', banner);
+                body.append('status', status);
+                body.append('remove_avatar', shouldRemoveAvatar);
+                if (avatarFile) {
+                    body.append('avatar', avatarFile);
+                }
+
+                const res = await api('update_profile', 'POST', body);
+                if (res.success) {
+                    alert('プロフィールを更新しました');
+                    location.reload(); // Simplest to reflect all changes
+                } else {
+                    alert('更新に失敗しました: ' + (res.error || '不明なエラー'));
+                }
+            }
+
             async function loadMessages() {
+                // Fetch friends statuses first to show them accurately in chat if needed, 
+                // but get_messages JOIN users would be better. Let's update the query.
                 const messages = await api(`get_messages&thread_id=${currentThreadId}`);
                 const container = document.getElementById('message-container');
                 // Auto-scroll logic needs to be smarter or just stick to bottom if already at bottom
@@ -1309,7 +1836,7 @@ if ($isLoggedIn) {
                 group.className = 'message-group';
 
                 // Avatar
-                group.appendChild(getAvatarElement(m.username));
+                group.appendChild(getAvatarElement(m.username, m.status || 'online', m.avatar_url));
 
                 const info = document.createElement('div');
                 info.className = 'message-info';
@@ -1672,11 +2199,24 @@ if ($isLoggedIn) {
                 }
             }
 
-            function switchToDmChat(id, name) {
+            function switchToDmChat(id, name, avatarUrl = null, status = 'online') {
                 currentPartnerId = id;
                 document.getElementById('dm-hub-view').style.display = 'none';
                 document.getElementById('dm-chat-view').style.display = 'flex';
-                document.getElementById('current-dm-partner-name').innerText = name;
+                
+                const infoContainer = document.getElementById('current-dm-partner-info');
+                infoContainer.innerHTML = '';
+                infoContainer.style.display = 'flex';
+                infoContainer.style.alignItems = 'center';
+                infoContainer.style.gap = '10px';
+                
+                infoContainer.appendChild(getAvatarElement(name, status, avatarUrl));
+                const nameH3 = document.createElement('h3');
+                nameH3.className = 'thread-name';
+                nameH3.id = 'current-dm-partner-name';
+                nameH3.innerText = name;
+                infoContainer.appendChild(nameH3);
+
                 loadDms();
             }
 
@@ -1697,14 +2237,14 @@ if ($isLoggedIn) {
                     d.style.cursor = 'pointer';
                     d.innerHTML = `
                         <div style="display:flex; align-items:center; gap:10px;">
-                            ${getAvatarElement(f.username).outerHTML}
+                            ${getAvatarElement(f.username, f.status || 'offline', f.avatar_url).outerHTML}
                             <span>${f.username}</span>
                         </div>
                         <span style="font-size:0.8rem; color:var(--text-secondary);">
                             ${f.last_msg_at ? new Date(f.last_msg_at).toLocaleString() : '会話なし'}
                         </span>
                     `;
-                    d.onclick = () => switchToDmChat(f.id, f.username);
+                    d.onclick = () => switchToDmChat(f.id, f.username, f.avatar_url, f.status);
                     list.appendChild(d);
                 });
             }
@@ -1731,7 +2271,19 @@ if ($isLoggedIn) {
                     d.className = 'thread-item';
                     d.style.display = 'flex';
                     d.style.justifyContent = 'space-between';
-                    d.innerHTML = `<span>${u.username} (ID:${u.id})</span>`;
+                    d.style.alignItems = 'center';
+                    d.style.gap = '10px';
+                    
+                    const userPart = document.createElement('div');
+                    userPart.style.display = 'flex';
+                    userPart.style.alignItems = 'center';
+                    userPart.style.gap = '10px';
+                    userPart.appendChild(getAvatarElement(u.username, u.status, u.avatar_url));
+                    const nameSpan = document.createElement('span');
+                    nameSpan.innerText = `${u.username} (ID:${u.id})`;
+                    userPart.appendChild(nameSpan);
+                    d.appendChild(userPart);
+
                     const btn = document.createElement('button');
                     btn.innerText = '申請';
                     btn.className = 'btn-primary';
@@ -1781,6 +2333,8 @@ if ($isLoggedIn) {
                     list.appendChild(d);
                 });
             }
+
+
 
             function showBlockedModal() {
                 document.getElementById('blocked-users-modal').showModal();
@@ -1838,7 +2392,7 @@ if ($isLoggedIn) {
                 dms.forEach(m => {
                     const group = document.createElement('div');
                     group.className = 'message-group';
-                    group.appendChild(getAvatarElement(m.username));
+                    group.appendChild(getAvatarElement(m.username, 'online', m.avatar_url));
 
                     const info = document.createElement('div');
                     info.className = 'message-info';
@@ -1892,7 +2446,14 @@ if ($isLoggedIn) {
                     d.style.padding = '8px';
                     d.style.cursor = 'pointer';
                     d.className = 'thread-item';
-                    d.innerText = u.username;
+                    d.style.display = 'flex';
+                    d.style.alignItems = 'center';
+                    d.style.gap = '10px';
+                    d.appendChild(getAvatarElement(u.username, u.status, u.avatar_url));
+                    const nameSpan = document.createElement('span');
+                    nameSpan.innerText = u.username;
+                    d.appendChild(nameSpan);
+
                     d.onclick = async () => {
                         if (confirm(u.username + ' にフレンドリクエストを送信しますか？')) {
                             const body = new FormData();
@@ -1981,11 +2542,6 @@ if ($isLoggedIn) {
             }
 
             document.addEventListener('DOMContentLoaded', () => {
-                const avatarEl = document.getElementById('global-user-avatar');
-                if (avatarEl) {
-                    avatarEl.innerText = currentUserName ? currentUserName.charAt(0).toUpperCase() : '?';
-                }
-
                 // Initial Load
                 loadThreads();
                 if (isDmMode && currentPartnerId) loadDms();
