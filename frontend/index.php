@@ -1519,6 +1519,11 @@ if ($isLoggedIn) {
                                     <div class="discord-divider"></div>
                                     <div class="discord-section-title">自己紹介</div>
                                     <div class="discord-bio" id="preview-bio"><?= nl2br(htmlspecialchars($currentUserBio)) ?></div>
+
+                                    <section class="section2" id="gps-section">
+                                        <h3>GPS</h3>
+                                        <div id="gps-status">位置取得待機中…</div>
+                                    </section>
                                 </div>
                             </div>
                         </div>
@@ -1526,7 +1531,7 @@ if ($isLoggedIn) {
                 </dialog>
             </main>
         </div>
-
+        
         <script>
             let currentThreadId = <?= (int) ($initialThreadId ?? 1) ?>;
             let currentThreadCreatorId = <?= (int) ($currentThreadCreatorId ?? 0) ?>;
@@ -2556,6 +2561,14 @@ if ($isLoggedIn) {
                     else if (!isDmMode && currentThreadId) loadMessages();
                 }, 3000);
             });
+        </script>
+        <script src = js/locate.js></script>
+        <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // GPS 位置情報取得の初期化
+            locationManager.init('gps-status', 1000);
+
+        });
         </script>
     <?php endif; ?>
 </body>

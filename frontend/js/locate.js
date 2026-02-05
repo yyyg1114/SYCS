@@ -6,7 +6,7 @@
 class LocationManager {
     constructor() {
         this.watchId = null;
-        this.statusElements = []; // Changed to array
+        this.statusElement = null;
         this.gpsData = {
             lat: null,
             lon: null,
@@ -18,11 +18,11 @@ class LocationManager {
 
     /**
      * 初期化処理
-     * @param {string} selector - 位置情報を表示するHTML要素のセレクタ (デフォルト: .gps-display-container)
+     * @param {string} elementId - 位置情報を表示するHTML要素のID
      * @param {number} updateInterval - 位置情報更新間隔（ミリ秒）
      */
-    init(selector = '.gps-display-container', updateInterval = 600000) {
-        this.statusElements = document.querySelectorAll(selector);
+    init(elementId, updateInterval = 1000) {
+        this.statusElement = document.getElementById(elementId);
 
         if (!navigator.geolocation) {
             this.displayError('位置情報取得に未対応のブラウザです');
@@ -107,12 +107,12 @@ class LocationManager {
      * UI に位置情報を表示
      */
     updateDisplay() {
-        if (!this.statusElements || this.statusElements.length === 0) return;
+        if (!this.statusElement) return;
 
         const { lat, lon, accuracy, altitude, timestamp } = this.gpsData;
         const timeStr = timestamp ? timestamp.toLocaleTimeString('ja-JP') : '---';
 
-        const html = `
+        this.statusElement.innerHTML = `
             <div class="gps-info">
                 <div class="gps-row">
                     <span class="gps-label">緯度:</span>
@@ -140,10 +140,6 @@ class LocationManager {
                 </div>
             </div>
         `;
-
-        this.statusElements.forEach(el => {
-            el.innerHTML = html;
-        });
     }
 
     /**
@@ -151,37 +147,27 @@ class LocationManager {
      * @param {string} message 
      */
     displayError(message) {
-        if (!this.statusElements || this.statusElements.length === 0) return;
+        if (!this.statusElement) return;
 
-        const html = `
+        this.statusElement.innerHTML = `
             <div class="gps-error">
                 <span class="status-dot error"></span>
                 ${message}
             </div>
         `;
-
-        this.statusElements.forEach(el => {
-            el.innerHTML = html;
-        });
     }
 
     /**
      * GPS データをバックエンドに送信
      */
     sendToBackend() {
-        // バックエンドが存在しないか不明のため、エラーログを抑制するか、
-        // 既存の通りにしておく。
-        // ※元のコードは 'tac-ops-dashboard/backend/api/gps.php' へのパスでしたが、
-        // プロジェクト構成が変わっている可能性があります。
-        // 一旦そのままにします。
         const { lat, lon, accuracy, altitude } = this.gpsData;
 
         if (!lat || !lon) {
-            // console.warn('GPS位置情報が完全ではありません');
+            console.warn('GPS位置情報が完全ではありません');
             return;
         }
 
-        // パスが合っているか不明だが、既存コードを尊重
         fetch('tac-ops-dashboard/backend/api/gps.php', {
             method: 'POST',
             headers: {
@@ -196,7 +182,7 @@ class LocationManager {
             })
         })
             .catch(err => {
-                // console.error('GPS送信エラー:', err);
+                console.error('GPS送信エラー:', err);
             });
     }
 

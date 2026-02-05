@@ -35,35 +35,59 @@ class Mailer
             return false;
         }
 
-        $mail = new PHPMailer(true);
+        // 接続設定の取得（新形式と旧形式の両方に対応）
+        $connections = $config['connections'] ?? [
+            ['secure' => $config['secure'] ?? 'tls', 'port' => $config['port'] ?? 587]
+        ];
 
-        try {
-            //Server settings
-            $mail->CharSet = 'UTF-8';
-            $mail->SMTPDebug = 0;                      // 0: No debug, 2: Detailed debug
-            $mail->isSMTP();
-            $mail->Host       = $config['host'];
-            $mail->SMTPAuth   = $config['auth'];
-            $mail->Username   = $config['username'];
-            $mail->Password   = $config['password'];
-            $mail->SMTPSecure = $config['secure'];
-            $mail->Port       = $config['port'];
+        $lastError = '';
+        
+        // 各接続設定を順番に試行
+        foreach ($connections as $conn) {
+            $mail = new PHPMailer(true);
 
-            //Recipients
-            $mail->setFrom($config['from_email'], $config['from_name']);
-            $mail->addAddress($to);
+            try {
+                //Server settings
+                $mail->CharSet = 'UTF-8';
+                $mail->SMTPDebug = 0;                      // デバッグ出力を無効化（フォールバック時にログが増えるため）
+                $mail->Debugoutput = function($str, $level) {
+                    error_log("PHPMailer Debug: $str");
+                };
+                $mail->isSMTP();
+                $mail->Host       = $config['host'];
+                $mail->SMTPAuth   = $config['auth'];
+                $mail->Username   = $config['username'];
+                $mail->Password   = $config['password'];
+                $mail->SMTPSecure = $conn['secure'];
+                $mail->Port       = $conn['port'];
+                $mail->Timeout    = 10;                    // 接続タイムアウト（秒）
 
-            //Content
-            $mail->isHTML(false);
-            $mail->Subject = $subject;
-            $mail->Body    = $body;
+                //Recipients
+                $mail->setFrom($config['from_email'], $config['from_name']);
+                $mail->addAddress($to);
 
-            $mail->send();
-            return true;
-        } catch (Exception $e) {
-            error_log("Mailer Error: {$mail->ErrorInfo}");
-            return false;
+                //Content
+                $mail->isHTML(false);
+                $mail->Subject = $subject;
+                $mail->Body    = $body;
+
+                $mail->send();
+                
+                // 成功時：使用した接続方式をログに記録
+                error_log("Mailer: Email sent successfully via {$conn['secure']}:{$conn['port']}");
+                return true;
+                
+            } catch (Exception $e) {
+                $lastError = $mail->ErrorInfo;
+                error_log("Mailer: Failed with {$conn['secure']}:{$conn['port']} - {$mail->ErrorInfo}");
+                // 次の接続設定を試行
+                continue;
+            }
         }
+        
+        // すべての接続設定で失敗
+        error_log("Mailer Error: All connection methods failed. Last error: $lastError");
+        return false;
     }
 
     private static function getBaseUrl(): string
