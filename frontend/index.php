@@ -1179,11 +1179,6 @@ if ($isLoggedIn) {
                     <div class="logo-container">
                         <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
                         <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.0.4</span>
-                        <button class="icon-btn collapse-btn" onclick="toggleSidebarCollapse()" title="折りたたみ" style="margin-left: auto;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="15 18 9 12 15 6" />
-                            </svg>
-                        </button>
                     </div>
                     <nav>
                         <ul class="nav-list">
@@ -1476,8 +1471,15 @@ if ($isLoggedIn) {
                 <section id="favorites-pane" class="content-pane" style="display:none;">
                     <aside class="thread-browser active"
                         style="margin-left:0; border-right:1px solid var(--border-color); display:block; position:relative;">
-                        <div class="panel-header">
-                            <span>お気に入りスレッド</span>
+                        <div class="panel-header" style="justify-content: flex-start;">
+                            <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="メニュー">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                                </svg>
+                            </button>
+                            <div style="display:flex; align-items:center; margin-left:10px;">お気に入りスレッド</div>
                         </div>
                         <div id="fav-thread-list" class="thread-list"></div>
                     </aside>
