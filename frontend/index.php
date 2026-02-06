@@ -384,10 +384,25 @@ if (isset($_GET['api'])) {
         $threadId = $_POST['thread_id'] ?? 0;
         $newName = $_POST['name'] ?? '';
 
-        $upd = $mysqli->prepare("UPDATE threads SET name = ? WHERE id = ?");
-        $upd->bind_param("si", $newName, $threadId);
-        $upd->execute();
-        echo json_encode(['success' => true]);
+        // Verify ownership
+        $stmt = $mysqli->prepare("SELECT creator_id FROM threads WHERE id = ?");
+        $stmt->bind_param("i", $threadId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($row = $res->fetch_assoc()) {
+            if ($row['creator_id'] == $userId) {
+                $upd = $mysqli->prepare("UPDATE threads SET name = ? WHERE id = ?");
+                $upd->bind_param("si", $newName, $threadId);
+                $upd->execute();
+                echo json_encode(['success' => true]);
+            } else {
+                http_response_code(403);
+                echo json_encode(['error' => 'Forbidden']);
+            }
+        } else {
+            http_response_code(404);
+            echo json_encode(['error' => 'Not found']);
+        }
         exit;
     }
 
@@ -395,12 +410,30 @@ if (isset($_GET['api'])) {
         verify_csrf();
         $threadId = $_POST['thread_id'] ?? 0;
 
-        // Delete messages first (if no CASCADE) - Assuming CASCADE or manual cleanup
-        $mysqli->query("DELETE FROM messages WHERE thread_id = $threadId");
-        $del = $mysqli->prepare("DELETE FROM threads WHERE id = ?");
-        $del->bind_param("i", $threadId);
-        $del->execute();
-        echo json_encode(['success' => true]);
+        // Verify ownership
+        $stmt = $mysqli->prepare("SELECT creator_id FROM threads WHERE id = ?");
+        $stmt->bind_param("i", $threadId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($row = $res->fetch_assoc()) {
+            if ($row['creator_id'] == $userId) {
+                // Delete messages first
+                $delMsgs = $mysqli->prepare("DELETE FROM messages WHERE thread_id = ?");
+                $delMsgs->bind_param("i", $threadId);
+                $delMsgs->execute();
+                
+                $del = $mysqli->prepare("DELETE FROM threads WHERE id = ?");
+                $del->bind_param("i", $threadId);
+                $del->execute();
+                echo json_encode(['success' => true]);
+            } else {
+                http_response_code(403);
+                echo json_encode(['error' => 'Forbidden']);
+            }
+        } else {
+            http_response_code(404);
+            echo json_encode(['error' => 'Not found']);
+        }
         exit;
     }
 
@@ -854,11 +887,24 @@ if (isset($_GET['api'])) {
         // Generate a stable room name
         if ($threadId) {
             $roomName = "thread_" . $threadId;
+            // Verify access (could add more complex logic, but baseline is "thread exists")
+            // In a real app, check if user is a member or thread is public
         } else if ($dmPartnerId) {
             $ids = [$userId, $dmPartnerId];
             sort($ids);
             $roomName = "dm_" . $ids[0] . "_" . $ids[1];
+            
+            // Verify DM Partnership
+            $stmt = $mysqli->prepare("SELECT id FROM friends WHERE ((user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?)) AND status = 'accepted'");
+            $stmt->bind_param("iiii", $userId, $dmPartnerId, $dmPartnerId, $userId);
+            $stmt->execute();
+            if ($stmt->get_result()->num_rows === 0) {
+                http_response_code(403);
+                echo json_encode(['error' => 'Forbidden: Must be friends to start DM meeting']);
+                exit;
+            }
         } else {
+            http_response_code(400);
             echo json_encode(['error' => 'Thread or DM partner required']);
             exit;
         }
@@ -878,9 +924,6 @@ if (isset($_GET['api'])) {
             $roomId = $room['id'];
         }
 
-        // Return members to help Mesh setup (excluding self)
-        // For now, any user who polled/joined in the last 1 minute is "active"
-        // But since we don't have a members table yet, let's just return room info
         echo json_encode(['success' => true, 'room_id' => $roomId, 'room_name' => $roomName]);
         exit;
     }
@@ -891,6 +934,28 @@ if (isset($_GET['api'])) {
         $receiverId = $_POST['receiver_id'] ?? 0;
         $type = $_POST['type'] ?? '';
         $content = $_POST['content'] ?? '';
+
+        // Verify Room Membership/Access
+        $stmt = $mysqli->prepare("SELECT thread_id, dm_partner_id, creator_id FROM meeting_rooms WHERE id = ?");
+        $stmt->bind_param("i", $roomId);
+        $stmt->execute();
+        $room = $stmt->get_result()->fetch_assoc();
+        
+        if (!$room) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Room not found']);
+            exit;
+        }
+        
+        // Basic check: I am creator? OR if DM, I am one of the parties?
+        $isDmParty = ($room['dm_partner_id'] && ($room['dm_partner_id'] == $userId || $room['creator_id'] == $userId));
+        $isThreadParty = ($room['thread_id'] !== null); // Assuming threads are accessible by logged-in users
+
+        if (!$isDmParty && !$isThreadParty) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Forbidden']);
+            exit;
+        }
 
         $stmt = $mysqli->prepare("INSERT INTO signaling (room_id, sender_id, receiver_id, type, content) VALUES (?, ?, ?, ?, ?)");
         $stmt->bind_param("iiiss", $roomId, $userId, $receiverId, $type, $content);
@@ -1843,7 +1908,16 @@ if ($isLoggedIn) {
 
             function updateThreadActions() {
                 const block = document.getElementById('thread-actions-block');
-                if (block) block.style.display = 'flex';
+                if (parseInt(currentThreadId) === 1) {
+                    // Prevent editing/deleting General thread
+                    if (block) block.style.display = 'none';
+                    return;
+                }
+                if (parseInt(currentThreadCreatorId) === parseInt(currentUserId)) {
+                    if (block) block.style.display = 'flex';
+                } else {
+                    if (block) block.style.display = 'none';
+                }
             }
 
             async function editCurrentThread() {
