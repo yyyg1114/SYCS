@@ -342,6 +342,16 @@ a:hover {
     color: var(--text-primary);
 }
 
+.message-user.clickable-username {
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.message-user.clickable-username:hover {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
 .message-time {
     font-size: 0.75rem;
     color: var(--text-secondary);

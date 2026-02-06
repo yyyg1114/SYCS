@@ -308,6 +308,16 @@ if (isset($_GET['api'])) {
         exit;
     }
 
+    if ($action === 'get_user_profile') {
+        $targetId = $_GET['user_id'] ?? 0;
+        $stmt = $mysqli->prepare("SELECT id, username, status, custom_status, bio, avatar_url, banner_color FROM users WHERE id = ?");
+        $stmt->bind_param("i", $targetId);
+        $stmt->execute();
+        $res = $stmt->get_result()->fetch_assoc();
+        echo json_encode($res ?: ['error' => 'User not found']);
+        exit;
+    }
+
     if ($action === 'get_friends_statuses') {
         // Get statuses of all friends
         $stmt = $mysqli->prepare("
@@ -1529,6 +1539,32 @@ if ($isLoggedIn) {
                         </div>
                     </div>
                 </dialog>
+
+                <!-- User Profile View Modal -->
+                <dialog id="user-profile-modal" class="profile-modal">
+                    <div class="profile-content" style="max-width: 400px;">
+                        <div class="profile-preview-pane" style="width: 100%;">
+                            <div class="discord-card" id="user-profile-card">
+                                <div class="discord-banner" id="user-profile-banner"></div>
+                                <div class="discord-avatar-wrapper">
+                                    <div class="discord-avatar" id="user-profile-avatar-container"></div>
+                                    <div class="discord-status-indicator" id="user-profile-status-indicator"></div>
+                                </div>
+                                <div class="discord-body">
+                                    <div class="discord-username" id="user-profile-username"></div>
+                                    <div class="discord-custom-status" id="user-profile-custom-status"></div>
+                                    <div class="discord-divider"></div>
+                                    <div class="discord-section-title">自己紹介</div>
+                                    <div class="discord-bio" id="user-profile-bio"></div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 16px; display: flex; gap: 8px;">
+                                <button class="btn-secondary" onclick="document.getElementById('user-profile-modal').close()" style="flex: 1;">閉じる</button>
+                                <button class="btn-primary" id="user-profile-dm-btn" style="flex: 1;">DMを送る</button>
+                            </div>
+                        </div>
+                    </div>
+                </dialog>
             </main>
         </div>
         
@@ -1784,6 +1820,60 @@ if ($isLoggedIn) {
                 }
             }
 
+            // --- User Profile View Logic ---
+            async function showUserProfile(userId, username) {
+                // 自分自身の場合は自分用のモーダルを開く
+                if (parseInt(userId) === currentUserId) {
+                    showProfileModal();
+                    return;
+                }
+                
+                const modal = document.getElementById('user-profile-modal');
+                const res = await api(`get_user_profile&user_id=${userId}`);
+                
+                if (res.error) {
+                    alert('ユーザー情報の取得に失敗しました');
+                    return;
+                }
+                
+                // バナー
+                document.getElementById('user-profile-banner').style.background = res.banner_color || '#6366f1';
+                
+                // アバター
+                const avatarContainer = document.getElementById('user-profile-avatar-container');
+                if (res.avatar_url) {
+                    avatarContainer.innerHTML = `<img src="${res.avatar_url}" class="discord-avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                } else {
+                    const initial = res.username ? res.username.charAt(0).toUpperCase() : '?';
+                    avatarContainer.innerHTML = initial;
+                    avatarContainer.style.background = '#6366f1';
+                }
+                
+                // ステータスインジケーター
+                const statusIndicator = document.getElementById('user-profile-status-indicator');
+                statusIndicator.className = `discord-status-indicator status-${res.status || 'offline'}`;
+                
+                // ユーザー名
+                document.getElementById('user-profile-username').innerText = res.username;
+                
+                // カスタムステータス
+                document.getElementById('user-profile-custom-status').innerText = res.custom_status || '';
+                
+                // Bio
+                document.getElementById('user-profile-bio').innerText = res.bio || '自己紹介はまだありません';
+                
+                // DMボタンの設定
+                const dmBtn = document.getElementById('user-profile-dm-btn');
+                dmBtn.onclick = () => {
+                    modal.close();
+                    // DMタブに切り替えてチャットを開始
+                    document.querySelector('.nav-item[data-tab="dm"]').click();
+                    switchToDmChat(res.id, res.username, res.avatar_url, res.status);
+                };
+                
+                modal.showModal();
+            }
+
             async function loadMessages() {
                 // Fetch friends statuses first to show them accurately in chat if needed, 
                 // but get_messages JOIN users would be better. Let's update the query.
@@ -1850,8 +1940,13 @@ if ($isLoggedIn) {
                 header.className = 'message-header';
 
                 const user = document.createElement('span');
-                user.className = 'message-user';
+                user.className = 'message-user clickable-username';
                 user.textContent = m.username;
+                user.style.cursor = 'pointer';
+                user.onclick = (e) => {
+                    e.stopPropagation();
+                    showUserProfile(m.user_id, m.username);
+                };
 
                 const time = document.createElement('span');
                 time.className = 'message-time';
@@ -2406,8 +2501,13 @@ if ($isLoggedIn) {
                     header.className = 'message-header';
 
                     const user = document.createElement('span');
-                    user.className = 'message-user';
+                    user.className = 'message-user clickable-username';
                     user.textContent = m.username;
+                    user.style.cursor = 'pointer';
+                    user.onclick = (e) => {
+                        e.stopPropagation();
+                        showUserProfile(m.sender_id, m.username);
+                    };
 
                     const time = document.createElement('span');
                     time.className = 'message-time';
@@ -2574,3 +2674,4 @@ if ($isLoggedIn) {
 </body>
 
 </html>
+a
