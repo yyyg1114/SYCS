@@ -958,6 +958,9 @@ if ($isLoggedIn) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <style>
+
+
+
         /* Status Indicators */
         .avatar-container {
             position: relative;
@@ -1169,10 +1172,19 @@ if ($isLoggedIn) {
             </div>
         </div>
     <?php else: ?>
+        <div class="sidebar-backdrop" onclick="toggleSidebar()"></div>
         <div class="app-container">
-            <aside class="sidebar">
+            <aside id="main-sidebar" class="sidebar">
                 <div class="sidebar-top">
-                    <div class="logo-container"><img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo"><span style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.0.4</span></div>
+                    <div class="logo-container">
+                        <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
+                        <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.0.4</span>
+                        <button class="icon-btn collapse-btn" onclick="toggleSidebarCollapse()" title="折りたたみ" style="margin-left: auto;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="15 18 9 12 15 6" />
+                            </svg>
+                        </button>
+                    </div>
                     <nav>
                         <ul class="nav-list">
                             <li class="nav-item active" data-tab="threads">
@@ -1241,6 +1253,13 @@ if ($isLoggedIn) {
                 <section id="threads-pane" class="content-pane active">
                     <div class="chat-area">
                         <header class="chat-header">
+                            <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="メニュー">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                                </svg>
+                            </button>
                             <div class="thread-name-clickable" onclick="toggleThreadBrowser()">
                                 <button id="fav-btn" class="icon-btn" onclick="event.stopPropagation(); toggleFavorite()"
                                     title="お気に入り" style="margin-right: 8px;">
@@ -1331,13 +1350,18 @@ if ($isLoggedIn) {
                     <!-- Friend Hub (Default View) -->
                     <div id="dm-hub-view" style="display:flex; flex-direction:column; height:100%;">
                         <div class="chat-header">
+                            <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="メニュー">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                                </svg>
+                            </button>
                             <h3>Friend Hub</h3>
                             <div style="margin-left:auto; display:flex; gap:10px;">
                                 <button class="btn-primary" onclick="showAddFriendModal()">フレンド申請</button>
-                                <button class="btn-primary" onclick="showPendingRequestsModal()"
-                                    id="btn-pending-req">フレンド承認</button>
-                                <button class="btn-secondary" style="background-color:#333;"
-                                    onclick="showBlockedModal()">ブロック一覧</button>
+                                <button class="btn-primary" onclick="showPendingRequestsModal()" id="btn-pending-req">フレンド承認</button>
+                                <button class="btn-primary" onclick="showBlockedModal()" style="background-color: #333">ブロック一覧</button>
                             </div>
                         </div>
                         <div class="scroller" style="flex:1; padding:20px; overflow-y:auto;">
@@ -1542,7 +1566,7 @@ if ($isLoggedIn) {
 
                 <!-- User Profile View Modal -->
                 <dialog id="user-profile-modal" class="profile-modal">
-                    <div class="profile-content" style="max-width: 400px;">
+                    <div class="profile-content" style="max-width: 450px;">
                         <div class="profile-preview-pane" style="width: 100%;">
                             <div class="discord-card" id="user-profile-card">
                                 <div class="discord-banner" id="user-profile-banner"></div>
@@ -1558,8 +1582,8 @@ if ($isLoggedIn) {
                                     <div class="discord-bio" id="user-profile-bio"></div>
                                 </div>
                             </div>
-                            <div style="margin-top: 16px; display: flex; gap: 8px;">
-                                <button class="btn-secondary" onclick="document.getElementById('user-profile-modal').close()" style="flex: 1;">閉じる</button>
+                            <div style="margin-top: 16px; display: flex; gap: 8px; margin-left: 15px;">
+                                <button class="btn-primary" onclick="document.getElementById('user-profile-modal').close()" style="flex: 1;">閉じる</button>
                                 <button class="btn-primary" id="user-profile-dm-btn" style="flex: 1;">DMを送る</button>
                             </div>
                         </div>
@@ -2200,7 +2224,21 @@ if ($isLoggedIn) {
             }
 
             function toggleThreadBrowser() {
-                document.getElementById('thread-browser').classList.toggle('active');
+                const browser = document.getElementById('thread-browser');
+                browser.classList.toggle('active');
+            }
+
+            function toggleSidebar() {
+                const sidebar = document.getElementById('main-sidebar');
+                sidebar.classList.toggle('active');
+                document.body.classList.toggle('sidebar-open');
+            }
+
+            function toggleSidebarCollapse() {
+                const sidebar = document.getElementById('main-sidebar');
+                sidebar.classList.toggle('collapsed');
+                
+                // オプション: 折りたたみ状態をLocalStorage等に保存することも検討可能
             }
 
             document.querySelectorAll('.nav-item').forEach(item => {
@@ -2226,6 +2264,12 @@ if ($isLoggedIn) {
                     } else if (tabId === 'favorites') {
                         isDmMode = false;
                         loadFavorites();
+                    }
+
+                    // モバイル表示でサイドバーが開いている場合は閉じる
+                    const sidebar = document.getElementById('main-sidebar');
+                    if (sidebar.classList.contains('active')) {
+                        toggleSidebar();
                     }
                 });
             });
@@ -2387,8 +2431,8 @@ if ($isLoggedIn) {
                     const btn = document.createElement('button');
                     btn.innerText = '申請';
                     btn.className = 'btn-primary';
-                    btn.style.padding = '2px 8px';
-                    btn.style.fontSize = '0.75rem';
+                    btn.style.padding = '10px 15px';
+                    btn.style.fontSize = '1.0rem';
                     btn.onclick = async () => {
                         if (confirm(`ID:${u.id} ${u.username}に申請を送りますか？`)) {
                             const body = new FormData();
