@@ -1,4 +1,6 @@
 <?php
+session_start();
+
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
 require_once __DIR__ . '/../backend/Mailer.php';
@@ -8,38 +10,47 @@ $err = '';
 $success = false;
 $pending = isset($_GET['pending']);
 
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
-    $email = $_POST['email'];
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-
-    // Search by username or email_hash
-    $emailHash = hash('sha256', $email);
-    $stmt = $mysqli->prepare("SELECT id FROM users WHERE email_hash = ? OR username = ?");
-    $stmt->bind_param("ss", $emailHash, $username);
-    $stmt->execute();
-    $check = $stmt->get_result();
-
-    if ($check && $check->num_rows > 0) {
-        $err = 'このメールアドレスまたはユーザー名は既に使用されています';
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        $err = '不正なリクエストです (CSRF Token Mismatch)';
     } else {
-        $encryptedEmail = SecurityUtil::encrypt($email);
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        $token = SecurityUtil::generateToken();
+        $email = $_POST['email'];
+        $username = $_POST['username'];
+        $password = $_POST['password'];
 
-        $stmt_insert = $mysqli->prepare("INSERT INTO users (email, email_hash, username, password, verification_token, is_verified) VALUES (?, ?, ?, ?, ?, 0)");
-        $stmt_insert->bind_param("sssss", $encryptedEmail, $emailHash, $username, $hashedPassword, $token);
-        
-        if ($stmt_insert->execute()) {
-            Mailer::sendVerification($email, $username, $token);
-            $msg = '仮登録が完了しました。届いたメール内のリンクをクリックして本登録を完了してください。';
-            $success = true;
+        // Search by username or email_hash
+        $emailHash = hash('sha256', $email);
+        $stmt = $mysqli->prepare("SELECT id FROM users WHERE email_hash = ? OR username = ?");
+        $stmt->bind_param("ss", $emailHash, $username);
+        $stmt->execute();
+        $check = $stmt->get_result();
+
+        if ($check && $check->num_rows > 0) {
+            $err = 'このメールアドレスまたはユーザー名は既に使用されています';
         } else {
-            $err = '登録に失敗しました: ' . $mysqli->error;
+            $encryptedEmail = SecurityUtil::encrypt($email);
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $token = SecurityUtil::generateToken();
+
+            $stmt_insert = $mysqli->prepare("INSERT INTO users (email, email_hash, username, password, verification_token, is_verified) VALUES (?, ?, ?, ?, ?, 0)");
+            $stmt_insert->bind_param("sssss", $encryptedEmail, $emailHash, $username, $hashedPassword, $token);
+
+            if ($stmt_insert->execute()) {
+                Mailer::sendVerification($email, $username, $token);
+                $msg = '仮登録が完了しました。届いたメール内のリンクをクリックして本登録を完了してください。';
+                $success = true;
+            } else {
+                $err = '登録に失敗しました: ' . $mysqli->error;
+            }
+            $stmt_insert->close();
         }
-        $stmt_insert->close();
+        $stmt->close();
     }
-    $stmt->close();
 }
 ?>
 <!DOCTYPE html>
@@ -189,6 +200,7 @@ if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
                 <div class="message error"><?= htmlspecialchars($err) ?></div><?php endif; ?>
             <?php if (!$success): ?>
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                     <div class="form-group"><label>Email</label><input type="email" name="email" required
                             placeholder="admin@example.com"></div>
                     <div class="form-group"><label>Username</label><input type="text" name="username" required
