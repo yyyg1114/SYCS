@@ -1465,9 +1465,11 @@ if ($isLoggedIn) {
                                         <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                                     </svg>
                                 </button>
-                                <button class="icon-btn" onclick="editCurrentThread()" title="編集">✏️</button>
+                                <button class="icon-btn" onclick="editCurrentThread()" title="編集">
+                                    <img src="assets/img/edit.svg" alt="編集" style="width:16px; height:16px;">
+                                </button>
                                 <button class="icon-btn" onclick="deleteCurrentThread()" title="削除"
-                                    style="color:red;">🗑️</button>
+                                    style="color:red;"><img src="assets/img/trash.svg" alt="削除" style="width:16px; height:16px;"></button>
                             </div>
                         </header>
                         <div id="message-container" class="chat-messages"></div>
@@ -2248,7 +2250,7 @@ if ($isLoggedIn) {
                 // Always allow reply
                 const replyBtn = document.createElement('button');
                 replyBtn.className = 'msg-action-btn';
-                replyBtn.innerText = '↩️';
+                replyBtn.innerHTML = '<img src="assets/img/reply.svg" alt="返信" style="width:16px; height:16px;">';
                 replyBtn.title = '返信';
                 replyBtn.onclick = () => startReply(m.id, m.username, m.content);
                 actions.appendChild(replyBtn);
@@ -2257,7 +2259,7 @@ if ($isLoggedIn) {
                 if (m.username === currentUserName) {
                     const delBtn = document.createElement('button');
                     delBtn.className = 'msg-action-btn';
-                    delBtn.innerText = '🗑️';
+                    delBtn.innerHTML = '<img src="assets/img/trash.svg" alt="削除" style="width:16px; height:16px;">';
                     delBtn.title = '削除';
                     delBtn.onclick = () => deleteMessage(m.id);
                     actions.appendChild(delBtn);
