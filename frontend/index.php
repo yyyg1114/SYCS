@@ -1666,6 +1666,9 @@ if ($isLoggedIn) {
                         <button class="control-btn" id="toggle-video" onclick="meetingManager.toggleVideo()" title="カメラ オン/オフ">
                             <img id="video-icon" src="assets/img/camera_on.svg" alt="">
                         </button>
+                        <button class="control-btn" id="toggle-screen" onclick="meetingManager.toggleScreenShare()" title="画面共有">
+                            <img id="screen-icon" src="assets/img/screen_share.svg" alt="">
+                        </button>
                         <button class="control-btn" id="hangup-btn" onclick="meetingManager.leave()" title="退席">
                             <img id="hangup-icon" src="assets/img/hangup.svg" alt="" color="white">
                         </button>
