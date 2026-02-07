@@ -1488,6 +1488,12 @@ if ($isLoggedIn) {
 
                         <div class="chat-input-area">
                             <div class="input-wrapper">
+                                <button class="icon-btn upload-btn-plus" title="アップロード" onclick="openMediaUploadModal()">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                </button>
                                 <textarea id="msg-input" class="chat-input" placeholder="メッセージを送信... (Shift+Enterで改行)"
                                     rows="1" onkeydown="handleInputKey(event)"></textarea>
                                 <button onclick="sendMessage()"
@@ -1600,17 +1606,15 @@ if ($isLoggedIn) {
 
                         <div class="chat-input-area" id="dm-chat-area">
                             <div class="input-wrapper">
-                                <textarea id="dm-msg-input" class="chat-input" placeholder="DMを送信..." rows="1"
-                                    onkeydown="handleDmInputKey(event)"></textarea>
-                                <button class="icon-btn" onclick="document.getElementById('dm-file-input').click()"
-                                    style="margin-right:5px;">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <path
-                                            d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                                <button class="icon-btn upload-btn-plus" title="アップロード" onclick="openMediaUploadModal()">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
                                     </svg>
                                 </button>
-                                <input type="file" id="dm-file-input" hidden onchange="handleDmFiles(this.files)">
+                                <textarea id="dm-msg-input" class="chat-input" placeholder="DMを送信..." rows="1"
+                                    onkeydown="handleDmInputKey(event)"></textarea>
+                                <input type="file" id="msg-file-input" hidden onchange="handleMediaUploadFiles(this.files)">
                                 <button onclick="sendDm()"
                                     style="background:transparent; border:none; color:var(--accent-color); cursor:pointer;">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1683,6 +1687,42 @@ if ($isLoggedIn) {
                         <div class="modal-actions" style="margin-top:10px; text-align:right;">
                             <button class="btn-secondary"
                                 onclick="document.getElementById('blocked-users-modal').close()">閉じる</button>
+                        </div>
+                    </div>
+                </dialog>
+
+                <!-- Media Upload Modal -->
+                <dialog id="media-upload-modal" class="modal media-upload-modal">
+                    <div class="modal-content" style="min-width: 450px; max-width: 600px;">
+                        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                            <h3 style="margin:0;">ファイルを送信</h3>
+                            <button class="close-btn" onclick="closeMediaUploadModal()">
+                                <p style="font-size: 20px; color: #000000; font-weight: bold; margin:0; padding:0; cursor:pointer; background-color: transparent; border: none; outline: none;">✕</p>
+                            </button>
+                        </div>
+
+                        <div id="media-upload-dropzone" class="upload-dropzone" onclick="document.getElementById('modal-file-input').click()">
+                            <div id="media-upload-preview-container" class="upload-preview-container">
+                                <div class="upload-placeholder">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 15px;">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                    <p style="margin:0; color:var(--text-secondary);">クリックまたはドラッグ＆ドロップで選択</p>
+                                </div>
+                            </div>
+                            <input type="file" id="modal-file-input" hidden onchange="handleMediaUploadFiles(this.files)">
+                        </div>
+
+                        <div class="modal-form-group" style="margin-top:20px;">
+                            <label class="modal-label">メッセージ (任意)</label>
+                            <textarea id="modal-content-input" class="modal-textarea" placeholder="メッセージを入力..." rows="2" style="background:var(--input-bg); border:1px solid var(--border-color); color:white; border-radius:8px; padding:12px; width:100%; resize:none;"></textarea>
+                        </div>
+
+                        <div class="modal-actions" style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end;">
+                            <button class="btn-secondary" onclick="closeMediaUploadModal()" style="padding:10px 30px;">キャンセル</button>
+                            <button class="btn-secondary" onclick="submitMediaUpload()" style="padding:10px 50px;">送信</button>
                         </div>
                     </div>
                 </dialog>
@@ -2254,28 +2294,41 @@ if ($isLoggedIn) {
                 if (m.content) contentDiv.innerText = m.content;
 
                 if (m.attachment_path) {
-                    const img = document.createElement('img');
-                    img.src = m.attachment_path;
-                    img.className = 'preview-img';
-                    img.style.display = 'block';
-                    img.style.marginTop = '10px';
-                    img.onclick = () => window.open(m.attachment_path, '_blank');
-                    contentDiv.appendChild(img);
+                    const ext = m.attachment_path.split('.').pop().toLowerCase();
+                    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+                    const isAudio = ['mp3', 'wav', 'ogg'].includes(ext);
+                    const isVideo = ['mp4', 'webm', 'ogv', 'mov', 'avi'].includes(ext);
 
-                    // If it is a converted SVG (detected by filename convention or just providing download option for all images?)
-                    // Requirement: "Download Original" for SVGs. 
-                    // Since we convert SVG -> PNG, the path ends in .png. 
-                    // We can check if a download link is viable or just always offer download for images.
-                    // Let's deduce: If file is .png, check if we can download .svg? 
-                    // No, that causes 404 for real PNGs. 
-                    // Cleanest way: Just add a "Download" button for all files, but for converted ones it hits download.php? 
-                    // Use the `download.php?file=...` for everything safely?
-                    // Yes. Let's make the image click open the image, but add a small [Download] link below.
+                    if (isImage) {
+                        const img = document.createElement('img');
+                        img.src = m.attachment_path;
+                        img.className = 'preview-img';
+                        img.style.display = 'block';
+                        img.style.marginTop = '10px';
+                        img.onclick = () => window.open(m.attachment_path, '_blank');
+                        contentDiv.appendChild(img);
+                    } else if (isAudio) {
+                        const audio = document.createElement('audio');
+                        audio.src = m.attachment_path;
+                        audio.controls = true;
+                        audio.style.display = 'block';
+                        audio.style.marginTop = '10px';
+                        audio.style.maxWidth = '100%';
+                        contentDiv.appendChild(audio);
+                    } else if (isVideo) {
+                        const video = document.createElement('video');
+                        video.src = m.attachment_path;
+                        video.controls = true;
+                        video.style.display = 'block';
+                        video.style.marginTop = '10px';
+                        video.style.maxWidth = '100%';
+                        contentDiv.appendChild(video);
+                    }
 
                     const dlLink = document.createElement('a');
                     const fileName = m.attachment_path.split('/').pop();
                     dlLink.href = 'download.php?file=' + fileName;
-                    dlLink.target = '_blank'; // Trigger download
+                    dlLink.target = '_blank';
                     dlLink.innerText = '⬇️ ダウンロード';
                     dlLink.style.display = 'inline-block';
                     dlLink.style.fontSize = '0.75rem';
@@ -2394,34 +2447,129 @@ if ($isLoggedIn) {
                 chatArea.classList.remove('drag-active');
                 const dt = e.dataTransfer;
                 const files = dt.files;
-                if (files.length > 0) handleFiles(files);
+                if (files.length > 0) handleMediaUploadFiles(files); // Changed to handleMediaUploadFiles
             });
 
-            function handleFiles(files) {
-                fileToUpload = files[0];
-                previewContent.textContent = ''; // Clear safely
-                // Preview
-                if (fileToUpload.type.startsWith('image/')) {
+            let modalFileToUpload = null;
+
+            function openMediaUploadModal() {
+                modalFileToUpload = null;
+                document.getElementById('modal-file-input').value = '';
+                document.getElementById('modal-content-input').value = '';
+                document.getElementById('media-upload-preview-container').innerHTML = `
+                    <div class="upload-placeholder">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 15px;">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p style="margin:0; color:var(--text-secondary);">クリックまたはドラッグ＆ドロップで選択</p>
+                    </div>
+                `;
+                document.getElementById('media-upload-modal').showModal();
+            }
+
+            function closeMediaUploadModal() {
+                document.getElementById('media-upload-modal').close();
+                modalFileToUpload = null;
+            }
+
+            function handleMediaUploadFiles(files) {
+                if (files.length === 0) return;
+                modalFileToUpload = files[0];
+                const container = document.getElementById('media-upload-preview-container');
+                container.innerHTML = '';
+
+                if (modalFileToUpload.type.startsWith('image/')) {
                     const reader = new FileReader();
-                    reader.readAsDataURL(fileToUpload);
+                    reader.readAsDataURL(modalFileToUpload);
                     reader.onloadend = () => {
                         const img = document.createElement('img');
                         img.src = reader.result;
-                        img.className = 'preview-img';
-                        previewContent.appendChild(img);
-                        uploadPreview.classList.add('active');
+                        img.style.maxWidth = '100%';
+                        img.style.maxHeight = '300px';
+                        img.style.borderRadius = '8px';
+                        img.style.objectFit = 'contain';
+                        container.appendChild(img);
                     }
+                } else if (modalFileToUpload.type.startsWith('audio/')) {
+                    const div = document.createElement('div');
+                    div.className = 'media-file-info';
+                    div.innerHTML = `<span style="font-size:3rem;">🎵</span><p style="margin-top:10px;">${modalFileToUpload.name}</p>`;
+                    container.appendChild(div);
+                } else if (modalFileToUpload.type.startsWith('video/')) {
+                    const video = document.createElement('video');
+                    video.src = URL.createObjectURL(modalFileToUpload);
+                    video.style.maxWidth = '100%';
+                    video.style.maxHeight = '300px';
+                    video.style.borderRadius = '8px';
+                    video.muted = true;
+                    video.autoplay = true;
+                    video.loop = true;
+                    container.appendChild(video);
                 } else {
                     const div = document.createElement('div');
-                    div.style.padding = '10px';
-                    div.style.border = '1px solid #444';
-                    div.style.borderRadius = '8px';
-                    div.innerText = '📄 ' + fileToUpload.name;
-                    div.appendChild(document.createTextNode('📄 ' + fileToUpload.name));
-                    previewContent.appendChild(div);
-                    uploadPreview.classList.add('active');
+                    div.className = 'media-file-info';
+                    div.innerHTML = `<span style="font-size:3rem;">📄</span><p style="margin-top:10px;">${modalFileToUpload.name}</p>`;
+                    container.appendChild(div);
                 }
             }
+
+            async function submitMediaUpload() {
+                if (!modalFileToUpload) {
+                    alert('ファイルを選択してください');
+                    return;
+                }
+
+                const content = document.getElementById('modal-content-input').value.trim();
+                const body = new FormData();
+                body.append('content', content);
+                body.append('attachment', modalFileToUpload);
+
+                let result;
+                if (isDmMode) {
+                    if (!currentPartnerId) return;
+                    body.append('receiver_id', currentPartnerId);
+                    result = await api('send_direct_message', 'POST', body);
+                } else {
+                    if (!currentThreadId) return;
+                    body.append('thread_id', currentThreadId);
+                    if (replyToId) body.append('reply_to_id', replyToId);
+                    result = await api('send_message', 'POST', body);
+                }
+
+                if (result.error) {
+                    alert('送信に失敗しました: ' + result.error);
+                } else {
+                    closeMediaUploadModal();
+                    if (isDmMode) {
+                        await loadDms();
+                        await loadDmPartners();
+                    } else {
+                        await loadMessages();
+                        cancelReply();
+                    }
+                }
+            }
+
+            // Drag and drop for modal
+            document.addEventListener('DOMContentLoaded', () => {
+                const dropzone = document.getElementById('media-upload-dropzone');
+                if (dropzone) {
+                    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                        dropzone.addEventListener(eventName, (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }, false);
+                    });
+                    dropzone.addEventListener('dragover', () => dropzone.classList.add('drag-active'));
+                    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-active'));
+                    dropzone.addEventListener('drop', (e) => {
+                        dropzone.classList.remove('drag-active');
+                        handleMediaUploadFiles(e.dataTransfer.files);
+                    });
+                }
+            });
 
             function cancelUpload() {
                 fileToUpload = null;
@@ -2793,13 +2941,47 @@ if ($isLoggedIn) {
                     if (m.content) contentDiv.innerText = m.content;
 
                     if (m.attachment_path) {
-                        const img = document.createElement('img');
-                        img.src = m.attachment_path;
-                        img.className = 'preview-img';
-                        img.style.display = 'block';
-                        img.style.marginTop = '10px';
-                        img.onclick = () => window.open(m.attachment_path, '_blank');
-                        contentDiv.appendChild(img);
+                        const ext = m.attachment_path.split('.').pop().toLowerCase();
+                        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+                        const isAudio = ['mp3', 'wav', 'ogg'].includes(ext);
+                        const isVideo = ['mp4', 'webm', 'ogv', 'mov', 'avi'].includes(ext);
+
+                        if (isImage) {
+                            const img = document.createElement('img');
+                            img.src = m.attachment_path;
+                            img.className = 'preview-img';
+                            img.style.display = 'block';
+                            img.style.marginTop = '10px';
+                            img.onclick = () => window.open(m.attachment_path, '_blank');
+                            contentDiv.appendChild(img);
+                        } else if (isAudio) {
+                            const audio = document.createElement('audio');
+                            audio.src = m.attachment_path;
+                            audio.controls = true;
+                            audio.style.display = 'block';
+                            audio.style.marginTop = '10px';
+                            audio.style.maxWidth = '100%';
+                            contentDiv.appendChild(audio);
+                        } else if (isVideo) {
+                            const video = document.createElement('video');
+                            video.src = m.attachment_path;
+                            video.controls = true;
+                            video.style.display = 'block';
+                            video.style.marginTop = '10px';
+                            video.style.maxWidth = '100%';
+                            contentDiv.appendChild(video);
+                        }
+
+                        const dlLink = document.createElement('a');
+                        const fileName = m.attachment_path.split('/').pop();
+                        dlLink.href = 'download.php?file=' + fileName;
+                        dlLink.target = '_blank';
+                        dlLink.innerText = '⬇️ ダウンロード';
+                        dlLink.style.display = 'inline-block';
+                        dlLink.style.fontSize = '0.75rem';
+                        dlLink.style.marginTop = '5px';
+                        dlLink.style.color = 'var(--accent-color)';
+                        contentDiv.appendChild(dlLink);
                     }
 
                     info.appendChild(header);

@@ -23,39 +23,55 @@ if (strpos($file, '/') !== false || strpos($file, '\\') !== false) {
     die('Invalid filename');
 }
 
-// Extract UUID from filename (assuming format: uuid.png or uuid)
-// Public path stored is 'frontend/uploads/uuid.png'. 
-// We expect 'file' param to be the BASENAME of the public file, e.g. "uuid.png"
-$uuid = pathinfo($file, PATHINFO_FILENAME);
-
-// Targeted Protected path
+$uploadsDir = __DIR__ . '/uploads/';
 $protectedDir = __DIR__ . '/../protected_uploads/';
+
+// 1. Check if it's an original SVG (for converted images)
+$uuid = pathinfo($file, PATHINFO_FILENAME);
 $targetPath = $protectedDir . $uuid . '.svg';
+$mime = 'image/svg+xml';
+$downloadName = $uuid . '.svg';
 
 if (!file_exists($targetPath)) {
-    // If no SVG exists, maybe it was a regular file? 
-    // This endpoint is specifically for downloading the "Original" of something that was converted (SVG).
-    // Or we could allow downloading the public file with headers. 
-    // For now, let's assume this is exclusively for retrieving the SVG source of a converted PNG.
-    http_response_code(404);
-    die('Original source not found');
+    // 2. If not a protected SVG, check the literal file in uploads/
+    $targetPath = $uploadsDir . $file;
+    if (file_exists($targetPath)) {
+        $downloadName = $file;
+        // Detect MIME type
+        if (class_exists('finfo')) {
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($targetPath);
+        } else {
+            // Simple fallback if finfo is not available
+            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+            $mimes = [
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'webp' => 'image/webp',
+                'pdf' => 'application/pdf',
+                'txt' => 'text/plain',
+                'mp3' => 'audio/mpeg',
+                'wav' => 'audio/wav',
+                'mp4' => 'video/mp4',
+                'webm' => 'video/webm',
+                'zip' => 'application/zip'
+            ];
+            $mime = $mimes[$ext] ?? 'application/octet-stream';
+        }
+    } else {
+        http_response_code(404);
+        die('File not found');
+    }
 }
 
 // TODO: Ownership/Access Check
-// Ideally, check if 'file' is present in 'messages' or 'direct_messages' table 
-// AND if the current User ID has access to that thread/DM.
-// For MVP/Task Scope, authentication + known UUID is the baseline. 
-// Adding DB check would be robust:
-/*
-require_once __DIR__ . '/../backend/db.php';
-$stmt = $mysqli->prepare("SELECT id FROM messages WHERE attachment_path LIKE ? AND ... check user access ...");
-// ...
-*/
+// (Authentication is already checked above)
 
 // Serve File
-$mime = 'image/svg+xml';
 header('Content-Type: ' . $mime);
-header('Content-Disposition: attachment; filename="' . $uuid . '.svg"');
+header('Content-Disposition: attachment; filename="' . basename($downloadName) . '"');
 header('X-Content-Type-Options: nosniff');
 header('Content-Length: ' . filesize($targetPath));
 header('Cache-Control: private, max-age=0, must-revalidate');

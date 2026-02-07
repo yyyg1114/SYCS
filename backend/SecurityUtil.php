@@ -16,6 +16,16 @@ class SecurityUtil
         'pdf' => 'application/pdf',
         'txt' => 'text/plain',
         'zip' => 'application/zip',
+        // Audio
+        'mp3' => 'audio/mpeg',
+        'wav' => 'audio/wav',
+        'ogg' => 'audio/ogg',
+        // Video
+        'mp4' => 'video/mp4',
+        'webm' => 'video/webm',
+        'ogv' => 'video/ogg',
+        'mov' => 'video/quicktime',
+        'avi' => 'video/x-msvideo',
     ];
 
     /**
@@ -28,7 +38,7 @@ class SecurityUtil
             return false;
         }
 
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
         $realMime = $finfo->file($filePath);
 
         // Special handling for text files which might be detected as x-empty or other variations
@@ -127,19 +137,20 @@ class SecurityUtil
         }
 
         try {
-            // Use fully qualified global class names
-            $imagick = new \Imagick();
+            // Use dynamic instantiation to avoid IDE lint errors when extension is missing
+            $imagickClass = '\Imagick';
+            $imagick = new $imagickClass();
 
             // Security configuration
             // Note: Constants might be flagged if extension is missing in IDE, but exist at runtime.
             if (defined('\Imagick::RESOURCETYPE_MEMORY')) {
-                $imagick->setResourceLimit(\Imagick::RESOURCETYPE_MEMORY, 256 * 1024 * 1024); // 256MB
+                $imagick->setResourceLimit(constant('\Imagick::RESOURCETYPE_MEMORY'), 256 * 1024 * 1024); // 256MB
             }
             if (defined('\Imagick::RESOURCETYPE_MAP')) {
-                $imagick->setResourceLimit(\Imagick::RESOURCETYPE_MAP, 256 * 1024 * 1024); // 256MB
+                $imagick->setResourceLimit(constant('\Imagick::RESOURCETYPE_MAP'), 256 * 1024 * 1024); // 256MB
             }
             if (defined('\Imagick::RESOURCETYPE_THREAD')) {
-                $imagick->setResourceLimit(\Imagick::RESOURCETYPE_THREAD, 1); // Single thread
+                $imagick->setResourceLimit(constant('\Imagick::RESOURCETYPE_THREAD'), 1); // Single thread
             }
 
             // Disable external resources
@@ -149,7 +160,8 @@ class SecurityUtil
                 // Option might not be supported on all versions
             }
 
-            $imagick->setBackgroundColor(new \ImagickPixel('transparent'));
+            $pixelClass = '\ImagickPixel';
+            $imagick->setBackgroundColor(new $pixelClass('transparent'));
             $imagick->readImage($svgPath);
             $imagick->setImageFormat('png');
 
@@ -195,7 +207,7 @@ class SecurityUtil
         $key = hash('sha256', self::ENCRYPTION_KEY, true);
         $decoded = base64_decode($data);
         if (!$decoded || strpos($decoded, '::') === false) return null;
-        
+
         list($iv, $encrypted) = explode('::', $decoded, 2);
         if (strlen($iv) !== openssl_cipher_iv_length('aes-256-cbc')) return null;
 
