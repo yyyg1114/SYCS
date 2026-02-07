@@ -199,13 +199,23 @@ class MeetingManager {
     toggleMic() {
         this.isMuted = !this.isMuted;
         this.localStream.getAudioTracks().forEach(track => track.enabled = !this.isMuted);
-        document.getElementById('toggle-mic').classList.toggle('muted', this.isMuted);
+        const micBtn = document.getElementById('toggle-mic');
+        const micIcon = document.getElementById('mic-icon');
+        micBtn.classList.toggle('muted', this.isMuted);
+        if (micIcon) {
+            micIcon.src = this.isMuted ? 'assets/img/mic_muted.svg' : 'assets/img/mic.svg';
+        }
     }
 
     toggleVideo() {
         this.isVideoOff = !this.isVideoOff;
         this.localStream.getVideoTracks().forEach(track => track.enabled = !this.isVideoOff);
-        document.getElementById('toggle-video').classList.toggle('muted', this.isVideoOff);
+        const videoBtn = document.getElementById('toggle-video');
+        const videoIcon = document.getElementById('video-icon');
+        videoBtn.classList.toggle('muted', this.isVideoOff);
+        if (videoIcon) {
+            videoIcon.src = this.isVideoOff ? 'assets/img/camera_off.svg' : 'assets/img/camera_on.svg';
+        }
     }
 
     leave() {

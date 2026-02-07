@@ -922,7 +922,7 @@ header.chat-header div.thread-info {
     height: 48px;
     border-radius: 50%;
     border: none;
-    background: #2a2b2f;
+    background: #fff;
     color: white;
     font-size: 1.2rem;
     cursor: pointer;
@@ -933,8 +933,14 @@ header.chat-header div.thread-info {
 }
 
 .control-btn:hover {
-    background: #3f4044;
+    background: #969696;
     transform: scale(1.1);
+}
+
+.control-btn img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
 }
 
 .control-btn.muted {

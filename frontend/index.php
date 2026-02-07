@@ -1,5 +1,9 @@
 <?php
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // 1. Secure Session Settings (Must be before session_start)
 session_set_cookie_params([
     'lifetime' => 0,
@@ -244,7 +248,7 @@ if (isset($_GET['api'])) {
         $bannerColor = $_POST['banner_color'] ?? '#6366f1';
         $status = $_POST['status'] ?? 'online';
         $removeAvatar = ($_POST['remove_avatar'] ?? 'false') === 'true';
-        
+
         // Handle Avatar Deletion / Cleanup
         if ($removeAvatar || (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK)) {
             // Get current avatar to delete old file
@@ -286,7 +290,7 @@ if (isset($_GET['api'])) {
                 $uuid = SecurityUtil::generateUuid();
                 $uploadDir = __DIR__ . '/uploads/avatars/';
                 if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
-                
+
                 $newFileName = $uuid . '.' . $ext;
                 if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
                     // Store path relative to web root or current script?
@@ -300,7 +304,7 @@ if (isset($_GET['api'])) {
                 }
             }
         }
-        
+
         echo json_encode(['success' => true]);
         exit;
     }
@@ -310,7 +314,7 @@ if (isset($_GET['api'])) {
         $status = $_POST['status'] ?? 'online';
         $customStatus = $_POST['custom_status'] ?? null;
         $allowed = ['online', 'busy', 'away', 'offline', 'not_allowed', 'step_out', 'going_away'];
-        
+
         if (in_array($status, $allowed)) {
             $stmt = $mysqli->prepare("UPDATE users SET status = ?, custom_status = ? WHERE id = ?");
             $stmt->bind_param("ssi", $status, $customStatus, $userId);
@@ -421,7 +425,7 @@ if (isset($_GET['api'])) {
                 $delMsgs = $mysqli->prepare("DELETE FROM messages WHERE thread_id = ?");
                 $delMsgs->bind_param("i", $threadId);
                 $delMsgs->execute();
-                
+
                 $del = $mysqli->prepare("DELETE FROM threads WHERE id = ?");
                 $del->bind_param("i", $threadId);
                 $del->execute();
@@ -883,7 +887,7 @@ if (isset($_GET['api'])) {
         verify_csrf();
         $threadId = $_POST['thread_id'] ?? null;
         $dmPartnerId = $_POST['dm_partner_id'] ?? null;
-        
+
         // Generate a stable room name
         if ($threadId) {
             $roomName = "thread_" . $threadId;
@@ -893,7 +897,7 @@ if (isset($_GET['api'])) {
             $ids = [$userId, $dmPartnerId];
             sort($ids);
             $roomName = "dm_" . $ids[0] . "_" . $ids[1];
-            
+
             // Verify DM Partnership
             $stmt = $mysqli->prepare("SELECT id FROM friends WHERE ((user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?)) AND status = 'accepted'");
             $stmt->bind_param("iiii", $userId, $dmPartnerId, $dmPartnerId, $userId);
@@ -940,13 +944,13 @@ if (isset($_GET['api'])) {
         $stmt->bind_param("i", $roomId);
         $stmt->execute();
         $room = $stmt->get_result()->fetch_assoc();
-        
+
         if (!$room) {
             http_response_code(404);
             echo json_encode(['error' => 'Room not found']);
             exit;
         }
-        
+
         // Basic check: I am creator? OR if DM, I am one of the parties?
         $isDmParty = ($room['dm_partner_id'] && ($room['dm_partner_id'] == $userId || $room['creator_id'] == $userId));
         $isThreadParty = ($room['thread_id'] !== null); // Assuming threads are accessible by logged-in users
@@ -1013,7 +1017,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'login') {
                         $upd->execute();
                         $upd->close();
                     }
-                    
+
                     $_SESSION['user_id'] = $row['id'];
                     $_SESSION['user'] = $row['username'];
                     $_SESSION['last_thread_id'] = $row['last_thread_id'] ?: 1;
@@ -1093,14 +1097,12 @@ if ($isLoggedIn) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <style>
-
-
-
         /* Status Indicators */
         .avatar-container {
             position: relative;
             display: inline-block;
         }
+
         .status-indicator {
             position: absolute;
             bottom: -2px;
@@ -1109,21 +1111,44 @@ if ($isLoggedIn) {
             height: 12px;
             border-radius: 50%;
             border: 2px solid var(--sidebar-bg, #1e1e2e);
-            background-color: #94a3b8; /* Default offline */
+            background-color: #94a3b8;
+            /* Default offline */
         }
-        .status-online { background-color: #6BB700; }
-        .status-busy { background-color: #C50F1F; }
-        .status-away { background-color: #FCD116; }
-        .status-offline { background-color: #747f8d; }
-        .status-not_allowed { background-color: #C50F1F; }
-        .status-step_out { background-color: #FCD116; }
-        .status-going_away { background-color: #e100ffff; }
+
+        .status-online {
+            background-color: #6BB700;
+        }
+
+        .status-busy {
+            background-color: #C50F1F;
+        }
+
+        .status-away {
+            background-color: #FCD116;
+        }
+
+        .status-offline {
+            background-color: #747f8d;
+        }
+
+        .status-not_allowed {
+            background-color: #C50F1F;
+        }
+
+        .status-step_out {
+            background-color: #FCD116;
+        }
+
+        .status-going_away {
+            background-color: #e100ffff;
+        }
 
         /* Status Dropdown */
         .status-select-container {
             position: relative;
             margin-top: 4px;
         }
+
         .status-select {
             background: transparent;
             border: none;
@@ -1134,9 +1159,11 @@ if ($isLoggedIn) {
             border-radius: 4px;
             outline: none;
         }
+
         .status-select:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
         }
+
         .status-select option {
             background: #1e1e2e;
             color: white;
@@ -1151,23 +1178,28 @@ if ($isLoggedIn) {
             padding: 0;
             width: 800px;
             max-width: 90vw;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             overflow: hidden;
             top: auto;
             bottom: 20px;
         }
+
         .profile-modal::backdrop {
-            background: rgba(0,0,0,0.7);
+            background: rgba(0, 0, 0, 0.7);
         }
+
         .profile-content {
             display: flex;
-            height: 650px; /* Increased from 500px to see more content */
+            height: 650px;
+            /* Increased from 500px to see more content */
         }
+
         .profile-edit-form {
             flex: 1;
             padding: 32px;
             overflow-y: auto;
         }
+
         .profile-preview-pane {
             width: 340px;
             background: #2b2d31;
@@ -1183,19 +1215,22 @@ if ($isLoggedIn) {
             background: #111214;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
             font-family: 'Inter', sans-serif;
         }
+
         .discord-banner {
             height: 60px;
             background: var(--accent-color, #6366f1);
         }
+
         .discord-avatar-wrapper {
             margin-top: -30px;
             margin-left: 16px;
             position: relative;
             display: inline-block;
         }
+
         .discord-avatar {
             width: 80px;
             height: 80px;
@@ -1209,6 +1244,7 @@ if ($isLoggedIn) {
             font-weight: bold;
             object-fit: cover;
         }
+
         .discord-status-indicator {
             position: absolute;
             bottom: 4px;
@@ -1218,25 +1254,30 @@ if ($isLoggedIn) {
             border-radius: 50%;
             border: 4px solid #111214;
         }
+
         .discord-body {
             padding: 16px;
         }
+
         .discord-username {
             font-size: 1.25rem;
             font-weight: 700;
             color: #ffffff;
             margin-bottom: 4px;
         }
+
         .discord-custom-status {
             font-size: 0.85rem;
             color: #dbdee1;
             margin-bottom: 12px;
         }
+
         .discord-divider {
             height: 1px;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             margin: 12px 0;
         }
+
         .discord-section-title {
             font-size: 0.75rem;
             font-weight: 700;
@@ -1244,6 +1285,7 @@ if ($isLoggedIn) {
             text-transform: uppercase;
             margin-bottom: 8px;
         }
+
         .discord-bio {
             font-size: 0.85rem;
             color: #dbdee1;
@@ -1255,6 +1297,7 @@ if ($isLoggedIn) {
         .modal-form-group {
             margin-bottom: 20px;
         }
+
         .modal-label {
             display: block;
             font-size: 0.75rem;
@@ -1263,7 +1306,9 @@ if ($isLoggedIn) {
             text-transform: uppercase;
             margin-bottom: 8px;
         }
-        .modal-input, .modal-textarea {
+
+        .modal-input,
+        .modal-textarea {
             width: 100%;
             background: #1e1f22;
             border: none;
@@ -1273,15 +1318,19 @@ if ($isLoggedIn) {
             font-size: 0.9rem;
             outline: none;
         }
+
         .modal-textarea {
             resize: none;
             height: 80px;
         }
-        .modal-input:focus, .modal-textarea:focus {
+
+        .modal-input:focus,
+        .modal-textarea:focus {
             background: #000;
         }
     </style>
 </head>
+
 <body>
     <?php if (!$isLoggedIn): ?>
         <div class="auth-container">
@@ -1612,13 +1661,13 @@ if ($isLoggedIn) {
                     </div>
                     <div class="meeting-controls">
                         <button class="control-btn" id="toggle-mic" onclick="meetingManager.toggleMic()" title="マイク オン/オフ">
-                            🎤
+                            <img id="mic-icon" src="assets/img/mic.svg" alt="">
                         </button>
                         <button class="control-btn" id="toggle-video" onclick="meetingManager.toggleVideo()" title="カメラ オン/オフ">
-                            📹
+                            <img id="video-icon" src="assets/img/camera_on.svg" alt="">
                         </button>
-                        <button class="control-btn hangup-btn" onclick="meetingManager.leave()" title="退席">
-                            🛑
+                        <button class="control-btn" id="hangup-btn" onclick="meetingManager.leave()" title="退席">
+                            <img id="hangup-icon" src="assets/img/hangup.svg" alt="" color="white">
                         </button>
                     </div>
                 </dialog>
@@ -1656,7 +1705,7 @@ if ($isLoggedIn) {
                     <div class="profile-content">
                         <div class="profile-edit-form">
                             <h3 style="margin-bottom: 24px;">ユーザー設定</h3>
-                            
+
                             <div class="modal-form-group">
                                 <label class="modal-label">アバター画像</label>
                                 <input type="file" id="edit-avatar-input" accept="image/*" style="display:none" onchange="previewAvatar(this)">
@@ -1668,13 +1717,13 @@ if ($isLoggedIn) {
 
                             <div class="modal-form-group">
                                 <label class="modal-label">バナー色</label>
-                                <input type="color" id="edit-banner-input" class="modal-input" style="height: 40px; padding: 5px;" 
+                                <input type="color" id="edit-banner-input" class="modal-input" style="height: 40px; padding: 5px;"
                                     oninput="updatePreviewBanner(this.value)" value="<?= htmlspecialchars($currentUserBanner) ?>">
                             </div>
 
                             <div class="modal-form-group">
                                 <label class="modal-label">自己紹介</label>
-                                <textarea id="edit-bio-input" class="modal-textarea" placeholder="自分について書こう" 
+                                <textarea id="edit-bio-input" class="modal-textarea" placeholder="自分について書こう"
                                     oninput="updatePreviewBio(this.value)"><?= htmlspecialchars($currentUserBio) ?></textarea>
                             </div>
 
@@ -1759,7 +1808,7 @@ if ($isLoggedIn) {
                 </dialog>
             </main>
         </div>
-        
+
         <script>
             let currentThreadId = <?= (int) ($initialThreadId ?? 1) ?>;
             let currentThreadCreatorId = <?= (int) ($currentThreadCreatorId ?? 0) ?>;
@@ -1791,14 +1840,14 @@ if ($isLoggedIn) {
 
                 const div = document.createElement('div');
                 div.className = 'avatar';
-                
+
                 if (avatarUrl) {
                     div.innerHTML = `<img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
                 } else {
                     div.style.background = colors[colorIdx];
                     div.innerText = initial;
                 }
-                
+
                 container.appendChild(div);
 
                 if (status !== 'none') {
@@ -1820,7 +1869,7 @@ if ($isLoggedIn) {
                     // Update Indicator
                     const indicator = document.getElementById('global-status-indicator');
                     if (indicator) indicator.className = `status-indicator status-${status}`;
-                    
+
                     // Sync Inputs
                     const sidebarInput = document.getElementById('sidebar-status-input');
                     const modalInput = document.getElementById('modal-status-input');
@@ -1842,13 +1891,13 @@ if ($isLoggedIn) {
                     }
                     opts.body = body;
                 }
-                
+
                 try {
                     const res = await fetch(`index.php?api=${path}`, opts);
-                    
+
                     // Get response text first
                     const text = await res.text();
-                    
+
                     // Try to parse as JSON
                     try {
                         const json = JSON.parse(text);
@@ -2024,18 +2073,18 @@ if ($isLoggedIn) {
                     showProfileModal();
                     return;
                 }
-                
+
                 const modal = document.getElementById('user-profile-modal');
                 const res = await api(`get_user_profile&user_id=${userId}`);
-                
+
                 if (res.error) {
                     alert('ユーザー情報の取得に失敗しました');
                     return;
                 }
-                
+
                 // バナー
                 document.getElementById('user-profile-banner').style.background = res.banner_color || '#6366f1';
-                
+
                 // アバター
                 const avatarContainer = document.getElementById('user-profile-avatar-container');
                 if (res.avatar_url) {
@@ -2045,20 +2094,20 @@ if ($isLoggedIn) {
                     avatarContainer.innerHTML = initial;
                     avatarContainer.style.background = '#6366f1';
                 }
-                
+
                 // ステータスインジケーター
                 const statusIndicator = document.getElementById('user-profile-status-indicator');
                 statusIndicator.className = `discord-status-indicator status-${res.status || 'offline'}`;
-                
+
                 // ユーザー名
                 document.getElementById('user-profile-username').innerText = res.username;
-                
+
                 // カスタムステータス
                 document.getElementById('user-profile-custom-status').innerText = res.custom_status || '';
-                
+
                 // Bio
                 document.getElementById('user-profile-bio').innerText = res.bio || '自己紹介はまだありません';
-                
+
                 // DMボタンの設定
                 const dmBtn = document.getElementById('user-profile-dm-btn');
                 dmBtn.onclick = () => {
@@ -2067,7 +2116,7 @@ if ($isLoggedIn) {
                     document.querySelector('.nav-item[data-tab="dm"]').click();
                     switchToDmChat(res.id, res.username, res.avatar_url, res.status);
                 };
-                
+
                 modal.showModal();
             }
 
@@ -2185,7 +2234,10 @@ if ($isLoggedIn) {
                     quote.onclick = () => {
                         const target = document.getElementById('message-' + m.reply_to_id);
                         if (target) {
-                            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            target.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center'
+                            });
                             target.style.backgroundColor = 'rgba(99, 102, 241, 0.2)';
                             setTimeout(() => target.style.backgroundColor = '', 2000);
                         }
@@ -2277,7 +2329,7 @@ if ($isLoggedIn) {
                 if (fileToUpload) body.append('attachment', fileToUpload);
 
                 const result = await api('send_message', 'POST', body);
-                
+
                 if (result.error) {
                     alert('メッセージの送信に失敗しました: ' + result.error);
                     return;
@@ -2288,7 +2340,7 @@ if ($isLoggedIn) {
                 msgInput.style.height = 'auto';
                 cancelReply();
                 cancelUpload();
-                
+
                 await loadMessages();
             }
 
@@ -2381,15 +2433,15 @@ if ($isLoggedIn) {
                 const body = new FormData();
                 body.append('name', name);
                 const result = await api('create_thread', 'POST', body);
-                
+
                 if (result.error) {
                     alert('スレッドの作成に失敗しました: ' + result.error);
                     return;
                 }
-                
+
                 await loadThreads();
                 hideCreateThread();
-                
+
                 // Switch to the newly created thread
                 if (result.id) {
                     switchThread(result.id, name, currentUserId);
@@ -2410,7 +2462,7 @@ if ($isLoggedIn) {
             function toggleSidebarCollapse() {
                 const sidebar = document.getElementById('main-sidebar');
                 sidebar.classList.toggle('collapsed');
-                
+
                 // オプション: 折りたたみ状態をLocalStorage等に保存することも検討可能
             }
 
@@ -2520,13 +2572,13 @@ if ($isLoggedIn) {
                 currentPartnerId = id;
                 document.getElementById('dm-hub-view').style.display = 'none';
                 document.getElementById('dm-chat-view').style.display = 'flex';
-                
+
                 const infoContainer = document.getElementById('current-dm-partner-info');
                 infoContainer.innerHTML = '';
                 infoContainer.style.display = 'flex';
                 infoContainer.style.alignItems = 'center';
                 infoContainer.style.gap = '10px';
-                
+
                 infoContainer.appendChild(getAvatarElement(name, status, avatarUrl));
                 const nameH3 = document.createElement('h3');
                 nameH3.className = 'thread-name';
@@ -2590,7 +2642,7 @@ if ($isLoggedIn) {
                     d.style.justifyContent = 'space-between';
                     d.style.alignItems = 'center';
                     d.style.gap = '10px';
-                    
+
                     const userPart = document.createElement('div');
                     userPart.style.display = 'flex';
                     userPart.style.alignItems = 'center';
@@ -2804,12 +2856,12 @@ if ($isLoggedIn) {
                 if (dmFileToUpload) body.append('attachment', dmFileToUpload);
 
                 const result = await api('send_direct_message', 'POST', body);
-                
+
                 if (result.error) {
                     alert('DMの送信に失敗しました: ' + result.error);
                     return;
                 }
-                
+
                 input.value = '';
                 input.style.height = 'auto';
                 cancelDmUpload();
@@ -2882,11 +2934,11 @@ if ($isLoggedIn) {
         <script src="js/webrtc.js"></script>
         <script src="js/locate.js"></script>
         <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // GPS 位置情報取得の初期化
-            locationManager.init('gps-status', 1000);
+            document.addEventListener('DOMContentLoaded', () => {
+                // GPS 位置情報取得の初期化
+                locationManager.init('gps-status', 1000);
 
-        });
+            });
         </script>
     <?php endif; ?>
 </body>
