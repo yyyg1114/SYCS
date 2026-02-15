@@ -3,6 +3,32 @@
 class SecurityUtil
 {
     /**
+     * Send standard security headers
+     */
+    public static function sendSecurityHeaders()
+    {
+        if (headers_sent()) {
+            return;
+        }
+
+        // Prevent clickjacking
+        header("X-Frame-Options: SAMEORIGIN");
+
+        // Prevent MIME type sniffing
+        header("X-Content-Type-Options: nosniff");
+
+        // Content Security Policy
+        // Note: 'unsafe-inline' is currently needed for some styles/scripts. 
+        // Ideally should be removed in favor of nonces or separate files.
+        header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';");
+
+        // HSTS (HTTP Strict Transport Security) - Only if HTTPS
+        if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+            header("Strict-Transport-Security: max-age=31536000; includeSubDomains");
+        }
+    }
+
+    /**
      * MIME types allowlist strict check
      * map extension => mime
      */

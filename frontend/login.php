@@ -1,7 +1,8 @@
 <?php
-session_start();
+require_once __DIR__ . '/../backend/session_config.php';
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
+SecurityUtil::sendSecurityHeaders();
 
 $error = '';
 
@@ -35,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
 ?>
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -56,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-color);
             background: radial-gradient(circle at 0% 0%, #1e1b4b 0%, #0f0f10 50%),
-                        radial-gradient(circle at 100% 100%, #312e81 0%, #0f0f10 50%);
+                radial-gradient(circle at 100% 100%, #312e81 0%, #0f0f10 50%);
             color: var(--text-primary);
             display: flex;
             justify-content: center;
@@ -80,8 +82,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
         }
 
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         h1 {
@@ -192,10 +201,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
         }
     </style>
 </head>
+
 <body>
     <div class="card">
         <h1>SYCS</h1>
-        
+
         <?php if ($error): ?>
             <div class="error-box"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
@@ -224,4 +234,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
         &copy; 2026 SYCS · Shinjuku Yamabuki Chat System
     </footer>
 </body>
+
 </html>

@@ -1,7 +1,8 @@
 <?php
-session_start();
+require_once __DIR__ . '/../backend/session_config.php';
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
+SecurityUtil::sendSecurityHeaders();
 
 $token = $_GET['token'] ?? ($_POST['token'] ?? '');
 $message = '';
@@ -36,7 +37,7 @@ if (!$user) {
         $newPass = password_hash($password, PASSWORD_DEFAULT);
         $upd = $mysqli->prepare("UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?");
         $upd->bind_param("si", $newPass, $user['id']);
-        
+
         if ($upd->execute()) {
             $message = "パスワードを更新しました。3秒後にログイン画面へ移動します。";
             $messageType = "success";
@@ -50,6 +51,7 @@ if (!$user) {
 ?>
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -74,7 +76,7 @@ if (!$user) {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-color);
             background: radial-gradient(circle at 0% 100%, #1e1b4b 0%, #0f0f10 50%),
-                        radial-gradient(circle at 100% 0%, #312e81 0%, #0f0f10 50%);
+                radial-gradient(circle at 100% 0%, #312e81 0%, #0f0f10 50%);
             color: var(--text-primary);
             display: flex;
             justify-content: center;
@@ -98,8 +100,15 @@ if (!$user) {
         }
 
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         h2 {
@@ -173,8 +182,13 @@ if (!$user) {
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .message.success {
@@ -201,22 +215,34 @@ if (!$user) {
         .back-to-login:hover {
             color: var(--accent-color);
         }
-        
+
         .timer-dots {
             display: inline-block;
             width: 10px;
             text-align: left;
             animation: dots 1.5s infinite;
         }
-        
+
         @keyframes dots {
-            0% { content: ''; }
-            33% { content: '.'; }
-            66% { content: '..'; }
-            100% { content: '...'; }
+            0% {
+                content: '';
+            }
+
+            33% {
+                content: '.';
+            }
+
+            66% {
+                content: '..';
+            }
+
+            100% {
+                content: '...';
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="card">
         <h2>パスワード再設定</h2>
@@ -254,12 +280,12 @@ if (!$user) {
 
     <script>
         <?php if ($success): ?>
-        // Simple dots animation
-        let dots = 0;
-        setInterval(() => {
-            dots = (dots + 1) % 4;
-            document.getElementById('dots').innerText = '.'.repeat(dots);
-        }, 500);
+            // Simple dots animation
+            let dots = 0;
+            setInterval(() => {
+                dots = (dots + 1) % 4;
+                document.getElementById('dots').innerText = '.'.repeat(dots);
+            }, 500);
         <?php endif; ?>
 
         const form = document.getElementById('resetForm');
@@ -275,4 +301,5 @@ if (!$user) {
         }
     </script>
 </body>
+
 </html>

@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/session_config.php';
 require_once __DIR__ . '/db.php';
 
 $username = $_POST['username'] ?? '';
@@ -19,11 +19,11 @@ if ($user && password_verify($password, $user['password'])) {
     if ($user['is_verified'] == 0) {
         die("メールアドレスの本登録が完了していません。メールを確認してください。");
     }
-    
+
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['user'] = $user['username'];
     $_SESSION['last_thread_id'] = $user['last_thread_id'] ?: 1;
-    
+
     header("Location: ../frontend/index.php");
     exit();
 } else {

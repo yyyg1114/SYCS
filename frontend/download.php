@@ -1,14 +1,6 @@
 <?php
 // Secure Download Endpoint for SVGs (or protected files)
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path' => '/',
-    'domain' => '',
-    'secure' => isset($_SERVER['HTTPS']),
-    'httponly' => true,
-    'samesite' => 'Strict'
-]);
-session_start();
+require_once __DIR__ . '/../backend/session_config.php';
 
 if (empty($_SESSION['user_id'])) {
     http_response_code(403);

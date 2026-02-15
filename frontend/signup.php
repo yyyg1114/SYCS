@@ -1,8 +1,9 @@
 <?php
-session_start();
+require_once __DIR__ . '/../backend/session_config.php';
 
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
+SecurityUtil::sendSecurityHeaders();
 require_once __DIR__ . '/../backend/Mailer.php';
 
 $msg = '';

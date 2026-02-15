@@ -1,5 +1,7 @@
 <?php
-session_start();
+require_once __DIR__ . '/../backend/session_config.php';
+require_once __DIR__ . '/../backend/SecurityUtil.php';
+SecurityUtil::sendSecurityHeaders();
 if (!isset($_SESSION['user'])) {
     header("Location: login.php");
     exit();

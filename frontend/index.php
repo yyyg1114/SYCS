@@ -4,23 +4,14 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// 1. Secure Session Settings (Must be before session_start)
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path' => '/',
-    'domain' => '', // Default to current domain
-    'secure' => isset($_SERVER['HTTPS']), // Only over HTTPS if available
-    'httponly' => true, // JavaScript cannot access session cookie
-    'samesite' => 'Strict' // Prevent CSRF via cross-site cookies
-]);
-session_start();
+// 1. Secure Session Settings
+require_once __DIR__ . '/../backend/session_config.php';
+
+require_once __DIR__ . '/../backend/db.php';
+require_once __DIR__ . '/../backend/SecurityUtil.php';
 
 // 2. HTTP Security Headers
-header("X-Frame-Options: SAMEORIGIN");
-header("X-Content-Type-Options: nosniff");
-// Content Security Policy: Allow own content, images, basic styles.
-// Adjust 'unsafe-inline' based on needs (needed here for simple style attributes/script blocks).
-header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';");
+SecurityUtil::sendSecurityHeaders();
 
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
@@ -1095,6 +1086,7 @@ if ($isLoggedIn) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <link rel="icon" href="SYCS_favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="css/style.css">
     <style>
         /* Status Indicators */

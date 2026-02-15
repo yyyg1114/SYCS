@@ -1,7 +1,8 @@
 <?php
-session_start();
+require_once __DIR__ . '/../backend/session_config.php';
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
+SecurityUtil::sendSecurityHeaders();
 require_once __DIR__ . '/../backend/Mailer.php';
 
 // CSRF Token Generation
@@ -55,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -76,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-color);
             background: radial-gradient(circle at 100% 0%, #1e1b4b 0%, #0f0f10 50%),
-                        radial-gradient(circle at 0% 100%, #312e81 0%, #0f0f10 50%);
+                radial-gradient(circle at 0% 100%, #312e81 0%, #0f0f10 50%);
             color: var(--text-primary);
             display: flex;
             justify-content: center;
@@ -100,8 +102,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
 
         h2 {
@@ -181,8 +190,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .message.success {
@@ -213,6 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
+
 <body>
     <div class="card">
         <h2>リセット</h2>
@@ -236,4 +253,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <a href="login.php" class="back-link">← ログイン画面に戻る</a>
     </div>
 </body>
+
 </html>

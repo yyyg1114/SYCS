@@ -1,4 +1,8 @@
 <?php
+if (basename(__FILE__) == basename($_SERVER['PHP_SELF'])) {
+    http_response_code(403);
+    exit;
+}
 date_default_timezone_set('Asia/Tokyo');
 $mysqli = new mysqli(
     "localhost",
