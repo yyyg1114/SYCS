@@ -1896,6 +1896,39 @@ if ($isLoggedIn) {
                 return container;
             }
 
+            function getSkeletonLoader() {
+                const container = document.createElement('div');
+                container.className = 'skeleton-container';
+                for (let i = 0; i < 4; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'skeleton-item';
+
+                    const avatar = document.createElement('div');
+                    avatar.className = 'skeleton-avatar skeleton-shimmer';
+
+                    const info = document.createElement('div');
+                    info.className = 'skeleton-info';
+
+                    const name = document.createElement('div');
+                    name.className = 'skeleton-name skeleton-shimmer';
+
+                    const text1 = document.createElement('div');
+                    text1.className = 'skeleton-text skeleton-shimmer';
+
+                    const text2 = document.createElement('div');
+                    text2.className = 'skeleton-text short skeleton-shimmer';
+
+                    info.appendChild(name);
+                    info.appendChild(text1);
+                    info.appendChild(text2);
+
+                    item.appendChild(avatar);
+                    item.appendChild(info);
+                    container.appendChild(item);
+                }
+                return container;
+            }
+
 
 
             async function updateMyStatus(status) {
@@ -1979,15 +2012,10 @@ if ($isLoggedIn) {
 
                 const container = document.getElementById('message-container');
                 container.innerText = '';
-                const h2 = document.createElement('h2');
-                h2.innerText = '読込中...';
-                const div = document.createElement('div');
-                div.className = 'empty-state';
-                div.appendChild(h2);
-                container.appendChild(div);
+                container.appendChild(getSkeletonLoader());
                 cancelReply();
                 cancelUpload();
-                loadMessages();
+                loadMessages(3000);
                 checkFavoriteStatus(); // Check fav status on switch
                 api(`set_last_thread&thread_id=${id}`);
             }
@@ -2157,10 +2185,15 @@ if ($isLoggedIn) {
                 modal.showModal();
             }
 
-            async function loadMessages() {
-                // Fetch friends statuses first to show them accurately in chat if needed, 
-                // but get_messages JOIN users would be better. Let's update the query.
+            async function loadMessages(minDelay = 0) {
+                const startTime = Date.now();
                 const messages = await api(`get_messages&thread_id=${currentThreadId}`);
+
+                if (minDelay > 0) {
+                    const elapsed = Date.now() - startTime;
+                    const remaining = minDelay - elapsed;
+                    if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
+                }
                 const container = document.getElementById('message-container');
                 // Auto-scroll logic needs to be smarter or just stick to bottom if already at bottom
                 const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
@@ -2731,7 +2764,10 @@ if ($isLoggedIn) {
                 nameH3.innerText = name;
                 infoContainer.appendChild(nameH3);
 
-                loadDms();
+                const container = document.getElementById('dm-message-container');
+                container.innerText = '';
+                container.appendChild(getSkeletonLoader());
+                loadDms(3000);
             }
 
             async function loadHubFriends() {
@@ -2896,9 +2932,16 @@ if ($isLoggedIn) {
                 loadHubFriends();
             }
 
-            async function loadDms() {
+            async function loadDms(minDelay = 0) {
                 if (!currentPartnerId) return;
+                const startTime = Date.now();
                 const dms = await api(`get_direct_messages&partner_id=${currentPartnerId}`);
+
+                if (minDelay > 0) {
+                    const elapsed = Date.now() - startTime;
+                    const remaining = minDelay - elapsed;
+                    if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
+                }
                 const container = document.getElementById('dm-message-container');
                 const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
                 container.innerText = '';
@@ -3097,16 +3140,28 @@ if ($isLoggedIn) {
             document.addEventListener('DOMContentLoaded', () => {
                 // Initial Load
                 loadThreads();
-                if (isDmMode && currentPartnerId) loadDms();
-                else if (!isDmMode && currentThreadId) loadMessages();
-
+                if (isDmMode && currentPartnerId) {
+                    const container = document.getElementById('dm-message-container');
+                    if (container) {
+                        container.innerText = '';
+                        container.appendChild(getSkeletonLoader());
+                    }
+                    loadDms(3000);
+                } else if (!isDmMode && currentThreadId) {
+                    const container = document.getElementById('message-container');
+                    if (container) {
+                        container.innerText = '';
+                        container.appendChild(getSkeletonLoader());
+                    }
+                    loadMessages(3000);
+                }
                 // Also update thread actions logic initially
                 updateThreadActions();
 
                 // Polling
                 setInterval(() => {
-                    if (isDmMode && currentPartnerId) loadDms();
-                    else if (!isDmMode && currentThreadId) loadMessages();
+                    if (isDmMode && currentPartnerId) loadDms(3000);
+                    else if (!isDmMode && currentThreadId) loadMessages(3000);
                 }, 3000);
             });
         </script>
