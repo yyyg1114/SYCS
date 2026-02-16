@@ -21,21 +21,27 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
+// Cleanup expired messages
+if (isset($mysqli)) {
+    $mysqli->query("DELETE FROM messages WHERE expires_at IS NOT NULL AND expires_at < NOW()");
+    $mysqli->query("DELETE FROM direct_messages WHERE expires_at IS NOT NULL AND expires_at < NOW()");
+}
+
 // Ensure basic tables exist
 $mysqli->query("CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    email VARCHAR(255) DEFAULT NULL,
-    last_thread_id INT DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+id INT AUTO_INCREMENT PRIMARY KEY,
+username VARCHAR(50) NOT NULL UNIQUE,
+password VARCHAR(255) NOT NULL,
+email VARCHAR(255) DEFAULT NULL,
+last_thread_id INT DEFAULT 1,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )");
 
 $mysqli->query("CREATE TABLE IF NOT EXISTS threads (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    creator_id INT DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+id INT AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(100) NOT NULL,
+creator_id INT DEFAULT 1,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )");
 
 // Ensure users table has email protection and verification columns
@@ -84,82 +90,82 @@ if ($res->num_rows === 0) {
 }
 
 $mysqli->query("CREATE TABLE IF NOT EXISTS messages (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    thread_id INT NOT NULL,
-    user_id INT NOT NULL,
-    content TEXT,
-    reply_to_id INT DEFAULT NULL,
-    attachment_path VARCHAR(255) DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+id INT AUTO_INCREMENT PRIMARY KEY,
+thread_id INT NOT NULL,
+user_id INT NOT NULL,
+content TEXT,
+reply_to_id INT DEFAULT NULL,
+attachment_path VARCHAR(255) DEFAULT NULL,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE,
+FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 )");
 
 $mysqli->query("CREATE TABLE IF NOT EXISTS direct_messages (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    sender_id INT NOT NULL,
-    receiver_id INT NOT NULL,
-    content TEXT,
-    attachment_path VARCHAR(255),
-    is_read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+id INT AUTO_INCREMENT PRIMARY KEY,
+sender_id INT NOT NULL,
+receiver_id INT NOT NULL,
+content TEXT,
+attachment_path VARCHAR(255),
+is_read BOOLEAN DEFAULT FALSE,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
 )");
 
 $mysqli->query("CREATE TABLE IF NOT EXISTS friends (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id_1 INT NOT NULL,
-    user_id_2 INT NOT NULL,
-    status ENUM('pending', 'accepted') DEFAULT 'pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id_1) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id_2) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_friendship (user_id_1, user_id_2)
+id INT AUTO_INCREMENT PRIMARY KEY,
+user_id_1 INT NOT NULL,
+user_id_2 INT NOT NULL,
+status ENUM('pending', 'accepted') DEFAULT 'pending',
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (user_id_1) REFERENCES users(id) ON DELETE CASCADE,
+FOREIGN KEY (user_id_2) REFERENCES users(id) ON DELETE CASCADE,
+UNIQUE KEY unique_friendship (user_id_1, user_id_2)
 )");
 
 $mysqli->query("CREATE TABLE IF NOT EXISTS favorites (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    thread_id INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_fav (user_id, thread_id)
+id INT AUTO_INCREMENT PRIMARY KEY,
+user_id INT NOT NULL,
+thread_id INT NOT NULL,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE,
+UNIQUE KEY unique_fav (user_id, thread_id)
 )");
 
 $mysqli->query("CREATE TABLE IF NOT EXISTS blocked_users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    blocker_id INT NOT NULL,
-    blocked_id INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (blocker_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (blocked_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_block (blocker_id, blocked_id)
+id INT AUTO_INCREMENT PRIMARY KEY,
+blocker_id INT NOT NULL,
+blocked_id INT NOT NULL,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (blocker_id) REFERENCES users(id) ON DELETE CASCADE,
+FOREIGN KEY (blocked_id) REFERENCES users(id) ON DELETE CASCADE,
+UNIQUE KEY unique_block (blocker_id, blocked_id)
 )");
 
 $mysqli->query("CREATE TABLE IF NOT EXISTS meeting_rooms (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    thread_id INT DEFAULT NULL,
-    dm_partner_id INT DEFAULT NULL,
-    creator_id INT NOT NULL,
-    room_name VARCHAR(100) NOT NULL UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE,
-    FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
+id INT AUTO_INCREMENT PRIMARY KEY,
+thread_id INT DEFAULT NULL,
+dm_partner_id INT DEFAULT NULL,
+creator_id INT NOT NULL,
+room_name VARCHAR(100) NOT NULL UNIQUE,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE,
+FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
 )");
 
 $mysqli->query("CREATE TABLE IF NOT EXISTS signaling (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    room_id INT NOT NULL,
-    sender_id INT NOT NULL,
-    receiver_id INT NOT NULL,
-    type ENUM('offer', 'answer', 'candidate') NOT NULL,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (room_id) REFERENCES meeting_rooms(id) ON DELETE CASCADE,
-    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+id INT AUTO_INCREMENT PRIMARY KEY,
+room_id INT NOT NULL,
+sender_id INT NOT NULL,
+receiver_id INT NOT NULL,
+type ENUM('offer', 'answer', 'candidate') NOT NULL,
+content TEXT NOT NULL,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (room_id) REFERENCES meeting_rooms(id) ON DELETE CASCADE,
+FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
 )");
 
 // Migrations for existing schemas
@@ -201,13 +207,57 @@ $res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'bio'");
 if ($res->num_rows === 0) {
     $mysqli->query("ALTER TABLE users ADD COLUMN bio TEXT NULL AFTER custom_status");
 }
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'social_links'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN social_links JSON NULL AFTER bio");
+}
 $res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'avatar_url'");
 if ($res->num_rows === 0) {
-    $mysqli->query("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500) NULL AFTER bio");
+    $mysqli->query("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500) NULL AFTER social_links");
 }
 $res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'banner_color'");
 if ($res->num_rows === 0) {
     $mysqli->query("ALTER TABLE users ADD COLUMN banner_color VARCHAR(20) DEFAULT '#6366f1' AFTER avatar_url");
+}
+
+// New Infrastructure Migrations
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'theme_preference'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN theme_preference JSON NULL AFTER banner_color");
+}
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'typing_thread_id'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN typing_thread_id VARCHAR(50) DEFAULT NULL AFTER theme_preference");
+} else {
+    // Ensure it is VARCHAR to support dm_ prefix
+    $mysqli->query("ALTER TABLE users MODIFY COLUMN typing_thread_id VARCHAR(50) DEFAULT NULL");
+}
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'typing_at'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN typing_at TIMESTAMP NULL AFTER typing_thread_id");
+}
+
+$res = $mysqli->query("SHOW COLUMNS FROM threads LIKE 'category'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE threads ADD COLUMN category VARCHAR(50) DEFAULT 'General' AFTER name");
+}
+
+$res = $mysqli->query("SHOW COLUMNS FROM messages LIKE 'is_edited'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE messages ADD COLUMN is_edited TINYINT(1) DEFAULT 0 AFTER is_pinned");
+}
+$res = $mysqli->query("SHOW COLUMNS FROM messages LIKE 'expires_at'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE messages ADD COLUMN expires_at DATETIME NULL AFTER is_edited");
+}
+
+$res = $mysqli->query("SHOW COLUMNS FROM direct_messages LIKE 'is_edited'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE direct_messages ADD COLUMN is_edited TINYINT(1) DEFAULT 0 AFTER is_read");
+}
+$res = $mysqli->query("SHOW COLUMNS FROM direct_messages LIKE 'expires_at'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE direct_messages ADD COLUMN expires_at DATETIME NULL AFTER is_edited");
 }
 
 // Discord Columns Migration
@@ -231,10 +281,28 @@ if ($res->num_rows === 0) {
     $mysqli->query("ALTER TABLE users ADD COLUMN outlook_id VARCHAR(255) NULL AFTER apple_id");
 }
 
-$res = $mysqli->query("SHOW COLUMNS FROM threads LIKE 'discord_webhook_url'");
+$res = $mysqli->query("SHOW INDEX FROM threads WHERE Key_name = 'idx_thread_name_unique'");
 if ($res->num_rows === 0) {
-    $mysqli->query("ALTER TABLE threads ADD COLUMN discord_webhook_url VARCHAR(500) NULL AFTER name");
+    // 既存の重複がある場合は調整が必要かもしれませんが、一旦 UNIQUE インデックスを追加します
+    $mysqli->query("CREATE UNIQUE INDEX idx_thread_name_unique ON threads(name)");
 }
+
+// Features Migration: Pinning and Reactions
+$res = $mysqli->query("SHOW COLUMNS FROM messages LIKE 'is_pinned'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE messages ADD COLUMN is_pinned TINYINT(1) DEFAULT 0 AFTER attachment_path");
+}
+
+$mysqli->query("CREATE TABLE IF NOT EXISTS message_reactions (
+id INT AUTO_INCREMENT PRIMARY KEY,
+message_id INT NOT NULL,
+user_id INT NOT NULL,
+emoji VARCHAR(50) NOT NULL,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
+FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+UNIQUE KEY unique_reaction (message_id, user_id, emoji)
+)");
 
 // Helper to send Discord Webhook
 function sendDiscordWebhook($webhookUrl, $username, $content, $avatarUrl = null, $attachmentPath = null)
@@ -326,8 +394,10 @@ if (isset($_GET['api'])) {
             }
         }
 
-        $stmt = $mysqli->prepare("UPDATE users SET bio = ?, banner_color = ?, status = ? WHERE id = ?");
-        $stmt->bind_param("sssi", $bio, $bannerColor, $status, $userId);
+        $social = $_POST['social_links'] ?? null;
+        $themePref = $_POST['theme_preference'] ?? null;
+        $stmt = $mysqli->prepare("UPDATE users SET bio = ?, banner_color = ?, status = ?, social_links = ?, theme_preference = ? WHERE id = ?");
+        $stmt->bind_param("sssssi", $bio, $bannerColor, $status, $social, $themePref, $userId);
         $stmt->execute();
         $stmt->close();
 
@@ -401,13 +471,13 @@ if (isset($_GET['api'])) {
     if ($action === 'get_friends_statuses') {
         // Get statuses of all friends
         $stmt = $mysqli->prepare("
-            SELECT u.id, u.status, u.custom_status
-            FROM friends f
-            JOIN users u ON (f.user_id_1 = u.id OR f.user_id_2 = u.id)
-            WHERE (f.user_id_1 = ? OR f.user_id_2 = ?) 
-              AND f.status = 'accepted' 
-              AND u.id != ?
-        ");
+        SELECT u.id, u.status, u.custom_status
+        FROM friends f
+        JOIN users u ON (f.user_id_1 = u.id OR f.user_id_2 = u.id)
+        WHERE (f.user_id_1 = ? OR f.user_id_2 = ?) 
+            AND f.status = 'accepted' 
+            AND u.id != ?
+    ");
         $stmt->bind_param("iii", $userId, $userId, $userId);
         $stmt->execute();
         echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
@@ -423,9 +493,21 @@ if (isset($_GET['api'])) {
     if ($action === 'create_thread') {
         verify_csrf(); // Enforce CSRF Check
         $name = $_POST['name'] ?? '';
+        $category = $_POST['category'] ?? 'General';
         if ($name) {
-            $stmt = $mysqli->prepare("INSERT INTO threads (name, creator_id) VALUES (?, ?)");
-            $stmt->bind_param("si", $name, $userId);
+            // Check for duplicate name
+            $cStmt = $mysqli->prepare("SELECT id FROM threads WHERE name = ?");
+            $cStmt->bind_param("s", $name);
+            $cStmt->execute();
+            if ($cStmt->get_result()->num_rows > 0) {
+                echo json_encode(['error' => 'その名前のスレッドは既に存在します']);
+                $cStmt->close();
+                exit;
+            }
+            $cStmt->close();
+
+            $stmt = $mysqli->prepare("INSERT INTO threads (name, creator_id, category) VALUES (?, ?, ?)");
+            $stmt->bind_param("sis", $name, $userId, $category);
             $stmt->execute();
             echo json_encode(['success' => true, 'id' => $stmt->insert_id]);
             $stmt->close();
@@ -447,9 +529,23 @@ if (isset($_GET['api'])) {
         $res = $stmt->get_result();
         if ($row = $res->fetch_assoc()) {
             if ($row['creator_id'] == $userId) {
+                // Check for duplicate name (excluding current thread)
+                if ($newName) {
+                    $cStmt = $mysqli->prepare("SELECT id FROM threads WHERE name = ? AND id != ?");
+                    $cStmt->bind_param("si", $newName, $threadId);
+                    $cStmt->execute();
+                    if ($cStmt->get_result()->num_rows > 0) {
+                        echo json_encode(['error' => 'その名前のスレッドは既に存在します']);
+                        $cStmt->close();
+                        exit;
+                    }
+                    $cStmt->close();
+                }
+
                 $webhook = $_POST['discord_webhook_url'] ?? null;
-                $upd = $mysqli->prepare("UPDATE threads SET name = ?, discord_webhook_url = ? WHERE id = ?");
-                $upd->bind_param("ssi", $newName, $webhook, $threadId);
+                $category = $_POST['category'] ?? 'General';
+                $upd = $mysqli->prepare("UPDATE threads SET name = ?, discord_webhook_url = ?, category = ? WHERE id = ?");
+                $upd->bind_param("sssi", $newName, $webhook, $category, $threadId);
                 $upd->execute();
                 echo json_encode(['success' => true]);
             } else {
@@ -494,21 +590,182 @@ if (isset($_GET['api'])) {
         exit;
     }
 
+    if ($action === 'toggle_reaction') {
+        verify_csrf();
+        $messageId = $_POST['message_id'] ?? 0;
+        $emoji = $_POST['emoji'] ?? '';
+
+        if ($messageId && $emoji) {
+            // Check if already reacted
+            $stmt = $mysqli->prepare("SELECT id FROM message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?");
+            $stmt->bind_param("iis", $messageId, $userId, $emoji);
+            $stmt->execute();
+            $res = $stmt->get_result();
+
+            if ($row = $res->fetch_assoc()) {
+                // Remove
+                $del = $mysqli->prepare("DELETE FROM message_reactions WHERE id = ?");
+                $del->bind_param("i", $row['id']);
+                $del->execute();
+            } else {
+                // Add
+                $ins = $mysqli->prepare("INSERT INTO message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)");
+                $ins->bind_param("iis", $messageId, $userId, $emoji);
+                $ins->execute();
+            }
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Invalid parameters']);
+        }
+        exit;
+    }
+
+    if ($action === 'toggle_pin') {
+        verify_csrf();
+        $messageId = $_POST['message_id'] ?? 0;
+        if ($messageId) {
+            $stmt = $mysqli->prepare("UPDATE messages SET is_pinned = NOT is_pinned WHERE id = ?");
+            $stmt->bind_param("i", $messageId);
+            $stmt->execute();
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Message ID required']);
+        }
+        exit;
+    }
+
+    if ($action === 'search_messages') {
+        $threadId = $_GET['thread_id'] ?? 0;
+        $keyword = $_GET['keyword'] ?? '';
+        if ($threadId && $keyword) {
+            $query = "%$keyword%";
+            $stmt = $mysqli->prepare("
+            SELECT m.*, u.username 
+            FROM messages m 
+            JOIN users u ON m.user_id = u.id 
+            WHERE m.thread_id = ? AND m.content LIKE ? 
+            ORDER BY m.created_at DESC 
+            LIMIT 50
+        ");
+            $stmt->bind_param("is", $threadId, $query);
+            $stmt->execute();
+            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        } else {
+            echo json_encode(['error' => 'Keyword and Thread ID required']);
+        }
+        exit;
+    }
+
+    if ($action === 'update_typing_status') {
+        verify_csrf();
+        $threadId = $_POST['thread_id'] ?? null;
+        $isTyping = ($_POST['is_typing'] ?? '0') === '1';
+
+        $stmt = $mysqli->prepare("UPDATE users SET typing_thread_id = ?, typing_at = ? WHERE id = ?");
+        $threadVal = $isTyping ? $threadId : null;
+        $timeVal = $isTyping ? date('Y-m-d H:i:s') : null;
+        $stmt->bind_param("ssi", $threadVal, $timeVal, $userId);
+        $stmt->execute();
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    if ($action === 'get_typing_users') {
+        $threadId = $_GET['thread_id'] ?? '';
+        // Consider users who typing_at is within last 5 seconds
+        $stmt = $mysqli->prepare("
+            SELECT username FROM users 
+            WHERE typing_thread_id = ? 
+            AND id != ? 
+            AND typing_at > (NOW() - INTERVAL 5 SECOND)
+        ");
+        $stmt->bind_param("si", $threadId, $userId);
+        $stmt->execute();
+        $res = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        echo json_encode($res);
+        exit;
+    }
+
+    if ($action === 'mark_dms_as_read') {
+        verify_csrf();
+        $partnerId = $_POST['partner_id'] ?? 0;
+        if ($partnerId) {
+            $stmt = $mysqli->prepare("UPDATE direct_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0");
+            $stmt->bind_param("ii", $partnerId, $userId);
+            $stmt->execute();
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Partner ID required']);
+        }
+        exit;
+    }
+
+    if ($action === 'edit_message') {
+        verify_csrf();
+        $messageId = $_POST['message_id'] ?? 0;
+        $dmId = $_POST['dm_id'] ?? 0;
+        $content = $_POST['content'] ?? '';
+
+        if ($messageId) {
+            $stmt = $mysqli->prepare("UPDATE messages SET content = ?, is_edited = 1 WHERE id = ? AND user_id = ?");
+            $stmt->bind_param("sii", $content, $messageId, $userId);
+            $stmt->execute();
+            echo json_encode(['success' => true]);
+        } else if ($dmId) {
+            $stmt = $mysqli->prepare("UPDATE direct_messages SET content = ?, is_edited = 1 WHERE id = ? AND sender_id = ?");
+            $stmt->bind_param("sii", $content, $dmId, $userId);
+            $stmt->execute();
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Invalid parameters']);
+        }
+        exit;
+    }
+
+    if ($action === 'get_attachments') {
+        $threadId = $_GET['thread_id'] ?? null;
+        $partnerId = $_GET['partner_id'] ?? null;
+
+        if ($threadId) {
+            $stmt = $mysqli->prepare("SELECT attachment_path FROM messages WHERE thread_id = ? AND attachment_path IS NOT NULL ORDER BY created_at DESC");
+            $stmt->bind_param("i", $threadId);
+        } else if ($partnerId) {
+            $stmt = $mysqli->prepare("SELECT attachment_path FROM direct_messages WHERE ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)) AND attachment_path IS NOT NULL ORDER BY created_at DESC");
+            $stmt->bind_param("iiii", $userId, $partnerId, $partnerId, $userId);
+        } else {
+            echo json_encode([]);
+            exit;
+        }
+        $stmt->execute();
+        $res = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        echo json_encode($res);
+        exit;
+    }
+
     if ($action === 'get_messages') {
         $threadId = $_GET['thread_id'] ?? 0;
         $stmt = $mysqli->prepare("
-            SELECT m.*, u.username, u.status, u.avatar_url, r.content as reply_content, ru.username as reply_username
-            FROM messages m 
-            JOIN users u ON m.user_id = u.id 
-            LEFT JOIN messages r ON m.reply_to_id = r.id
-            LEFT JOIN users ru ON r.user_id = ru.id
-            WHERE m.thread_id = ? 
-            ORDER BY m.created_at ASC
-        ");
+        SELECT m.*, u.username, u.status, u.avatar_url, r.content as reply_content, ru.username as reply_username
+        FROM messages m 
+        JOIN users u ON m.user_id = u.id 
+        LEFT JOIN messages r ON m.reply_to_id = r.id
+        LEFT JOIN users ru ON r.user_id = ru.id
+        WHERE m.thread_id = ? 
+        ORDER BY m.created_at ASC
+    ");
         $stmt->bind_param("i", $threadId);
         $stmt->execute();
-        $res = $stmt->get_result();
-        echo json_encode($res->fetch_all(MYSQLI_ASSOC));
+        $msgs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+        // Fetch reactions for each message
+        foreach ($msgs as &$m) {
+            $rStmt = $mysqli->prepare("SELECT emoji, user_id FROM message_reactions WHERE message_id = ?");
+            $rStmt->bind_param("i", $m['id']);
+            $rStmt->execute();
+            $m['reactions'] = $rStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        }
+
+        echo json_encode($msgs);
         $stmt->close();
         exit;
     }
@@ -516,11 +773,11 @@ if (isset($_GET['api'])) {
     if ($action === 'get_dm_partners') {
         // Get users I have sent to OR received from
         $query = "
-            SELECT DISTINCT u.id, u.username, u.status, u.custom_status, u.avatar_url 
-            FROM users u
-            JOIN direct_messages dm ON (u.id = dm.sender_id OR u.id = dm.receiver_id)
-            WHERE (dm.sender_id = ? OR dm.receiver_id = ?) AND u.id != ?
-        ";
+        SELECT DISTINCT u.id, u.username, u.status, u.custom_status, u.avatar_url 
+        FROM users u
+        JOIN direct_messages dm ON (u.id = dm.sender_id OR u.id = dm.receiver_id)
+        WHERE (dm.sender_id = ? OR dm.receiver_id = ?) AND u.id != ?
+    ";
         $stmt = $mysqli->prepare($query);
         $stmt->bind_param("iii", $userId, $userId, $userId);
         $stmt->execute();
@@ -539,17 +796,24 @@ if (isset($_GET['api'])) {
     if ($action === 'get_direct_messages') {
         $partnerId = $_GET['partner_id'] ?? 0;
         $stmt = $mysqli->prepare("
-            SELECT dm.*, u.username, u.avatar_url 
-            FROM direct_messages dm
-            JOIN users u ON dm.sender_id = u.id
-            WHERE (dm.sender_id = ? AND dm.receiver_id = ?) 
-               OR (dm.sender_id = ? AND dm.receiver_id = ?)
-            ORDER BY dm.created_at ASC
-        ");
+        SELECT dm.*, u.username, u.avatar_url 
+        FROM direct_messages dm
+        JOIN users u ON dm.sender_id = u.id
+        WHERE (dm.sender_id = ? AND dm.receiver_id = ?) 
+            OR (dm.sender_id = ? AND dm.receiver_id = ?)
+        ORDER BY dm.created_at ASC
+    ");
         $stmt->bind_param("iiii", $userId, $partnerId, $partnerId, $userId);
         $stmt->execute();
-        $res = $stmt->get_result();
-        echo json_encode($res->fetch_all(MYSQLI_ASSOC));
+        $msgs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+        // Fetch reactions for each DM (using message_reactions table with message_id mapping to direct_messages.id)
+        // Wait, the message_reactions table is for 'messages' table. I should probably support reactions for DMs too.
+        // Let's check if message_reactions can be used for both or if I need another table.
+        // The foreign key is to `messages(id)`. I should add `dm_id` or a separate table if I want DM reactions.
+        // For now, let's focus on the 'messages' table as requested/planned.
+
+        echo json_encode($msgs);
         exit;
     }
 
@@ -621,8 +885,11 @@ if (isset($_GET['api'])) {
         }
 
         if (($receiverId && $content !== '') || ($receiverId && $attachmentPath)) {
-            $stmt = $mysqli->prepare("INSERT INTO direct_messages (sender_id, receiver_id, content, attachment_path) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("iiss", $userId, $receiverId, $content, $attachmentPath);
+            $expiresIn = $_POST['expires_in'] ?? 0;
+            $expiresAt = $expiresIn > 0 ? date('Y-m-d H:i:s', time() + (int)$expiresIn) : null;
+
+            $stmt = $mysqli->prepare("INSERT INTO direct_messages (sender_id, receiver_id, content, attachment_path, expires_at) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("iisss", $userId, $receiverId, $content, $attachmentPath, $expiresAt);
             $stmt->execute();
             echo json_encode(['success' => true]);
         } else {
@@ -697,8 +964,11 @@ if (isset($_GET['api'])) {
         }
 
         if (($threadId && $content !== '') || ($threadId && $attachmentPath)) {
-            $stmt = $mysqli->prepare("INSERT INTO messages (thread_id, user_id, content, reply_to_id, attachment_path) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("iisis", $threadId, $userId, $content, $replyToId, $attachmentPath);
+            $expiresIn = $_POST['expires_in'] ?? 0;
+            $expiresAt = $expiresIn > 0 ? date('Y-m-d H:i:s', time() + (int)$expiresIn) : null;
+
+            $stmt = $mysqli->prepare("INSERT INTO messages (thread_id, user_id, content, reply_to_id, attachment_path, expires_at) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("iisiss", $threadId, $userId, $content, $replyToId, $attachmentPath, $expiresAt);
             $stmt->execute();
             $stmt->close();
 
@@ -807,11 +1077,11 @@ if (isset($_GET['api'])) {
     if ($action === 'get_friend_requests') {
         // Incoming requests (I am user_id_2)
         $stmt = $mysqli->prepare("
-            SELECT f.id, u.username 
-            FROM friends f 
-            JOIN users u ON f.user_id_1 = u.id 
-            WHERE f.user_id_2 = ? AND f.status = 'pending'
-        ");
+        SELECT f.id, u.username 
+        FROM friends f 
+        JOIN users u ON f.user_id_1 = u.id 
+        WHERE f.user_id_2 = ? AND f.status = 'pending'
+    ");
         $stmt->bind_param("i", $userId);
         $stmt->execute();
         echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
@@ -821,20 +1091,20 @@ if (isset($_GET['api'])) {
     if ($action === 'get_friends') {
         // Accepted friends, sorted by most recent conversation
         $stmt = $mysqli->prepare("
-            SELECT u.id, u.username, u.status, u.custom_status, u.avatar_url, u.banner_color,
-            MAX(dm.created_at) as last_msg_at
-            FROM friends f
-            JOIN users u ON (f.user_id_1 = u.id OR f.user_id_2 = u.id)
-            LEFT JOIN direct_messages dm ON (
-                (dm.sender_id = u.id AND dm.receiver_id = ?) OR 
-                (dm.sender_id = ? AND dm.receiver_id = u.id)
-            )
-            WHERE (f.user_id_1 = ? OR f.user_id_2 = ?) 
-              AND f.status = 'accepted' 
-              AND u.id != ?
-            GROUP BY u.id
-            ORDER BY last_msg_at DESC, u.username ASC
-        ");
+        SELECT u.id, u.username, u.status, u.custom_status, u.avatar_url, u.banner_color,
+        MAX(dm.created_at) as last_msg_at
+        FROM friends f
+        JOIN users u ON (f.user_id_1 = u.id OR f.user_id_2 = u.id)
+        LEFT JOIN direct_messages dm ON (
+            (dm.sender_id = u.id AND dm.receiver_id = ?) OR 
+            (dm.sender_id = ? AND dm.receiver_id = u.id)
+        )
+        WHERE (f.user_id_1 = ? OR f.user_id_2 = ?) 
+            AND f.status = 'accepted' 
+            AND u.id != ?
+        GROUP BY u.id
+        ORDER BY last_msg_at DESC, u.username ASC
+    ");
         $stmt->bind_param("iiiii", $userId, $userId, $userId, $userId, $userId);
         $stmt->execute();
         echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
@@ -871,12 +1141,12 @@ if (isset($_GET['api'])) {
 
     if ($action === 'get_favorites') {
         $stmt = $mysqli->prepare("
-            SELECT t.* 
-            FROM favorites f 
-            JOIN threads t ON f.thread_id = t.id 
-            WHERE f.user_id = ?
-            ORDER BY f.created_at DESC
-        ");
+        SELECT t.* 
+        FROM favorites f 
+        JOIN threads t ON f.thread_id = t.id 
+        WHERE f.user_id = ?
+        ORDER BY f.created_at DESC
+    ");
         $stmt->bind_param("i", $userId);
         $stmt->execute();
         echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
@@ -926,11 +1196,11 @@ if (isset($_GET['api'])) {
 
     if ($action === 'get_blocked_users') {
         $stmt = $mysqli->prepare("
-            SELECT u.id, u.username 
-            FROM blocked_users b 
-            JOIN users u ON b.blocked_id = u.id 
-            WHERE b.blocker_id = ?
-        ");
+        SELECT u.id, u.username 
+        FROM blocked_users b 
+        JOIN users u ON b.blocked_id = u.id 
+        WHERE b.blocker_id = ?
+    ");
         $stmt->bind_param("i", $userId);
         $stmt->execute();
         echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
@@ -944,11 +1214,11 @@ if (isset($_GET['api'])) {
         // Exclude self and blocked users? 
         // Logic: Exclude self.
         $stmt = $mysqli->prepare("
-            SELECT id, username FROM users 
-            WHERE id != ? 
-            AND (username LIKE ? OR id = ?)
-            LIMIT 20
-        ");
+        SELECT id, username FROM users 
+        WHERE id != ? 
+        AND (username LIKE ? OR id = ?)
+        LIMIT 20
+    ");
         // For ID search, simpler to just param check
         $idParam = is_numeric($_GET['q']) ? $_GET['q'] : 0;
         $stmt->bind_param("isi", $userId, $query, $idParam);
@@ -1048,12 +1318,12 @@ if (isset($_GET['api'])) {
 
         // Fetch new signaling messages for ME
         $stmt = $mysqli->prepare("
-            SELECT s.*, u.username as sender_name 
-            FROM signaling s 
-            JOIN users u ON s.sender_id = u.id 
-            WHERE s.room_id = ? AND s.receiver_id = ? AND s.id > ?
-            ORDER BY s.created_at ASC
-        ");
+        SELECT s.*, u.username as sender_name 
+        FROM signaling s 
+        JOIN users u ON s.sender_id = u.id 
+        WHERE s.room_id = ? AND s.receiver_id = ? AND s.id > ?
+        ORDER BY s.created_at ASC
+    ");
         $stmt->bind_param("iii", $roomId, $userId, $lastId);
         $stmt->execute();
         $res = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -1080,7 +1350,7 @@ if (isset($_GET['logout'])) {
 }
 
 if ($isLoggedIn) {
-    $stmt = $mysqli->prepare("SELECT last_thread_id, status, custom_status, bio, avatar_url, banner_color FROM users WHERE id = ?");
+    $stmt = $mysqli->prepare("SELECT last_thread_id, status, custom_status, bio, avatar_url, banner_color, social_links, theme_preference FROM users WHERE id = ?");
     $stmt->bind_param("i", $_SESSION['user_id']);
     $stmt->execute();
     if ($row = $stmt->get_result()->fetch_assoc()) {
@@ -1091,6 +1361,8 @@ if ($isLoggedIn) {
         $currentUserBio = $row['bio'];
         $currentUserAvatar = $row['avatar_url'];
         $currentUserBanner = $row['banner_color'] ?: '#6366f1';
+        $currentUserSocialLinks = json_decode($row['social_links'] ?: '{}', true);
+        $currentUserThemePref = json_decode($row['theme_preference'] ?: '{}', true);
     }
     $stmt->close();
 
@@ -1456,12 +1728,24 @@ if ($isLoggedIn) {
                                 <polyline points="6 9 12 15 18 9" />
                             </svg>
                         </div>
-                        <div class="thread-actions" id="thread-actions-block" style="display:flex; margin-left: auto;">
-                            <button class="icon-btn" onclick="startMeeting()" title="ビデオ会議" style="margin-right: 8px;">
+                        <div class="thread-actions" id="thread-actions-block" style="display:flex; margin-left: auto; align-items:center; gap:8px;">
+                            <div class="search-input-wrapper" style="position:relative; display:flex; align-items:center; background:rgba(0,0,0,0.2); border-radius:4px; padding:2px 8px; margin-right:8px;">
+                                <input type="text" id="search-input" placeholder="検索..." style="background:transparent; border:none; color:white; font-size:0.85rem; outline:none; width:120px;" onkeydown="if(event.key==='Enter') searchMessages()">
+                                <button class="icon-btn" onclick="searchMessages()" style="padding:2px; height:auto; background:transparent;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                            <button class="icon-btn" onclick="startMeeting()" title="ビデオ会議">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <polygon points="23 7 16 12 23 17 23 7"></polygon>
                                     <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                                 </svg>
+                            </button>
+                            <button class="icon-btn" onclick="showAttachmentGallery()" title="添付ファイル一覧">
+                                <img src="assets/img/files.svg" alt="ギャラリー" style="width:16px; height:16px; filter: grayscale(1) invert(1);">
                             </button>
                             <button class="icon-btn" onclick="editCurrentThread()" title="編集">
                                 <img src="assets/img/edit.svg" alt="編集" style="width:16px; height:16px;">
@@ -1470,6 +1754,13 @@ if ($isLoggedIn) {
                                 style="color:red;"><img src="assets/img/trash.svg" alt="削除" style="width:16px; height:16px;"></button>
                         </div>
                     </header>
+                    <div class="search-results-overlay" id="search-results-overlay">
+                        <div class="search-results-header">
+                            <span>検索結果</span>
+                            <span class="close-btn" onclick="toggleSearch(false)">✕</span>
+                        </div>
+                        <div id="search-results-list" class="search-results-list"></div>
+                    </div>
                     <div id="message-container" class="chat-messages"></div>
                     <div class="drag-overlay">ファイルをドロップしてアップロード</div>
 
@@ -1486,6 +1777,8 @@ if ($isLoggedIn) {
                         <span class="close-btn upload-cancel" onclick="cancelUpload()">✕</span>
                     </div>
 
+                    <div id="typing-indicator" class="typing-indicator-bar" style="font-size: 0.75rem; color: var(--text-secondary); margin: 0 16px; min-height: 18px;"></div>
+
                     <div class="chat-input-area">
                         <div class="input-wrapper">
                             <button class="icon-btn upload-btn-plus" title="アップロード" onclick="openMediaUploadModal()">
@@ -1495,7 +1788,13 @@ if ($isLoggedIn) {
                                 </svg>
                             </button>
                             <textarea id="msg-input" class="chat-input" placeholder="メッセージを送信... (Shift+Enterで改行)"
-                                rows="1" onkeydown="handleInputKey(event)"></textarea>
+                                rows="1" onkeydown="handleInputKey(event)" oninput="handleTyping()"></textarea>
+                            <select id="self-destruct-timer" class="icon-btn" style="width: auto; font-size: 0.7rem; background: rgba(0,0,0,0.2); border: none; color: var(--text-secondary); border-radius: 4px; padding: 2px 4px;" title="自動削除">
+                                <option value="0">消去なし</option>
+                                <option value="60">1分後</option>
+                                <option value="3600">1時間後</option>
+                                <option value="86400">1日後</option>
+                            </select>
                             <button onclick="sendMessage()"
                                 style="background:transparent; border:none; color:var(--accent-color); cursor:pointer; padding:5px; display:flex;">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1525,6 +1824,7 @@ if ($isLoggedIn) {
                             <div class="close-btn" onclick="hideCreateThread()">✕</div>
                         </div>
                         <input type="text" id="new-thread-name" class="create-input" placeholder="新スレッド名">
+                        <input type="text" id="new-thread-category" class="create-input" placeholder="カテゴリー (任意)" style="margin-top:5px;">
                         <button onclick="createThread()" class="btn-primary" style="padding:0.6rem;">作成</button>
                     </div>
                 </aside>
@@ -1581,6 +1881,9 @@ if ($isLoggedIn) {
                                     <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                                 </svg>
                             </button>
+                            <button class="icon-btn" onclick="showAttachmentGallery()" title="添付ファイル一覧">
+                                <img src="assets/img/files.svg" alt="ギャラリー" style="width:16px; height:16px; filter: grayscale(1) invert(1);">
+                            </button>
                             <button class="icon-btn" onclick="blockCurrentPartner()" title="ブロック"
                                 style="color:#ef4444;">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1604,6 +1907,8 @@ if ($isLoggedIn) {
                         <button class="close-btn" onclick="cancelDmUpload()">×</button>
                     </div>
 
+                    <div id="dm-typing-indicator" class="typing-indicator-bar" style="font-size: 0.75rem; color: var(--text-secondary); margin: 0 16px; min-height: 18px;"></div>
+
                     <div class="chat-input-area" id="dm-chat-area">
                         <div class="input-wrapper">
                             <button class="icon-btn upload-btn-plus" title="アップロード" onclick="openMediaUploadModal()">
@@ -1613,8 +1918,14 @@ if ($isLoggedIn) {
                                 </svg>
                             </button>
                             <textarea id="dm-msg-input" class="chat-input" placeholder="DMを送信..." rows="1"
-                                onkeydown="handleDmInputKey(event)"></textarea>
+                                onkeydown="handleDmInputKey(event)" oninput="handleTyping()"></textarea>
                             <input type="file" id="msg-file-input" hidden onchange="handleMediaUploadFiles(this.files)">
+                            <select id="dm-self-destruct-timer" class="icon-btn" style="width: auto; font-size: 0.7rem; background: rgba(0,0,0,0.2); border: none; color: var(--text-secondary); border-radius: 4px; padding: 2px 4px;" title="自動削除">
+                                <option value="0">消去なし</option>
+                                <option value="60">1分後</option>
+                                <option value="3600">1時間後</option>
+                                <option value="86400">1日後</option>
+                            </select>
                             <button onclick="sendDm()"
                                 style="background:transparent; border:none; color:var(--accent-color); cursor:pointer;">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1637,10 +1948,20 @@ if ($isLoggedIn) {
                         <input type="text" id="user-search-input" class="chat-input" placeholder="ユーザーID または 名前で検索">
                         <button class="btn-primary" onclick="searchUsers()">検索</button>
                     </div>
-                    <div id="user-search-results" class="thread-list" style="max-height:200px; overflow-y:auto;"></div>
-                    <div class="modal-actions" style="margin-top:10px; text-align:right;">
-                        <button class="btn-secondary"
-                            onclick="document.getElementById('add-friend-modal').close()">閉じる</button>
+                    <div id="user-search-results" style="max-height:300px; overflow-y:auto;"></div>
+                    <button class="btn-secondary" onclick="document.getElementById('add-friend-modal').close()" style="width:100%; margin-top:10px;">閉じる</button>
+                </div>
+            </dialog>
+
+            <dialog id="gallery-modal" class="modal"
+                style="border:none; border-radius:12px; padding:0; background:var(--bg-color); color:var(--text-primary); width:90%; max-width:800px; max-height:80vh;">
+                <div style="display:flex; flex-direction:column; height:100%;">
+                    <div style="padding:16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+                        <h3 style="margin:0;">添付ファイルギャラリー</h3>
+                        <button class="close-btn" onclick="document.getElementById('gallery-modal').close()" style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;">✕</button>
+                    </div>
+                    <div id="gallery-content" style="flex:1; padding:20px; overflow-y:auto; display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:16px;">
+                        <!-- Attachments will be loaded here -->
                     </div>
                 </div>
             </dialog>
@@ -1698,6 +2019,10 @@ if ($isLoggedIn) {
                     <div class="form-group" style="margin-top:1rem;">
                         <label>スレッド名</label>
                         <input type="text" id="settings-thread-name" class="chat-input" style="width:100%;" placeholder="スレッド名">
+                    </div>
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label>カテゴリー</label>
+                        <input type="text" id="settings-thread-category" class="chat-input" style="width:100%;" placeholder="カテゴリー (General, 雑談など)">
                     </div>
                     <div class="form-group" style="margin-top:1rem;">
                         <label>Discord Webhook URL</label>
@@ -1784,6 +2109,32 @@ if ($isLoggedIn) {
                         </div>
 
                         <div class="modal-form-group">
+                            <label class="modal-label">Twitter/X ID (@抜き)</label>
+                            <input type="text" id="edit-twitter-input" class="modal-input" placeholder="example_user"
+                                value="<?= htmlspecialchars($currentUserSocialLinks['twitter'] ?? '') ?>">
+                        </div>
+
+                        <div class="modal-form-group">
+                            <label class="modal-label">テーマ設定</label>
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn-secondary" onclick="setTheme('dark')" style="flex:1;">ダーク</button>
+                                <button class="btn-secondary" onclick="setTheme('light')" style="flex:1;">ライト</button>
+                            </div>
+                        </div>
+
+                        <div class="modal-form-group">
+                            <label class="modal-label">アクセントカラー</label>
+                            <input type="color" id="edit-accent-input" class="modal-input" style="height: 40px; padding: 5px;"
+                                oninput="updateAccentColor(this.value)" value="#6366f1">
+                        </div>
+
+                        <div class="modal-form-group">
+                            <label class="modal-label">GitHub Username</label>
+                            <input type="text" id="edit-github-input" class="modal-input" placeholder="example_git"
+                                value="<?= htmlspecialchars($currentUserSocialLinks['github'] ?? '') ?>">
+                        </div>
+
+                        <div class="modal-form-group">
                             <label class="modal-label">自己紹介</label>
                             <textarea id="edit-bio-input" class="modal-textarea" placeholder="自分について書こう"
                                 oninput="updatePreviewBio(this.value)"><?= htmlspecialchars($currentUserBio) ?></textarea>
@@ -1859,6 +2210,9 @@ if ($isLoggedIn) {
                                 <div class="discord-divider"></div>
                                 <div class="discord-section-title">自己紹介</div>
                                 <div class="discord-bio" id="user-profile-bio"></div>
+                                <div class="discord-divider"></div>
+                                <div class="discord-section-title">SNS</div>
+                                <div id="user-profile-sns" style="display:flex; gap:10px; margin-top:8px;"></div>
                             </div>
                         </div>
                         <div style="margin-top: 16px; display: flex; gap: 8px; margin-left: 15px;">
@@ -1875,8 +2229,21 @@ if ($isLoggedIn) {
         let currentThreadId = <?= (int) ($initialThreadId ?? 1) ?>;
         let currentThreadCreatorId = <?= (int) ($currentThreadCreatorId ?? 0) ?>;
         let currentThreadWebhookUrl = null;
+        let currentThreadCategory = 'General';
         const currentUserId = <?= (int) $_SESSION['user_id'] ?>;
         const currentUserName = "<?= htmlspecialchars($currentUser) ?>";
+        const currentUserTheme = <?= json_encode($currentUserThemePref ?? (object) []) ?>;
+
+        // Apply theme on early load
+        if (currentUserTheme.theme === 'light') document.body.classList.add('light-theme');
+        if (currentUserTheme.accentColor) {
+            document.documentElement.style.setProperty('--accent-color', currentUserTheme.accentColor);
+            const r = parseInt(currentUserTheme.accentColor.slice(1, 3), 16);
+            const g = parseInt(currentUserTheme.accentColor.slice(3, 5), 16);
+            const b = parseInt(currentUserTheme.accentColor.slice(5, 7), 16);
+            document.documentElement.style.setProperty('--accent-hover', `rgba(${r}, ${g}, ${b}, 0.8)`);
+        }
+
         // DM State
         let currentPartnerId = null;
         let dmFileToUpload = null;
@@ -1884,6 +2251,16 @@ if ($isLoggedIn) {
         const csrfToken = "<?= htmlspecialchars($_SESSION['csrf_token']) ?>";
         let replyToId = null;
         let fileToUpload = null;
+
+        let lastMessageId = 0;
+        let lastDmId = 0;
+        let isWindowFocused = true;
+        window.onfocus = () => {
+            isWindowFocused = true;
+        };
+        window.onblur = () => {
+            isWindowFocused = false;
+        };
 
         // DOM Elements
         const msgInput = document.getElementById('msg-input');
@@ -2017,19 +2394,40 @@ if ($isLoggedIn) {
             const threads = await api('get_threads');
             const list = document.getElementById('thread-list');
             list.innerText = '';
+
+            // Group by category
+            const categories = {};
             threads.forEach(t => {
-                const item = document.createElement('div');
-                item.className = `thread-item ${t.id == currentThreadId ? 'active' : ''}`;
-                item.textContent = '# ' + t.name;
-                item.onclick = () => switchThread(t.id, t.name, t.creator_id, t.discord_webhook_url);
-                list.appendChild(item);
+                const cat = t.category || 'General';
+                if (!categories[cat]) categories[cat] = [];
+                categories[cat].push(t);
             });
+
+            for (const [catName, catThreads] of Object.entries(categories)) {
+                const catHeader = document.createElement('div');
+                catHeader.style.padding = '10px 10px 5px 10px';
+                catHeader.style.fontSize = '0.75rem';
+                catHeader.style.fontWeight = '700';
+                catHeader.style.color = 'var(--text-secondary)';
+                catHeader.style.textTransform = 'uppercase';
+                catHeader.innerText = catName;
+                list.appendChild(catHeader);
+
+                catThreads.forEach(t => {
+                    const item = document.createElement('div');
+                    item.className = `thread-item ${t.id == currentThreadId ? 'active' : ''}`;
+                    item.textContent = '# ' + t.name;
+                    item.onclick = () => switchThread(t.id, t.name, t.creator_id, t.discord_webhook_url, t.category);
+                    list.appendChild(item);
+                });
+            }
         }
 
-        async function switchThread(id, name, creatorId, webhookUrl = null) {
+        async function switchThread(id, name, creatorId, webhookUrl = null, category = 'General') {
             currentThreadId = id;
             currentThreadCreatorId = creatorId;
             currentThreadWebhookUrl = webhookUrl;
+            currentThreadCategory = category;
             updateThreadActions();
             document.getElementById('current-thread-name').innerText = name;
             document.querySelectorAll('.thread-item').forEach(el => {
@@ -2064,23 +2462,26 @@ if ($isLoggedIn) {
         async function editCurrentThread() {
             document.getElementById('settings-thread-name').value = document.getElementById('current-thread-name').innerText;
             document.getElementById('settings-thread-webhook').value = currentThreadWebhookUrl || '';
+            document.getElementById('settings-thread-category').value = currentThreadCategory || 'General';
             document.getElementById('thread-settings-modal').showModal();
         }
 
         async function saveThreadSettings() {
             const newName = document.getElementById('settings-thread-name').value;
             const webhook = document.getElementById('settings-thread-webhook').value;
+            const category = document.getElementById('settings-thread-category').value;
 
             if (newName && newName.trim() !== "") {
                 const body = new FormData();
                 body.append('thread_id', currentThreadId);
                 body.append('name', newName.trim());
                 body.append('discord_webhook_url', webhook.trim());
+                body.append('category', category.trim());
                 const res = await api('edit_thread', 'POST', body);
                 if (res.success) {
                     document.getElementById('thread-settings-modal').close();
-                    loadThreads();
-                    switchThread(currentThreadId, newName.trim(), currentThreadCreatorId, webhook.trim());
+                    await loadThreads();
+                    switchThread(currentThreadId, newName.trim(), currentThreadCreatorId, webhook.trim(), category.trim());
                 } else {
                     alert("保存に失敗しました: " + (res.error || 'Unknown'));
                 }
@@ -2146,14 +2547,27 @@ if ($isLoggedIn) {
         async function saveProfile() {
             const bio = document.getElementById('edit-bio-input').value;
             const banner = document.getElementById('edit-banner-input').value;
+            const twitter = document.getElementById('edit-twitter-input').value;
+            const github = document.getElementById('edit-github-input').value;
             const status = document.getElementById('modal-status-input').value;
             const avatarFile = document.getElementById('edit-avatar-input').files[0];
+
+            const accentColor = document.getElementById('edit-accent-input').value;
+            const theme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
 
             const body = new FormData();
             body.append('csrf_token', '<?= $_SESSION["csrf_token"] ?>');
             body.append('bio', bio);
             body.append('banner_color', banner);
             body.append('status', status);
+            body.append('social_links', JSON.stringify({
+                twitter,
+                github
+            }));
+            body.append('theme_preference', JSON.stringify({
+                theme,
+                accentColor
+            }));
             body.append('remove_avatar', shouldRemoveAvatar);
             if (avatarFile) {
                 body.append('avatar', avatarFile);
@@ -2210,6 +2624,30 @@ if ($isLoggedIn) {
             // Bio
             document.getElementById('user-profile-bio').innerText = res.bio || '自己紹介はまだありません';
 
+            // SNS
+            const snsContainer = document.getElementById('user-profile-sns');
+            snsContainer.innerHTML = '';
+            const links = JSON.parse(res.social_links || '{}');
+            if (links.twitter) {
+                const a = document.createElement('a');
+                a.href = `https://twitter.com/${links.twitter}`;
+                a.target = '_blank';
+                a.style.color = '#1DA1F2';
+                a.innerText = 'Twitter';
+                snsContainer.appendChild(a);
+            }
+            if (links.github) {
+                const a = document.createElement('a');
+                a.href = `https://github.com/${links.github}`;
+                a.target = '_blank';
+                a.style.color = '#f0f6fc';
+                a.innerText = 'GitHub';
+                snsContainer.appendChild(a);
+            }
+            if (!links.twitter && !links.github) {
+                snsContainer.innerText = '連携なし';
+            }
+
             // DMボタンの設定
             const dmBtn = document.getElementById('user-profile-dm-btn');
             dmBtn.onclick = () => {
@@ -2265,6 +2703,13 @@ if ($isLoggedIn) {
 
                 // 3. Recursive Render
                 roots.forEach(root => renderMessageNode(root, container));
+
+                // Notification Trigger
+                const latest = messages[messages.length - 1];
+                if (lastMessageId !== 0 && latest.id > lastMessageId && latest.user_id != currentUserId) {
+                    sendNotification(`新着メッセージ (#${document.getElementById('current-thread-name').innerText})`, `${latest.username}: ${latest.content}`);
+                }
+                lastMessageId = latest.id;
             }
 
             if (isAtBottom) container.scrollTop = container.scrollHeight;
@@ -2317,8 +2762,32 @@ if ($isLoggedIn) {
             replyBtn.onclick = () => startReply(m.id, m.username, m.content);
             actions.appendChild(replyBtn);
 
-            // Add Delete buttons only if owner
+            // Pin Button
+            const isPinned = !!+m.is_pinned;
+            const pinBtn = document.createElement('button');
+            pinBtn.className = 'msg-action-btn';
+            pinBtn.innerHTML = isPinned ? '📍' : '<img src="assets/img/pin.svg" alt="ピン" style="width:16px; height:16px; opacity:0.6;">';
+            pinBtn.title = isPinned ? 'ピン解除' : 'ピン留め';
+            pinBtn.onclick = () => togglePin(m.id);
+            actions.appendChild(pinBtn);
+
+            // Reaction Button
+            const reactBtn = document.createElement('button');
+            reactBtn.className = 'msg-action-btn';
+            reactBtn.innerHTML = '<img src="assets/img/emoji.svg" alt="リアクション" style="width:16px; height:16px; opacity:0.6;">';
+            reactBtn.title = 'リアクション';
+            reactBtn.onclick = (e) => showEmojiPicker(e, m.id);
+            actions.appendChild(reactBtn);
+
+            // Add Delete/Edit buttons only if owner
             if (m.username === currentUserName) {
+                const editBtn = document.createElement('button');
+                editBtn.className = 'msg-action-btn';
+                editBtn.innerHTML = '<img src="assets/img/edit.svg" alt="編集" style="width:16px; height:16px;">';
+                editBtn.title = '編集';
+                editBtn.onclick = () => startEditMessage(m, false);
+                actions.appendChild(editBtn);
+
                 const delBtn = document.createElement('button');
                 delBtn.className = 'msg-action-btn';
                 delBtn.innerHTML = '<img src="assets/img/trash.svg" alt="削除" style="width:16px; height:16px;">';
@@ -2355,7 +2824,26 @@ if ($isLoggedIn) {
             // Content
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
-            if (m.content) contentDiv.innerText = m.content;
+
+            // Highlight Mentions (@username)
+            let text = m.content || '';
+            const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+            const highlightedText = text.replace(mentionRegex, (match, username) => {
+                if (username === currentUserName) {
+                    return `<span class="mention mention-me">${match}</span>`;
+                }
+                return `<span class="mention">${match}</span>`;
+            });
+            contentDiv.innerHTML = highlightedText;
+
+            if (m.is_edited == 1) {
+                const editedLabel = document.createElement('span');
+                editedLabel.style.fontSize = '0.7rem';
+                editedLabel.style.opacity = '0.5';
+                editedLabel.style.marginLeft = '5px';
+                editedLabel.innerText = '(編集済み)';
+                contentDiv.appendChild(editedLabel);
+            }
 
             if (m.attachment_path) {
                 const ext = m.attachment_path.split('.').pop().toLowerCase();
@@ -2402,7 +2890,41 @@ if ($isLoggedIn) {
             }
 
             info.appendChild(header);
+
+            // Pinned Badge
+            if (!!+m.is_pinned) {
+                const pinBadge = document.createElement('div');
+                pinBadge.className = 'message-pinned-badge';
+                pinBadge.innerHTML = '📌 ピン留めされたメッセージ';
+                info.appendChild(pinBadge);
+                group.classList.add('message-pinned');
+            }
+
             info.appendChild(contentDiv);
+
+            // Reactions Display
+            if (m.reactions && m.reactions.length > 0) {
+                const reactContainer = document.createElement('div');
+                reactContainer.className = 'reactions-container';
+
+                // Group by emoji
+                const grouped = {};
+                m.reactions.forEach(r => {
+                    if (!grouped[r.emoji]) grouped[r.emoji] = [];
+                    grouped[r.emoji].push(r.user_id);
+                });
+
+                Object.keys(grouped).forEach(emoji => {
+                    const badge = document.createElement('div');
+                    const isMyReaction = grouped[emoji].includes(currentUserId);
+                    badge.className = `reaction-badge ${isMyReaction ? 'active' : ''}`;
+                    badge.innerHTML = `<span>${emoji}</span><span class="reaction-count">${grouped[emoji].length}</span>`;
+                    badge.onclick = () => toggleReaction(m.id, emoji);
+                    reactContainer.appendChild(badge);
+                });
+                info.appendChild(reactContainer);
+            }
+
             group.appendChild(info);
 
             wrapper.appendChild(group);
@@ -2442,10 +2964,14 @@ if ($isLoggedIn) {
                 return;
             }
 
+            const timer = document.getElementById('self-destruct-timer');
+            const expiresSec = timer ? timer.value : 0;
+
             const body = new FormData();
             body.append('thread_id', currentThreadId);
             body.append('content', content);
             if (replyToId) body.append('reply_to_id', replyToId);
+            if (expiresSec > 0) body.append('expires_in', expiresSec);
             if (fileToUpload) body.append('attachment', fileToUpload);
 
             const result = await api('send_message', 'POST', body);
@@ -2521,15 +3047,15 @@ if ($isLoggedIn) {
             document.getElementById('modal-file-input').value = '';
             document.getElementById('modal-content-input').value = '';
             document.getElementById('media-upload-preview-container').innerHTML = `
-                    <div class="upload-placeholder">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 15px;">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        <p style="margin:0; color:var(--text-secondary);">クリックまたはドラッグ＆ドロップで選択</p>
-                    </div>
-                `;
+                <div class="upload-placeholder">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 15px;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p style="margin:0; color:var(--text-secondary);">クリックまたはドラッグ＆ドロップで選択</p>
+                </div>
+            `;
             document.getElementById('media-upload-modal').showModal();
         }
 
@@ -2643,10 +3169,14 @@ if ($isLoggedIn) {
 
         async function createThread() {
             const input = document.getElementById('new-thread-name');
+            const catInput = document.getElementById('new-thread-category');
             const name = input.value.trim();
+            const category = catInput ? catInput.value.trim() : 'General';
+
             if (!name) return;
             const body = new FormData();
             body.append('name', name);
+            body.append('category', category || 'General');
             const result = await api('create_thread', 'POST', body);
 
             if (result.error) {
@@ -2654,12 +3184,14 @@ if ($isLoggedIn) {
                 return;
             }
 
+            if (catInput) catInput.value = '';
+            input.value = '';
             await loadThreads();
             hideCreateThread();
 
             // Switch to the newly created thread
             if (result.id) {
-                switchThread(result.id, name, currentUserId);
+                switchThread(result.id, name, currentUserId, null, category || 'General');
             }
         }
 
@@ -2743,6 +3275,24 @@ if ($isLoggedIn) {
             }
         }
 
+        function setTheme(mode) {
+            if (mode === 'light') {
+                document.body.classList.add('light-theme');
+            } else {
+                document.body.classList.remove('light-theme');
+            }
+        }
+
+        function updateAccentColor(color) {
+            document.documentElement.style.setProperty('--accent-color', color);
+            // Also update hover color (lighter version)
+            const r = parseInt(color.slice(1, 3), 16);
+            const g = parseInt(color.slice(3, 5), 16);
+            const b = parseInt(color.slice(5, 7), 16);
+            const hoverColor = `rgba(${r}, ${g}, ${b}, 0.8)`;
+            document.documentElement.style.setProperty('--accent-hover', hoverColor);
+        }
+
         async function loadFavorites() {
             const threads = await api('get_favorites');
             const list = document.getElementById('fav-thread-list');
@@ -2823,14 +3373,14 @@ if ($isLoggedIn) {
                 d.style.alignItems = 'center';
                 d.style.cursor = 'pointer';
                 d.innerHTML = `
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            ${getAvatarElement(f.username, f.status || 'offline', f.avatar_url).outerHTML}
-                            <span>${f.username}</span>
-                        </div>
-                        <span style="font-size:0.8rem; color:var(--text-secondary);">
-                            ${f.last_msg_at ? new Date(f.last_msg_at).toLocaleString() : '会話なし'}
-                        </span>
-                    `;
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        ${getAvatarElement(f.username, f.status || 'offline', f.avatar_url).outerHTML}
+                        <span>${f.username}</span>
+                    </div>
+                    <span style="font-size:0.8rem; color:var(--text-secondary);">
+                        ${f.last_msg_at ? new Date(f.last_msg_at).toLocaleString() : '会話なし'}
+                    </span>
+                `;
                 d.onclick = () => switchToDmChat(f.id, f.username, f.avatar_url, f.status);
                 list.appendChild(d);
             });
@@ -2979,6 +3529,12 @@ if ($isLoggedIn) {
                 const remaining = minDelay - elapsed;
                 if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
             }
+
+            // Mark as read
+            const markBody = new FormData();
+            markBody.append('partner_id', currentPartnerId);
+            api('mark_dms_as_read', 'POST', markBody);
+
             const container = document.getElementById('dm-message-container');
             const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
             container.innerText = '';
@@ -3007,12 +3563,30 @@ if ($isLoggedIn) {
                 time.className = 'message-time';
                 time.textContent = m.created_at;
 
+                if (m.username === currentUserName && m.is_read == 1) {
+                    const readLabel = document.createElement('span');
+                    readLabel.style.fontSize = '0.7rem';
+                    readLabel.style.color = 'var(--accent-color)';
+                    readLabel.style.marginLeft = '8px';
+                    readLabel.innerText = '既読';
+                    time.appendChild(readLabel);
+                }
+
                 header.appendChild(user);
                 header.appendChild(time);
 
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'message-content';
-                if (m.content) contentDiv.innerText = m.content;
+
+                let text = m.content || '';
+                const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+                const highlightedText = text.replace(mentionRegex, (match, username) => {
+                    if (username === currentUserName) {
+                        return `<span class="mention mention-me">${match}</span>`;
+                    }
+                    return `<span class="mention">${match}</span>`;
+                });
+                contentDiv.innerHTML = highlightedText;
 
                 if (m.attachment_path) {
                     const ext = m.attachment_path.split('.').pop().toLowerCase();
@@ -3060,9 +3634,39 @@ if ($isLoggedIn) {
 
                 info.appendChild(header);
                 info.appendChild(contentDiv);
+
+                if (m.is_edited == 1) {
+                    const editedLabel = document.createElement('span');
+                    editedLabel.style.fontSize = '0.7rem';
+                    editedLabel.style.opacity = '0.5';
+                    editedLabel.style.marginLeft = '5px';
+                    editedLabel.innerText = '(編集済み)';
+                    contentDiv.appendChild(editedLabel);
+                }
+
+                if (m.sender_id == currentUserId) {
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'msg-action-btn';
+                    editBtn.style.position = 'absolute';
+                    editBtn.style.right = '10px';
+                    editBtn.style.top = '10px';
+                    editBtn.innerHTML = '<img src="assets/img/edit.svg" alt="編集" style="width:16px; height:16px;">';
+                    editBtn.onclick = () => startEditMessage(m, true);
+                    group.appendChild(editBtn);
+                }
+
                 group.appendChild(info);
                 container.appendChild(group);
             });
+
+            if (dms.length > 0) {
+                const latest = dms[dms.length - 1];
+                if (lastDmId !== 0 && latest.id > lastDmId && latest.sender_id != currentUserId) {
+                    sendNotification(`新着DM: ${latest.username}`, latest.content);
+                }
+                lastDmId = latest.id;
+            }
+
             if (isAtBottom) container.scrollTop = container.scrollHeight;
         }
 
@@ -3109,9 +3713,13 @@ if ($isLoggedIn) {
             const content = input.value.trim();
             if ((!content && !dmFileToUpload) || !currentPartnerId) return;
 
+            const timer = document.getElementById('dm-self-destruct-timer');
+            const expiresSec = timer ? timer.value : 0;
+
             const body = new FormData();
             body.append('receiver_id', currentPartnerId);
             body.append('content', content);
+            if (expiresSec > 0) body.append('expires_in', expiresSec);
             if (dmFileToUpload) body.append('attachment', dmFileToUpload);
 
             const result = await api('send_direct_message', 'POST', body);
@@ -3195,12 +3803,27 @@ if ($isLoggedIn) {
             // Also update thread actions logic initially
             updateThreadActions();
 
+            // Notifications
+            if (Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+
             // Polling
             setInterval(() => {
                 if (isDmMode && currentPartnerId) loadDms(0);
                 else if (!isDmMode && currentThreadId) loadMessages(0);
+                fetchTypingUsers();
             }, 3000);
         });
+
+        function sendNotification(title, body) {
+            if (!isWindowFocused && Notification.permission === 'granted') {
+                new Notification(title, {
+                    body,
+                    icon: 'SYCS_favicon.svg'
+                });
+            }
+        }
     </script>
     <script src="js/webrtc.js"></script>
     <script src="js/locate.js"></script>
@@ -3210,6 +3833,226 @@ if ($isLoggedIn) {
             locationManager.init('gps-status', 1000);
 
         });
+        // --- Reactions & Pinning ---
+        async function toggleReaction(messageId, emoji) {
+            const body = new FormData();
+            body.append('message_id', messageId);
+            body.append('emoji', emoji);
+            const res = await api('toggle_reaction', 'POST', body);
+            if (res.error) {
+                alert('リアクションに失敗しました');
+            } else {
+                await loadMessages();
+                const picker = document.querySelector('.emoji-picker-popover');
+                if (picker) picker.remove();
+            }
+        }
+
+        function showEmojiPicker(event, messageId) {
+            event.stopPropagation();
+            const existing = document.querySelector('.emoji-picker-popover');
+            if (existing) existing.remove();
+
+            const popover = document.createElement('div');
+            popover.className = 'emoji-picker-popover';
+
+            const emojis = ['👍', '❤️', '😂', '😮', '😢', '🔥', '✅', '🚀', '👀', '✨', '💯', '🙏'];
+            emojis.forEach(emoji => {
+                const btn = document.createElement('button');
+                btn.className = 'emoji-btn';
+                btn.innerText = emoji;
+                btn.onclick = () => toggleReaction(messageId, emoji);
+                popover.appendChild(btn);
+            });
+
+            document.body.appendChild(popover);
+
+            const rect = event.target.getBoundingClientRect();
+            popover.style.top = (rect.top + window.scrollY - popover.offsetHeight - 10) + 'px';
+            popover.style.left = (rect.left + window.scrollX) + 'px';
+
+            const closePicker = (e) => {
+                if (!popover.contains(e.target)) {
+                    popover.remove();
+                    document.removeEventListener('click', closePicker);
+                }
+            };
+            setTimeout(() => document.addEventListener('click', closePicker), 10);
+        }
+
+        async function togglePin(messageId) {
+            const body = new FormData();
+            body.append('message_id', messageId);
+            const res = await api('toggle_pin', 'POST', body);
+            if (res.error) {
+                alert('ピン留めに失敗しました');
+            } else {
+                await loadMessages();
+            }
+        }
+
+        // --- Search Logic ---
+        async function searchMessages() {
+            const queryInput = document.getElementById('search-input');
+            const keyword = queryInput ? queryInput.value.trim() : '';
+            if (!keyword) return;
+
+            const res = await api(`search_messages&thread_id=${currentThreadId}&keyword=${encodeURIComponent(keyword)}`);
+            const list = document.getElementById('search-results-list');
+            const overlay = document.getElementById('search-results-overlay');
+
+            list.innerHTML = '';
+            overlay.style.display = 'flex';
+
+            if (res.length === 0) {
+                list.innerHTML = '<div style="padding:10px; color:var(--text-secondary);">結果が見つかりませんでした</div>';
+                return;
+            }
+
+            res.forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'search-result-item';
+                div.innerHTML = `
+                <div style="font-size:0.75rem; color:var(--accent-color); font-weight:700;">${m.username}</div>
+                <div style="font-size:0.85rem; margin:4px 0;">${m.content}</div>
+                <div style="font-size:0.65rem; opacity:0.6;">${m.created_at}</div>
+            `;
+                div.onclick = () => {
+                    const target = document.getElementById('message-' + m.id);
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                        target.style.backgroundColor = 'rgba(99, 102, 241, 0.2)';
+                        setTimeout(() => target.style.backgroundColor = '', 2000);
+                        toggleSearch(false);
+                    } else {
+                        alert('メッセージが現在の読み込み範囲外です');
+                    }
+                };
+                list.appendChild(div);
+            });
+        }
+
+        function toggleSearch(show) {
+            const overlay = document.getElementById('search-results-overlay');
+            if (overlay) overlay.style.display = show ? 'flex' : 'none';
+        }
+
+        // --- Typing Indicator ---
+        let typingTimeout = null;
+        let isTypingSent = false;
+
+        function updateTypingStatus(isTyping) {
+            if (isTyping === isTypingSent) return;
+            isTypingSent = isTyping;
+
+            const body = new FormData();
+            // Use a specific negative ID or prefix for DMs to avoid collision? 
+            // Better: use currentThreadId which is 0 or null for DM, but we need to distinguish partners.
+            // Let's use partner_id for DMs.
+            const targetId = isDmMode ? `dm_${currentPartnerId}` : currentThreadId;
+            body.append('thread_id', targetId);
+            body.append('is_typing', isTyping ? '1' : '0');
+            api('update_typing_status', 'POST', body);
+        }
+
+        function handleTyping() {
+            updateTypingStatus(true);
+            if (typingTimeout) clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                updateTypingStatus(false);
+            }, 3000);
+        }
+
+        async function fetchTypingUsers() {
+            const targetId = isDmMode ? `dm_${currentPartnerId}` : currentThreadId;
+            if (!targetId) return;
+            const res = await api(`get_typing_users&thread_id=${targetId}`);
+            const indicator = document.getElementById(isDmMode ? 'dm-typing-indicator' : 'typing-indicator');
+            if (indicator) {
+                if (res.length > 0) {
+                    const names = res.map(u => u.username).join(', ');
+                    indicator.innerText = `${names} が入力中...`;
+                    indicator.style.visibility = 'visible';
+                } else {
+                    indicator.innerText = '';
+                    indicator.style.visibility = 'hidden';
+                }
+            }
+        }
+
+        function startEditMessage(m, isDm) {
+            const newContent = prompt('メッセージを編集:', m.content);
+            if (newContent !== null && newContent !== m.content) {
+                saveEditMessage(m.id, newContent, isDm);
+            }
+        }
+
+        async function saveEditMessage(id, content, isDm) {
+            const body = new FormData();
+            if (isDm) body.append('dm_id', id);
+            else body.append('message_id', id);
+            body.append('content', content);
+            const res = await api('edit_message', 'POST', body);
+            if (res.success) {
+                if (isDm) loadDms();
+                else loadMessages();
+            } else {
+                alert('編集に失敗しました');
+            }
+        }
+
+        async function showAttachmentGallery() {
+            const modal = document.getElementById('gallery-modal');
+            const content = document.getElementById('gallery-content');
+            content.innerHTML = '<div style="grid-column: 1/-1; text-align:center;">読み込み中...</div>';
+            modal.showModal();
+
+            const url = isDmMode ? `get_attachments&partner_id=${currentPartnerId}` : `get_attachments&thread_id=${currentThreadId}`;
+            const files = await api(url);
+
+            content.innerHTML = '';
+            if (files.length === 0) {
+                content.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:var(--text-secondary);">添付ファイルはありません</div>';
+                return;
+            }
+
+            files.forEach(f => {
+                const path = f.attachment_path;
+                const ext = path.split('.').pop().toLowerCase();
+                const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+
+                const item = document.createElement('div');
+                item.style.background = 'var(--card-bg)';
+                item.style.borderRadius = '8px';
+                item.style.overflow = 'hidden';
+                item.style.border = '1px solid var(--border-color)';
+                item.style.cursor = 'pointer';
+                item.onclick = () => window.open(path, '_blank');
+
+                if (isImage) {
+                    const img = document.createElement('img');
+                    img.src = path;
+                    img.style.width = '100%';
+                    img.style.height = '120px';
+                    img.style.objectFit = 'cover';
+                    item.appendChild(img);
+                } else {
+                    const placeholder = document.createElement('div');
+                    placeholder.style.height = '120px';
+                    placeholder.style.display = 'flex';
+                    placeholder.style.flexDirection = 'column';
+                    placeholder.style.justifyContent = 'center';
+                    placeholder.style.alignItems = 'center';
+                    placeholder.style.fontSize = '2rem';
+                    placeholder.innerHTML = '📄<div style="font-size:0.7rem; margin-top:8px; padding:0 4px; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center;">' + path.split('/').pop() + '</div>';
+                    item.appendChild(placeholder);
+                }
+                content.appendChild(item);
+            });
+        }
     </script>
 </body>
 
