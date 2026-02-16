@@ -1100,3 +1100,45 @@ header.chat-header div.thread-info {
     transform: translateX(100%);
   }
 }
+
+.btn-discord {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #5865f2;
+  color: #ffffff;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.2s;
+  border: none;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.btn-discord:hover {
+  background-color: #4752c4;
+}
+
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #ffffff;
+  color: #3c4043;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.2s;
+  border: 1px solid #dadce0;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.btn-google:hover {
+  background-color: #f8f9fa;
+}

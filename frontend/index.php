@@ -210,6 +210,67 @@ if ($res->num_rows === 0) {
     $mysqli->query("ALTER TABLE users ADD COLUMN banner_color VARCHAR(20) DEFAULT '#6366f1' AFTER avatar_url");
 }
 
+// Discord Columns Migration
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'discord_id'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN discord_id VARCHAR(255) NULL AFTER banner_color");
+}
+
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'google_id'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN google_id VARCHAR(255) NULL AFTER discord_id");
+}
+
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'apple_id'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN apple_id VARCHAR(255) NULL AFTER google_id");
+}
+
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'outlook_id'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN outlook_id VARCHAR(255) NULL AFTER apple_id");
+}
+
+$res = $mysqli->query("SHOW COLUMNS FROM threads LIKE 'discord_webhook_url'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE threads ADD COLUMN discord_webhook_url VARCHAR(500) NULL AFTER name");
+}
+
+// Helper to send Discord Webhook
+function sendDiscordWebhook($webhookUrl, $username, $content, $avatarUrl = null, $attachmentPath = null)
+{
+    if (!$webhookUrl) return;
+
+    // Use absolute URL for avatar and attachment if they exist
+    $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]" . dirname($_SERVER['REQUEST_URI']);
+    if ($avatarUrl && !filter_var($avatarUrl, FILTER_VALIDATE_URL)) {
+        $avatarUrl = $baseUrl . '/' . ltrim($avatarUrl, '/');
+    }
+
+    $fullContent = $content;
+    if ($attachmentPath) {
+        $absAttachment = $baseUrl . '/' . ltrim($attachmentPath, '/');
+        $fullContent .= "\n" . $absAttachment;
+    }
+
+    $data = [
+        'username' => $username . " (SYCS)",
+        'content' => $fullContent,
+    ];
+    if ($avatarUrl) $data['avatar_url'] = $avatarUrl;
+
+    $options = [
+        'http' => [
+            'header'  => "Content-type: application/json\r\n",
+            'method'  => 'POST',
+            'content' => json_encode($data),
+            'ignore_errors' => true
+        ]
+    ];
+    $context  = stream_context_create($options);
+    @file_get_contents($webhookUrl, false, $context);
+}
+
 // Helper to verify CSRF
 function verify_csrf()
 {
@@ -354,7 +415,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'get_threads') {
-        $res = $mysqli->query("SELECT * FROM threads ORDER BY created_at DESC");
+        $res = $mysqli->query("SELECT * FROM threads ORDER BY created_at ASC");
         echo json_encode($res->fetch_all(MYSQLI_ASSOC));
         exit;
     }
@@ -386,8 +447,9 @@ if (isset($_GET['api'])) {
         $res = $stmt->get_result();
         if ($row = $res->fetch_assoc()) {
             if ($row['creator_id'] == $userId) {
-                $upd = $mysqli->prepare("UPDATE threads SET name = ? WHERE id = ?");
-                $upd->bind_param("si", $newName, $threadId);
+                $webhook = $_POST['discord_webhook_url'] ?? null;
+                $upd = $mysqli->prepare("UPDATE threads SET name = ?, discord_webhook_url = ? WHERE id = ?");
+                $upd->bind_param("ssi", $newName, $webhook, $threadId);
                 $upd->execute();
                 echo json_encode(['success' => true]);
             } else {
@@ -638,8 +700,29 @@ if (isset($_GET['api'])) {
             $stmt = $mysqli->prepare("INSERT INTO messages (thread_id, user_id, content, reply_to_id, attachment_path) VALUES (?, ?, ?, ?, ?)");
             $stmt->bind_param("iisis", $threadId, $userId, $content, $replyToId, $attachmentPath);
             $stmt->execute();
-            echo json_encode(['success' => true]);
             $stmt->close();
+
+            // Discord Webhook Integration
+            $wStmt = $mysqli->prepare("SELECT discord_webhook_url FROM threads WHERE id = ?");
+            $wStmt->bind_param("i", $threadId);
+            $wStmt->execute();
+            $wRes = $wStmt->get_result();
+            if ($wRow = $wRes->fetch_assoc()) {
+                if ($wRow['discord_webhook_url']) {
+                    // Get user info for webhook
+                    $uStmt = $mysqli->prepare("SELECT username, avatar_url FROM users WHERE id = ?");
+                    $uStmt->bind_param("i", $userId);
+                    $uStmt->execute();
+                    $uRes = $uStmt->get_result();
+                    if ($uRow = $uRes->fetch_assoc()) {
+                        sendDiscordWebhook($wRow['discord_webhook_url'], $uRow['username'], $content, $uRow['avatar_url'], $attachmentPath);
+                    }
+                    $uStmt->close();
+                }
+            }
+            $wStmt->close();
+
+            echo json_encode(['success' => true]);
         } else {
             echo json_encode(['error' => 'Thread and content/attachment required']);
         }
@@ -979,75 +1062,22 @@ if (isset($_GET['api'])) {
     }
 }
 
-// --- Auth Logic ---
-$error = '';
-if (isset($_POST['action']) && $_POST['action'] === 'login') {
-    // CSRF Check for Login
-    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-        $error = 'セッションが無効です。再読み込みしてください。';
-    } else {
-        $u = $_POST['username'] ?? '';
-        $p = $_POST['password'] ?? '';
+// --- Auth Status Check ---
+$isLoggedIn = isset($_SESSION['user']);
 
-        $stmt = $mysqli->prepare("SELECT id, username, password, is_verified, last_thread_id FROM users WHERE username = ? LIMIT 1");
-        $stmt->bind_param("s", $u);
-        $stmt->execute();
-        $res = $stmt->get_result();
-
-        if ($res && $res->num_rows === 1) {
-            $row = $res->fetch_assoc();
-            if (password_verify($p, $row['password'])) {
-                if ($row['is_verified'] != 1) {
-                    $error = '本登録が完了していません。メール内のリンクを確認してください。';
-                } else {
-                    // Update hash if needed
-                    if (password_needs_rehash($row['password'], PASSWORD_DEFAULT)) {
-                        $newHash = password_hash($p, PASSWORD_DEFAULT);
-                        $upd = $mysqli->prepare("UPDATE users SET password = ? WHERE id = ?");
-                        $upd->bind_param("si", $newHash, $row['id']);
-                        $upd->execute();
-                        $upd->close();
-                    }
-
-                    $_SESSION['user_id'] = $row['id'];
-                    $_SESSION['user'] = $row['username'];
-                    $_SESSION['last_thread_id'] = $row['last_thread_id'] ?: 1;
-                    header('Location: index.php');
-                    exit;
-                }
-            } else {
-                // Compatibility for transition ... (re-applying legacy logic here)
-                if ($p === $row['password']) {
-                    $newHash = password_hash($p, PASSWORD_DEFAULT);
-                    $upd = $mysqli->prepare("UPDATE users SET password = ? WHERE id = ?");
-                    $upd->bind_param("si", $newHash, $row['id']);
-                    $upd->execute();
-                    $upd->close();
-                    $_SESSION['user_id'] = $row['id'];
-                    $_SESSION['user'] = $row['username'];
-                    $_SESSION['last_thread_id'] = $row['last_thread_id'] ?: 1;
-                    header('Location: index.php');
-                    exit;
-                }
-                $error = 'ログインに失敗しました。ユーザー名またはパスワードが正しくありません。';
-            }
-        } else {
-            $error = 'ログインに失敗しました。ユーザー名またはパスワードが正しくありません。';
-        }
-    }
-    if (isset($stmt))
-        $stmt->close();
+if (!$isLoggedIn) {
+    header('Location: login.php');
+    exit;
 }
+
+$currentUser = $_SESSION['user'];
+$initialThreadId = $_SESSION['last_thread_id'] ?? 1;
 
 if (isset($_GET['logout'])) {
     session_destroy();
     header('Location: index.php');
     exit;
 }
-
-$isLoggedIn = isset($_SESSION['user']);
-$currentUser = $_SESSION['user'] ?? null;
-$initialThreadId = $_SESSION['last_thread_id'] ?? 1;
 
 if ($isLoggedIn) {
     $stmt = $mysqli->prepare("SELECT last_thread_id, status, custom_status, bio, avatar_url, banner_color FROM users WHERE id = ?");
@@ -1324,930 +1354,1639 @@ if ($isLoggedIn) {
 </head>
 
 <body>
-    <?php if (!$isLoggedIn): ?>
-        <div class="auth-container">
-            <div class="auth-card">
-                <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                <p>Shinjuku Yamabuki Chat System</p>
-                <?php if ($error): ?>
-                    <div style="color: #ef4444; margin-bottom: 1rem;"><?= htmlspecialchars($error) ?>
-                    </div><?php endif; ?>
-                <form method="POST">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-                    <input type="hidden" name="action" value="login">
-                    <div class="form-group"><label>ユーザー名</label><input type="text" name="username" required
-                            placeholder="Username"></div>
-                    <div class="form-group"><label>パスワード</label><input type="password" name="password" required
-                            placeholder="••••••••"></div>
-                    <button type="submit" class="btn-primary">ログイン</button>
-                </form>
-                <div style="margin-top:2rem; font-size:0.85rem; color:var(--text-secondary);">
-                    <a href="forgot_password.php" style="margin-bottom: 0.5rem; display: block;">パスワードを忘れましたか？</a>
-                    アカウントをお持ちでないですか？ <a href="signup.php">新規登録</a>
+    <div class="sidebar-backdrop" onclick="toggleSidebar()"></div>
+    <div class="app-container">
+        <aside id="main-sidebar" class="sidebar">
+            <div class="sidebar-top">
+                <div class="logo-container">
+                    <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.0.4</span>
+                </div>
+                <nav>
+                    <ul class="nav-list">
+                        <li class="nav-item active" data-tab="threads">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="4" y1="9" x2="20" y2="9" />
+                                <line x1="4" y1="15" x2="20" y2="15" />
+                                <line x1="10" y1="3" x2="8" y2="21" />
+                                <line x1="16" y1="3" x2="14" y2="21" />
+                            </svg>
+                            <span>スレッド</span>
+                        </li>
+                        <li class="nav-item" data-tab="dm">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                            </svg>
+                            <span>DM</span>
+                        </li>
+                        <li class="nav-item" data-tab="favorites">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon
+                                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                            <span>お気に入り</span>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+            <div class="sidebar-bottom">
+                <div class="user-block">
+                    <div class="avatar-container">
+                        <div class="avatar" id="global-user-avatar">
+                            <?php if ($currentUserAvatar): ?>
+                                <img src="<?= htmlspecialchars($currentUserAvatar) ?>" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                            <?php else: ?>
+                                <?= htmlspecialchars(mb_substr($currentUser, 0, 1)) ?>
+                            <?php endif; ?>
+                        </div>
+                        <div class="status-indicator status-<?= htmlspecialchars($currentUserStatus) ?>" id="global-status-indicator"></div>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name"><?= htmlspecialchars($currentUser) ?></span>
+                        <div class="status-select-container">
+                            <select id="sidebar-status-input" class="modal-input" style="padding: 2px 4px; font-size: 0.75rem; width: auto; background-color: #2a2b2f; border: 1px solid #444; color: #fff;" onchange="updateMyStatus(this.value)">
+                                <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>連絡可能</option>
+                                <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
+                                <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>>応答不可</option>
+                                <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>>一時退席中</option>
+                                <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>退席中</option>
+                                <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン表示</option>
+                                <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>>外出中</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-actions">
+                    <a href="javascript:void(0)" onclick="showProfileModal()" class="action-link">設定</a>
+                    <a href="?logout=1" class="action-link" style="color:#f87171;">ログアウト</a>
                 </div>
             </div>
-        </div>
-    <?php else: ?>
-        <div class="sidebar-backdrop" onclick="toggleSidebar()"></div>
-        <div class="app-container">
-            <aside id="main-sidebar" class="sidebar">
-                <div class="sidebar-top">
-                    <div class="logo-container">
-                        <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                        <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.0.4</span>
-                    </div>
-                    <nav>
-                        <ul class="nav-list">
-                            <li class="nav-item active" data-tab="threads">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="4" y1="9" x2="20" y2="9" />
-                                    <line x1="4" y1="15" x2="20" y2="15" />
-                                    <line x1="10" y1="3" x2="8" y2="21" />
-                                    <line x1="16" y1="3" x2="14" y2="21" />
-                                </svg>
-                                <span>スレッド</span>
-                            </li>
-                            <li class="nav-item" data-tab="dm">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                                </svg>
-                                <span>DM</span>
-                            </li>
-                            <li class="nav-item" data-tab="favorites">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <polygon
-                                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                                </svg>
-                                <span>お気に入り</span>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
-                <div class="sidebar-bottom">
-                    <div class="user-block">
-                        <div class="avatar-container">
-                            <div class="avatar" id="global-user-avatar">
-                                <?php if ($currentUserAvatar): ?>
-                                    <img src="<?= htmlspecialchars($currentUserAvatar) ?>" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
-                                <?php else: ?>
-                                    <?= htmlspecialchars(mb_substr($currentUser, 0, 1)) ?>
-                                <?php endif; ?>
-                            </div>
-                            <div class="status-indicator status-<?= htmlspecialchars($currentUserStatus) ?>" id="global-status-indicator"></div>
-                        </div>
-                        <div class="user-info">
-                            <span class="user-name"><?= htmlspecialchars($currentUser) ?></span>
-                            <div class="status-select-container">
-                                <select id="sidebar-status-input" class="modal-input" style="padding: 2px 4px; font-size: 0.75rem; width: auto; background-color: #2a2b2f; border: 1px solid #444; color: #fff;" onchange="updateMyStatus(this.value)">
-                                    <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>連絡可能</option>
-                                    <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
-                                    <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>>応答不可</option>
-                                    <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>>一時退席中</option>
-                                    <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>退席中</option>
-                                    <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン表示</option>
-                                    <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>>外出中</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="sidebar-actions">
-                        <a href="javascript:void(0)" onclick="showProfileModal()" class="action-link">設定</a>
-                        <a href="?logout=1" class="action-link" style="color:#f87171;">ログアウト</a>
-                    </div>
-                </div>
-            </aside>
+        </aside>
 
-            <main class="main-content">
-                <section id="threads-pane" class="content-pane active">
-                    <div class="chat-area">
-                        <header class="chat-header">
-                            <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="メニュー">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+        <main class="main-content">
+            <section id="threads-pane" class="content-pane active">
+                <div class="chat-area">
+                    <header class="chat-header">
+                        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="メニュー">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="3" y1="12" x2="21" y2="12"></line>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <line x1="3" y1="18" x2="21" y2="18"></line>
+                            </svg>
+                        </button>
+                        <div class="thread-name-clickable" onclick="toggleThreadBrowser()">
+                            <button id="fav-btn" class="icon-btn" onclick="event.stopPropagation(); toggleFavorite()"
+                                title="お気に入り" style="margin-right: 8px;">
+                                ☆
+                            </button>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="4" y1="9" x2="20" y2="9" />
+                                <line x1="4" y1="15" x2="20" y2="15" />
+                                <line x1="10" y1="3" x2="8" y2="21" />
+                                <line x1="16" y1="3" x2="14" y2="21" />
+                            </svg>
+                            <span
+                                id="current-thread-name"><?= htmlspecialchars($currentThreadName ?? 'general') ?></span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </div>
+                        <div class="thread-actions" id="thread-actions-block" style="display:flex; margin-left: auto;">
+                            <button class="icon-btn" onclick="startMeeting()" title="ビデオ会議" style="margin-right: 8px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                                 </svg>
                             </button>
-                            <div class="thread-name-clickable" onclick="toggleThreadBrowser()">
-                                <button id="fav-btn" class="icon-btn" onclick="event.stopPropagation(); toggleFavorite()"
-                                    title="お気に入り" style="margin-right: 8px;">
-                                    ☆
-                                </button>
+                            <button class="icon-btn" onclick="editCurrentThread()" title="編集">
+                                <img src="assets/img/edit.svg" alt="編集" style="width:16px; height:16px;">
+                            </button>
+                            <button class="icon-btn" onclick="deleteCurrentThread()" title="削除"
+                                style="color:red;"><img src="assets/img/trash.svg" alt="削除" style="width:16px; height:16px;"></button>
+                        </div>
+                    </header>
+                    <div id="message-container" class="chat-messages"></div>
+                    <div class="drag-overlay">ファイルをドロップしてアップロード</div>
+
+                    <div id="reply-bar" class="reply-bar">
+                        <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden;">
+                            <span style="font-size: 0.75rem; opacity: 0.8;">Replying to <strong id="reply-target-name">User</strong></span>
+                            <div id="reply-preview-text" style="font-size: 0.8rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; opacity: 0.6;">...</div>
+                        </div>
+                        <span class="close-btn" onclick="cancelReply()">✕</span>
+                    </div>
+                    <div id="upload-preview" class="upload-preview">
+                        <span style="font-size:0.85rem; color:var(--text-secondary);">添付ファイル: </span>
+                        <div id="preview-content"></div>
+                        <span class="close-btn upload-cancel" onclick="cancelUpload()">✕</span>
+                    </div>
+
+                    <div class="chat-input-area">
+                        <div class="input-wrapper">
+                            <button class="icon-btn upload-btn-plus" title="アップロード" onclick="openMediaUploadModal()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                            <textarea id="msg-input" class="chat-input" placeholder="メッセージを送信... (Shift+Enterで改行)"
+                                rows="1" onkeydown="handleInputKey(event)"></textarea>
+                            <button onclick="sendMessage()"
+                                style="background:transparent; border:none; color:var(--accent-color); cursor:pointer; padding:5px; display:flex;">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="4" y1="9" x2="20" y2="9" />
-                                    <line x1="4" y1="15" x2="20" y2="15" />
-                                    <line x1="10" y1="3" x2="8" y2="21" />
-                                    <line x1="16" y1="3" x2="14" y2="21" />
-                                </svg>
-                                <span
-                                    id="current-thread-name"><?= htmlspecialchars($currentThreadName ?? 'general') ?></span>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
-                                    <polyline points="6 9 12 15 18 9" />
-                                </svg>
-                            </div>
-                            <div class="thread-actions" id="thread-actions-block" style="display:flex; margin-left: auto;">
-                                <button class="icon-btn" onclick="startMeeting()" title="ビデオ会議" style="margin-right: 8px;">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                                    </svg>
-                                </button>
-                                <button class="icon-btn" onclick="editCurrentThread()" title="編集">
-                                    <img src="assets/img/edit.svg" alt="編集" style="width:16px; height:16px;">
-                                </button>
-                                <button class="icon-btn" onclick="deleteCurrentThread()" title="削除"
-                                    style="color:red;"><img src="assets/img/trash.svg" alt="削除" style="width:16px; height:16px;"></button>
-                            </div>
-                        </header>
-                        <div id="message-container" class="chat-messages"></div>
-                        <div class="drag-overlay">ファイルをドロップしてアップロード</div>
-
-                        <div id="reply-bar" class="reply-bar">
-                            <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden;">
-                                <span style="font-size: 0.75rem; opacity: 0.8;">Replying to <strong id="reply-target-name">User</strong></span>
-                                <div id="reply-preview-text" style="font-size: 0.8rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; opacity: 0.6;">...</div>
-                            </div>
-                            <span class="close-btn" onclick="cancelReply()">✕</span>
-                        </div>
-                        <div id="upload-preview" class="upload-preview">
-                            <span style="font-size:0.85rem; color:var(--text-secondary);">添付ファイル: </span>
-                            <div id="preview-content"></div>
-                            <span class="close-btn upload-cancel" onclick="cancelUpload()">✕</span>
-                        </div>
-
-                        <div class="chat-input-area">
-                            <div class="input-wrapper">
-                                <button class="icon-btn upload-btn-plus" title="アップロード" onclick="openMediaUploadModal()">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    </svg>
-                                </button>
-                                <textarea id="msg-input" class="chat-input" placeholder="メッセージを送信... (Shift+Enterで改行)"
-                                    rows="1" onkeydown="handleInputKey(event)"></textarea>
-                                <button onclick="sendMessage()"
-                                    style="background:transparent; border:none; color:var(--accent-color); cursor:pointer; padding:5px; display:flex;">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="22" y1="2" x2="11" y2="13" />
-                                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <aside id="thread-browser" class="thread-browser">
-                        <div class="panel-header">
-                            <span>スレッド</span>
-                            <div class="close-btn" onclick="toggleThreadBrowser()"><svg width="18" height="18"
-                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18" />
-                                    <line x1="6" y1="6" x2="18" y2="18" />
-                                </svg></div>
-                        </div>
-                        <div id="thread-list" class="thread-list"></div>
-                        <div id="create-thread-area" class="create-thread-area" style="border-top: none;">
-                            <div
-                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                                <span style="font-weight:600; font-size:0.9rem;">新規スレッド</span>
-                                <div class="close-btn" onclick="hideCreateThread()">✕</div>
-                            </div>
-                            <input type="text" id="new-thread-name" class="create-input" placeholder="新スレッド名">
-                            <button onclick="createThread()" class="btn-primary" style="padding:0.6rem;">作成</button>
-                        </div>
-                    </aside>
-                    <!-- Partner Browser for DM -->
-
-                    <dialog id="user-picker-modal"
-                        style="border:none; border-radius:8px; padding:1rem; background:var(--bg-secondary); color:var(--text-primary);">
-                        <h3>ユーザーを選択</h3>
-                        <div id="all-user-list" style="max-height:300px; overflow-y:auto; margin:1rem 0;"></div>
-                        <button onclick="document.getElementById('user-picker-modal').close()">閉じる</button>
-                    </dialog>
-                </section>
-                <section id="dm-pane" class="content-pane" style="display:none;height:100%; flex-direction:column;">
-                    <!-- Friend Hub (Default View) -->
-                    <div id="dm-hub-view" style="display:flex; flex-direction:column; height:100%;">
-                        <div class="chat-header">
-                            <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="メニュー">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13" />
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
                                 </svg>
                             </button>
-                            <h3>Friend Hub</h3>
-                            <div style="margin-left:auto; display:flex; gap:10px;">
-                                <button class="btn-primary" onclick="showAddFriendModal()">フレンド申請</button>
-                                <button class="btn-primary" onclick="showPendingRequestsModal()" id="btn-pending-req">フレンド承認</button>
-                                <button class="btn-primary" onclick="showBlockedModal()" style="background-color: #333">ブロック一覧</button>
-                            </div>
-                        </div>
-                        <div class="scroller" style="flex:1; padding:20px; overflow-y:auto;">
-                            <h4 style="margin-bottom:10px; color:var(--text-secondary);">フレンドリスト (最近のやりとり順)</h4>
-                            <div id="hub-friend-list" class="thread-list"></div>
                         </div>
                     </div>
+                </div>
+                <aside id="thread-browser" class="thread-browser">
+                    <div class="panel-header">
+                        <span>スレッド</span>
+                        <div class="close-btn" onclick="toggleThreadBrowser()"><svg width="18" height="18"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg></div>
+                    </div>
+                    <div id="thread-list" class="thread-list"></div>
+                    <div id="create-thread-area" class="create-thread-area" style="border-top: none;">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <span style="font-weight:600; font-size:0.9rem;">新規スレッド</span>
+                            <div class="close-btn" onclick="hideCreateThread()">✕</div>
+                        </div>
+                        <input type="text" id="new-thread-name" class="create-input" placeholder="新スレッド名">
+                        <button onclick="createThread()" class="btn-primary" style="padding:0.6rem;">作成</button>
+                    </div>
+                </aside>
+                <!-- Partner Browser for DM -->
 
-                    <!-- DM Chat View (Hidden by default) -->
-                    <div id="dm-chat-view" style="display:none; flex-direction:column; height:100%;">
-                        <header class="chat-header">
-                            <button class="icon-btn" onclick="backToHub()" title="戻る" style="margin-right:10px;">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                <dialog id="user-picker-modal"
+                    style="border:none; border-radius:8px; padding:1rem; background:var(--bg-secondary); color:var(--text-primary);">
+                    <h3>ユーザーを選択</h3>
+                    <div id="all-user-list" style="max-height:300px; overflow-y:auto; margin:1rem 0;"></div>
+                    <button onclick="document.getElementById('user-picker-modal').close()">閉じる</button>
+                </dialog>
+            </section>
+            <section id="dm-pane" class="content-pane" style="display:none;height:100%; flex-direction:column;">
+                <!-- Friend Hub (Default View) -->
+                <div id="dm-hub-view" style="display:flex; flex-direction:column; height:100%;">
+                    <div class="chat-header">
+                        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="メニュー">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="3" y1="12" x2="21" y2="12"></line>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <line x1="3" y1="18" x2="21" y2="18"></line>
+                            </svg>
+                        </button>
+                        <h3>Friend Hub</h3>
+                        <div style="margin-left:auto; display:flex; gap:10px;">
+                            <button class="btn-primary" onclick="showAddFriendModal()">フレンド申請</button>
+                            <button class="btn-primary" onclick="showPendingRequestsModal()" id="btn-pending-req">フレンド承認</button>
+                            <button class="btn-primary" onclick="showBlockedModal()" style="background-color: #333">ブロック一覧</button>
+                        </div>
+                    </div>
+                    <div class="scroller" style="flex:1; padding:20px; overflow-y:auto;">
+                        <h4 style="margin-bottom:10px; color:var(--text-secondary);">フレンドリスト (最近のやりとり順)</h4>
+                        <div id="hub-friend-list" class="thread-list"></div>
+                    </div>
+                </div>
+
+                <!-- DM Chat View (Hidden by default) -->
+                <div id="dm-chat-view" style="display:none; flex-direction:column; height:100%;">
+                    <header class="chat-header">
+                        <button class="icon-btn" onclick="backToHub()" title="戻る" style="margin-right:10px;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M19 12H5M12 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <div class="thread-info" id="current-dm-partner-info">
+                            <span class="thread-icon">@</span>
+                            <h3 class="thread-name" id="current-dm-partner-name">Select a user</h3>
+                        </div>
+                        <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+                            <button class="icon-btn" onclick="startMeeting()" title="ビデオ会議">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                                </svg>
+                            </button>
+                            <button class="icon-btn" onclick="blockCurrentPartner()" title="ブロック"
+                                style="color:#ef4444;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2">
-                                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
                                 </svg>
                             </button>
-                            <div class="thread-info" id="current-dm-partner-info">
-                                <span class="thread-icon">@</span>
-                                <h3 class="thread-name" id="current-dm-partner-name">Select a user</h3>
-                            </div>
-                            <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
-                                <button class="icon-btn" onclick="startMeeting()" title="ビデオ会議">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                                    </svg>
-                                </button>
-                                <button class="icon-btn" onclick="blockCurrentPartner()" title="ブロック"
-                                    style="color:#ef4444;">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <circle cx="12" cy="12" r="10" />
-                                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </header>
-
-                        <div id="dm-message-container" class="messages-container">
-                            <div class="empty-state">
-                                <p>メッセージを選択してください</p>
-                            </div>
                         </div>
+                    </header>
 
-                        <div id="dm-upload-preview" class="upload-preview-bar"
-                            style="display:none; padding:10px; border-bottom:1px solid var(--border-color);">
-                            <div id="dm-preview-content"></div>
-                            <button class="close-btn" onclick="cancelDmUpload()">×</button>
-                        </div>
-
-                        <div class="chat-input-area" id="dm-chat-area">
-                            <div class="input-wrapper">
-                                <button class="icon-btn upload-btn-plus" title="アップロード" onclick="openMediaUploadModal()">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    </svg>
-                                </button>
-                                <textarea id="dm-msg-input" class="chat-input" placeholder="DMを送信..." rows="1"
-                                    onkeydown="handleDmInputKey(event)"></textarea>
-                                <input type="file" id="msg-file-input" hidden onchange="handleMediaUploadFiles(this.files)">
-                                <button onclick="sendDm()"
-                                    style="background:transparent; border:none; color:var(--accent-color); cursor:pointer;">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <line x1="22" y1="2" x2="11" y2="13" />
-                                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                                    </svg>
-                                </button>
-                            </div>
+                    <div id="dm-message-container" class="messages-container">
+                        <div class="empty-state">
+                            <p>メッセージを選択してください</p>
                         </div>
                     </div>
-                </section>
 
-                <!-- Modals -->
-                <dialog id="add-friend-modal" class="modal"
-                    style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
-                    <div class="modal-content" style="min-width:400px;">
-                        <h3>フレンド申請</h3>
-                        <div style="display:flex; gap:10px; margin-bottom:15px;">
-                            <input type="text" id="user-search-input" class="chat-input" placeholder="ユーザーID または 名前で検索">
-                            <button class="btn-primary" onclick="searchUsers()">検索</button>
-                        </div>
-                        <div id="user-search-results" class="thread-list" style="max-height:200px; overflow-y:auto;"></div>
-                        <div class="modal-actions" style="margin-top:10px; text-align:right;">
-                            <button class="btn-secondary"
-                                onclick="document.getElementById('add-friend-modal').close()">閉じる</button>
-                        </div>
+                    <div id="dm-upload-preview" class="upload-preview-bar"
+                        style="display:none; padding:10px; border-bottom:1px solid var(--border-color);">
+                        <div id="dm-preview-content"></div>
+                        <button class="close-btn" onclick="cancelDmUpload()">×</button>
                     </div>
-                </dialog>
 
-                <dialog id="pending-requests-modal" class="modal"
-                    style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
-                    <div class="modal-content" style="min-width:400px;">
-                        <h3>承認待ちリクエスト</h3>
-                        <div id="pending-requests-list-modal" class="thread-list"
-                            style="max-height:300px; overflow-y:auto;"></div>
-                        <div class="modal-actions" style="margin-top:10px; text-align:right;">
-                            <button class="btn-secondary"
-                                onclick="document.getElementById('pending-requests-modal').close()">閉じる</button>
-                        </div>
-                    </div>
-                </dialog>
-
-                <!-- WebRTC Meeting Modal -->
-                <dialog id="meeting-modal" class="modal meeting-modal" style="border:none; border-radius:12px; padding:0; background:#000; width:100vw; height:100vh; max-width:100vw; max-height:100vh; margin:0; overflow:hidden;">
-                    <div class="video-grid-container" id="video-grid">
-                        <!-- Local video and remote videos will be injected here -->
-                    </div>
-                    <div class="meeting-controls">
-                        <button class="control-btn" id="toggle-mic" onclick="meetingManager.toggleMic()" title="マイク オン/オフ">
-                            <img id="mic-icon" src="assets/img/mic.svg" alt="">
-                        </button>
-                        <button class="control-btn" id="toggle-video" onclick="meetingManager.toggleVideo()" title="カメラ オン/オフ">
-                            <img id="video-icon" src="assets/img/camera_on.svg" alt="">
-                        </button>
-                        <button class="control-btn" id="toggle-screen" onclick="meetingManager.toggleScreenShare()" title="画面共有">
-                            <img id="screen-icon" src="assets/img/screen_share.svg" alt="">
-                        </button>
-                        <button class="control-btn" id="hangup-btn" onclick="meetingManager.leave()" title="退席">
-                            <img id="hangup-icon" src="assets/img/hangup.svg" alt="" color="white">
-                        </button>
-                    </div>
-                </dialog>
-
-                <dialog id="blocked-users-modal" class="modal"
-                    style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
-                    <div class="modal-content" style="min-width:400px;">
-                        <h3>ブロックしているユーザー</h3>
-                        <div id="blocked-users-list" class="thread-list" style="max-height:300px; overflow-y:auto;"></div>
-                        <div class="modal-actions" style="margin-top:10px; text-align:right;">
-                            <button class="btn-secondary"
-                                onclick="document.getElementById('blocked-users-modal').close()">閉じる</button>
-                        </div>
-                    </div>
-                </dialog>
-
-                <!-- Media Upload Modal -->
-                <dialog id="media-upload-modal" class="modal media-upload-modal">
-                    <div class="modal-content" style="min-width: 450px; max-width: 600px;">
-                        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                            <h3 style="margin:0;">ファイルを送信</h3>
-                            <button class="close-btn" onclick="closeMediaUploadModal()">
-                                <p style="font-size: 20px; color: #000000; font-weight: bold; margin:0; padding:0; cursor:pointer; background-color: transparent; border: none; outline: none;">✕</p>
-                            </button>
-                        </div>
-
-                        <div id="media-upload-dropzone" class="upload-dropzone" onclick="document.getElementById('modal-file-input').click()">
-                            <div id="media-upload-preview-container" class="upload-preview-container">
-                                <div class="upload-placeholder">
-                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 15px;">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="17 8 12 3 7 8"></polyline>
-                                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                                    </svg>
-                                    <p style="margin:0; color:var(--text-secondary);">クリックまたはドラッグ＆ドロップで選択</p>
-                                </div>
-                            </div>
-                            <input type="file" id="modal-file-input" hidden onchange="handleMediaUploadFiles(this.files)">
-                        </div>
-
-                        <div class="modal-form-group" style="margin-top:20px;">
-                            <label class="modal-label">メッセージ (任意)</label>
-                            <textarea id="modal-content-input" class="modal-textarea" placeholder="メッセージを入力..." rows="2" style="background:var(--input-bg); border:1px solid var(--border-color); color:white; border-radius:8px; padding:12px; width:100%; resize:none;"></textarea>
-                        </div>
-
-                        <div class="modal-actions" style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end;">
-                            <button class="btn-secondary" onclick="closeMediaUploadModal()" style="padding:10px 30px;">キャンセル</button>
-                            <button class="btn-secondary" onclick="submitMediaUpload()" style="padding:10px 50px;">送信</button>
-                        </div>
-                    </div>
-                </dialog>
-                <section id="favorites-pane" class="content-pane" style="display:none;">
-                    <aside class="thread-browser active"
-                        style="margin-left:0; border-right:1px solid var(--border-color); display:block; position:relative;">
-                        <div class="panel-header" style="justify-content: flex-start;">
-                            <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="メニュー">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                    <div class="chat-input-area" id="dm-chat-area">
+                        <div class="input-wrapper">
+                            <button class="icon-btn upload-btn-plus" title="アップロード" onclick="openMediaUploadModal()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                             </button>
-                            <div style="display:flex; align-items:center; margin-left:10px;">お気に入りスレッド</div>
+                            <textarea id="dm-msg-input" class="chat-input" placeholder="DMを送信..." rows="1"
+                                onkeydown="handleDmInputKey(event)"></textarea>
+                            <input type="file" id="msg-file-input" hidden onchange="handleMediaUploadFiles(this.files)">
+                            <button onclick="sendDm()"
+                                style="background:transparent; border:none; color:var(--accent-color); cursor:pointer;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13" />
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                                </svg>
+                            </button>
                         </div>
-                        <div id="fav-thread-list" class="thread-list"></div>
-                    </aside>
-                </section>
+                    </div>
+                </div>
+            </section>
 
-                <!-- Profile Edit Modal -->
-                <dialog id="profile-modal" class="profile-modal">
-                    <div class="profile-content">
-                        <div class="profile-edit-form">
-                            <h3 style="margin-bottom: 24px;">ユーザー設定</h3>
+            <!-- Modals -->
+            <dialog id="add-friend-modal" class="modal"
+                style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
+                <div class="modal-content" style="min-width:400px;">
+                    <h3>フレンド申請</h3>
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <input type="text" id="user-search-input" class="chat-input" placeholder="ユーザーID または 名前で検索">
+                        <button class="btn-primary" onclick="searchUsers()">検索</button>
+                    </div>
+                    <div id="user-search-results" class="thread-list" style="max-height:200px; overflow-y:auto;"></div>
+                    <div class="modal-actions" style="margin-top:10px; text-align:right;">
+                        <button class="btn-secondary"
+                            onclick="document.getElementById('add-friend-modal').close()">閉じる</button>
+                    </div>
+                </div>
+            </dialog>
 
-                            <div class="modal-form-group">
-                                <label class="modal-label">アバター画像</label>
-                                <input type="file" id="edit-avatar-input" accept="image/*" style="display:none" onchange="previewAvatar(this)">
-                                <div style="display:flex; gap:8px;">
-                                    <button class="btn-secondary" onclick="document.getElementById('edit-avatar-input').click()">画像を選択</button>
-                                    <button class="btn-secondary" id="btn-remove-avatar" onclick="removeAvatarPreview()" style="color:#f87171; display: <?= $currentUserAvatar ? 'inline-block' : 'none' ?>;">削除</button>
-                                </div>
+            <dialog id="pending-requests-modal" class="modal"
+                style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
+                <div class="modal-content" style="min-width:400px;">
+                    <h3>承認待ちリクエスト</h3>
+                    <div id="pending-requests-list-modal" class="thread-list"
+                        style="max-height:300px; overflow-y:auto;"></div>
+                    <div class="modal-actions" style="margin-top:10px; text-align:right;">
+                        <button class="btn-secondary"
+                            onclick="document.getElementById('pending-requests-modal').close()">閉じる</button>
+                    </div>
+                </div>
+            </dialog>
+
+            <!-- WebRTC Meeting Modal -->
+            <dialog id="meeting-modal" class="modal meeting-modal" style="border:none; border-radius:12px; padding:0; background:#000; width:100vw; height:100vh; max-width:100vw; max-height:100vh; margin:0; overflow:hidden;">
+                <div class="video-grid-container" id="video-grid">
+                    <!-- Local video and remote videos will be injected here -->
+                </div>
+                <div class="meeting-controls">
+                    <button class="control-btn" id="toggle-mic" onclick="meetingManager.toggleMic()" title="マイク オン/オフ">
+                        <img id="mic-icon" src="assets/img/mic.svg" alt="">
+                    </button>
+                    <button class="control-btn" id="toggle-video" onclick="meetingManager.toggleVideo()" title="カメラ オン/オフ">
+                        <img id="video-icon" src="assets/img/camera_on.svg" alt="">
+                    </button>
+                    <button class="control-btn" id="toggle-screen" onclick="meetingManager.toggleScreenShare()" title="画面共有">
+                        <img id="screen-icon" src="assets/img/screen_share.svg" alt="">
+                    </button>
+                    <button class="control-btn" id="hangup-btn" onclick="meetingManager.leave()" title="退席">
+                        <img id="hangup-icon" src="assets/img/hangup.svg" alt="" color="white">
+                    </button>
+                </div>
+            </dialog>
+
+            <dialog id="blocked-users-modal" class="modal"
+                style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
+                <div class="modal-content" style="min-width:400px;">
+                    <h3>ブロックしているユーザー</h3>
+                    <div id="blocked-users-list" class="thread-list" style="max-height:300px; overflow-y:auto;"></div>
+                    <div class="modal-actions" style="margin-top:10px; text-align:right;">
+                        <button class="btn-secondary"
+                            onclick="document.getElementById('blocked-users-modal').close()">閉じる</button>
+                    </div>
+                </div>
+            </dialog>
+
+            <dialog id="thread-settings-modal" class="modal"
+                style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
+                <div class="modal-content" style="min-width:400px;">
+                    <h3>スレッド設定</h3>
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label>スレッド名</label>
+                        <input type="text" id="settings-thread-name" class="chat-input" style="width:100%;" placeholder="スレッド名">
+                    </div>
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label>Discord Webhook URL</label>
+                        <input type="text" id="settings-thread-webhook" class="chat-input" style="width:100%;" placeholder="https://discord.com/api/webhooks/...">
+                        <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:5px;">このスレッドの書き込みをDiscordに転送します。</p>
+                    </div>
+                    <div class="modal-actions" style="margin-top:20px; text-align:right;">
+                        <button class="btn-secondary" onclick="document.getElementById('thread-settings-modal').close()">キャンセル</button>
+                        <button class="btn-primary" onclick="saveThreadSettings()">保存</button>
+                    </div>
+                </div>
+            </dialog>
+            <!-- Media Upload Modal -->
+            <dialog id="media-upload-modal" class="modal media-upload-modal">
+                <div class="modal-content" style="min-width: 450px; max-width: 600px;">
+                    <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <h3 style="margin:0;">ファイルを送信</h3>
+                        <button class="close-btn" onclick="closeMediaUploadModal()">
+                            <p style="font-size: 20px; color: #000000; font-weight: bold; margin:0; padding:0; cursor:pointer; background-color: transparent; border: none; outline: none;">✕</p>
+                        </button>
+                    </div>
+
+                    <div id="media-upload-dropzone" class="upload-dropzone" onclick="document.getElementById('modal-file-input').click()">
+                        <div id="media-upload-preview-container" class="upload-preview-container">
+                            <div class="upload-placeholder">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 15px;">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <p style="margin:0; color:var(--text-secondary);">クリックまたはドラッグ＆ドロップで選択</p>
                             </div>
+                        </div>
+                        <input type="file" id="modal-file-input" hidden onchange="handleMediaUploadFiles(this.files)">
+                    </div>
 
-                            <div class="modal-form-group">
-                                <label class="modal-label">バナー色</label>
-                                <input type="color" id="edit-banner-input" class="modal-input" style="height: 40px; padding: 5px;"
-                                    oninput="updatePreviewBanner(this.value)" value="<?= htmlspecialchars($currentUserBanner) ?>">
-                            </div>
+                    <div class="modal-form-group" style="margin-top:20px;">
+                        <label class="modal-label">メッセージ (任意)</label>
+                        <textarea id="modal-content-input" class="modal-textarea" placeholder="メッセージを入力..." rows="2" style="background:var(--input-bg); border:1px solid var(--border-color); color:white; border-radius:8px; padding:12px; width:100%; resize:none;"></textarea>
+                    </div>
 
-                            <div class="modal-form-group">
-                                <label class="modal-label">自己紹介</label>
-                                <textarea id="edit-bio-input" class="modal-textarea" placeholder="自分について書こう"
-                                    oninput="updatePreviewBio(this.value)"><?= htmlspecialchars($currentUserBio) ?></textarea>
-                            </div>
+                    <div class="modal-actions" style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end;">
+                        <button class="btn-secondary" onclick="closeMediaUploadModal()" style="padding:10px 30px;">キャンセル</button>
+                        <button class="btn-secondary" onclick="submitMediaUpload()" style="padding:10px 50px;">送信</button>
+                    </div>
+                </div>
+            </dialog>
+            <section id="favorites-pane" class="content-pane" style="display:none;">
+                <aside class="thread-browser active"
+                    style="margin-left:0; border-right:1px solid var(--border-color); display:block; position:relative;">
+                    <div class="panel-header" style="justify-content: flex-start;">
+                        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="メニュー">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="3" y1="12" x2="21" y2="12"></line>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <line x1="3" y1="18" x2="21" y2="18"></line>
+                            </svg>
+                        </button>
+                        <div style="display:flex; align-items:center; margin-left:10px;">お気に入りスレッド</div>
+                    </div>
+                    <div id="fav-thread-list" class="thread-list"></div>
+                </aside>
+            </section>
 
-                            <div class="modal-form-group">
-                                <label class="modal-label">ステータス</label>
-                                <select id="modal-status-input" class="modal-input" onchange="updatePreviewStatus(this.value)">
-                                    <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>連絡可能</option>
-                                    <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
-                                    <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>>応答不可</option>
-                                    <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>>一時退席中</option>
-                                    <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>退席中</option>
-                                    <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン表示</option>
-                                    <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>>外出中</option>
-                                </select>
-                            </div>
+            <!-- Profile Edit Modal -->
+            <dialog id="profile-modal" class="profile-modal">
+                <div class="profile-content">
+                    <div class="profile-edit-form">
+                        <h3 style="margin-bottom: 24px;">ユーザー設定</h3>
 
-                            <div style="margin-top:32px; display:flex; flex-direction:column; gap:12px;">
-                                <div style="display:flex; align-items:center; gap:10px;">
-                                    <button class="btn-secondary" onclick="document.getElementById('profile-modal').close()" style="padding: 12px; flex: 1;">キャンセル</button>
-                                    <button class="btn-primary" onclick="saveProfile()" style="padding: 12px; flex: 1; font-weight: 600;">保存</button>
-                                </div>
-                                <div style="display:flex; justify-content: flex-end;">
-                                    <a href="delete_account.php" style="color:#f87171; font-size:0.8rem; text-decoration:none;">アカウント削除</a>
-                                </div>
+                        <div class="modal-form-group">
+                            <label class="modal-label">アバター画像</label>
+                            <input type="file" id="edit-avatar-input" accept="image/*" style="display:none" onchange="previewAvatar(this)">
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn-secondary" onclick="document.getElementById('edit-avatar-input').click()">画像を選択</button>
+                                <button class="btn-secondary" id="btn-remove-avatar" onclick="removeAvatarPreview()" style="color:#f87171; display: <?= $currentUserAvatar ? 'inline-block' : 'none' ?>;">削除</button>
                             </div>
                         </div>
 
-                        <div class="profile-preview-pane">
-                            <div class="discord-card">
-                                <div class="discord-banner" id="preview-banner" style="background: <?= htmlspecialchars($currentUserBanner) ?>"></div>
-                                <div class="discord-avatar-wrapper">
-                                    <div class="discord-avatar" id="preview-avatar-container">
-                                        <?php if ($currentUserAvatar): ?>
-                                            <img src="<?= htmlspecialchars($currentUserAvatar) ?>" class="discord-avatar" id="preview-avatar-img">
-                                        <?php else: ?>
-                                            <?= strtoupper(substr($currentUser, 0, 1)) ?>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="discord-status-indicator status-<?= htmlspecialchars($currentUserStatus) ?>" id="preview-status-indicator"></div>
-                                </div>
-                                <div class="discord-body">
-                                    <div class="discord-username"><?= htmlspecialchars($currentUser) ?></div>
-                                    <div class="discord-custom-status" id="preview-custom-status-text"></div>
-                                    <div class="discord-divider"></div>
-                                    <div class="discord-section-title">自己紹介</div>
-                                    <div class="discord-bio" id="preview-bio"><?= nl2br(htmlspecialchars($currentUserBio)) ?></div>
+                        <div class="modal-form-group">
+                            <label class="modal-label">バナー色</label>
+                            <input type="color" id="edit-banner-input" class="modal-input" style="height: 40px; padding: 5px;"
+                                oninput="updatePreviewBanner(this.value)" value="<?= htmlspecialchars($currentUserBanner) ?>">
+                        </div>
 
-                                    <section class="section2" id="gps-section">
-                                        <h3>GPS</h3>
-                                        <div id="gps-status">位置取得待機中…</div>
-                                    </section>
-                                </div>
+                        <div class="modal-form-group">
+                            <label class="modal-label">自己紹介</label>
+                            <textarea id="edit-bio-input" class="modal-textarea" placeholder="自分について書こう"
+                                oninput="updatePreviewBio(this.value)"><?= htmlspecialchars($currentUserBio) ?></textarea>
+                        </div>
+
+                        <div class="modal-form-group">
+                            <label class="modal-label">ステータス</label>
+                            <select id="modal-status-input" class="modal-input" onchange="updatePreviewStatus(this.value)">
+                                <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>連絡可能</option>
+                                <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
+                                <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>>応答不可</option>
+                                <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>>一時退席中</option>
+                                <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>退席中</option>
+                                <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン表示</option>
+                                <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>>外出中</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-top:32px; display:flex; flex-direction:column; gap:12px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <button class="btn-secondary" onclick="document.getElementById('profile-modal').close()" style="padding: 12px; flex: 1;">キャンセル</button>
+                                <button class="btn-primary" onclick="saveProfile()" style="padding: 12px; flex: 1; font-weight: 600;">保存</button>
+                            </div>
+                            <div style="display:flex; justify-content: flex-end;">
+                                <a href="delete_account.php" style="color:#f87171; font-size:0.8rem; text-decoration:none;">アカウント削除</a>
                             </div>
                         </div>
                     </div>
-                </dialog>
 
-                <!-- User Profile View Modal -->
-                <dialog id="user-profile-modal" class="profile-modal">
-                    <div class="profile-content" style="max-width: 450px;">
-                        <div class="profile-preview-pane" style="width: 100%;">
-                            <div class="discord-card" id="user-profile-card">
-                                <div class="discord-banner" id="user-profile-banner"></div>
-                                <div class="discord-avatar-wrapper">
-                                    <div class="discord-avatar" id="user-profile-avatar-container"></div>
-                                    <div class="discord-status-indicator" id="user-profile-status-indicator"></div>
+                    <div class="profile-preview-pane">
+                        <div class="discord-card">
+                            <div class="discord-banner" id="preview-banner" style="background: <?= htmlspecialchars($currentUserBanner) ?>"></div>
+                            <div class="discord-avatar-wrapper">
+                                <div class="discord-avatar" id="preview-avatar-container">
+                                    <?php if ($currentUserAvatar): ?>
+                                        <img src="<?= htmlspecialchars($currentUserAvatar) ?>" class="discord-avatar" id="preview-avatar-img">
+                                    <?php else: ?>
+                                        <?= strtoupper(substr($currentUser, 0, 1)) ?>
+                                    <?php endif; ?>
                                 </div>
-                                <div class="discord-body">
-                                    <div class="discord-username" id="user-profile-username"></div>
-                                    <div class="discord-custom-status" id="user-profile-custom-status"></div>
-                                    <div class="discord-divider"></div>
-                                    <div class="discord-section-title">自己紹介</div>
-                                    <div class="discord-bio" id="user-profile-bio"></div>
-                                </div>
+                                <div class="discord-status-indicator status-<?= htmlspecialchars($currentUserStatus) ?>" id="preview-status-indicator"></div>
                             </div>
-                            <div style="margin-top: 16px; display: flex; gap: 8px; margin-left: 15px;">
-                                <button class="btn-primary" onclick="document.getElementById('user-profile-modal').close()" style="flex: 1;">閉じる</button>
-                                <button class="btn-primary" id="user-profile-dm-btn" style="flex: 1;">DMを送る</button>
+                            <div class="discord-body">
+                                <div class="discord-username"><?= htmlspecialchars($currentUser) ?></div>
+                                <div class="discord-custom-status" id="preview-custom-status-text"></div>
+                                <div class="discord-divider"></div>
+                                <div class="discord-section-title">自己紹介</div>
+                                <div class="discord-bio" id="preview-bio"><?= nl2br(htmlspecialchars($currentUserBio)) ?></div>
+
+                                <section class="section2" id="gps-section">
+                                    <h3>GPS</h3>
+                                    <div id="gps-status">位置取得待機中…</div>
+                                </section>
                             </div>
                         </div>
                     </div>
-                </dialog>
-            </main>
-        </div>
+                </div>
+            </dialog>
 
-        <script>
-            let currentThreadId = <?= (int) ($initialThreadId ?? 1) ?>;
-            let currentThreadCreatorId = <?= (int) ($currentThreadCreatorId ?? 0) ?>;
-            const currentUserId = <?= (int) $_SESSION['user_id'] ?>;
-            const currentUserName = "<?= htmlspecialchars($currentUser) ?>";
-            // DM State
-            let currentPartnerId = null;
-            let dmFileToUpload = null;
-            let isDmMode = false;
-            const csrfToken = "<?= htmlspecialchars($_SESSION['csrf_token']) ?>";
-            let replyToId = null;
-            let fileToUpload = null;
+            <!-- User Profile View Modal -->
+            <dialog id="user-profile-modal" class="profile-modal">
+                <div class="profile-content" style="max-width: 450px;">
+                    <div class="profile-preview-pane" style="width: 100%;">
+                        <div class="discord-card" id="user-profile-card">
+                            <div class="discord-banner" id="user-profile-banner"></div>
+                            <div class="discord-avatar-wrapper">
+                                <div class="discord-avatar" id="user-profile-avatar-container"></div>
+                                <div class="discord-status-indicator" id="user-profile-status-indicator"></div>
+                            </div>
+                            <div class="discord-body">
+                                <div class="discord-username" id="user-profile-username"></div>
+                                <div class="discord-custom-status" id="user-profile-custom-status"></div>
+                                <div class="discord-divider"></div>
+                                <div class="discord-section-title">自己紹介</div>
+                                <div class="discord-bio" id="user-profile-bio"></div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 16px; display: flex; gap: 8px; margin-left: 15px;">
+                            <button class="btn-primary" onclick="document.getElementById('user-profile-modal').close()" style="flex: 1;">閉じる</button>
+                            <button class="btn-primary" id="user-profile-dm-btn" style="flex: 1;">DMを送る</button>
+                        </div>
+                    </div>
+                </div>
+            </dialog>
+        </main>
+    </div>
 
-            // DOM Elements
-            const msgInput = document.getElementById('msg-input');
-            const replyBar = document.getElementById('reply-bar');
-            const uploadPreview = document.getElementById('upload-preview');
-            const previewContent = document.getElementById('preview-content');
+    <script>
+        let currentThreadId = <?= (int) ($initialThreadId ?? 1) ?>;
+        let currentThreadCreatorId = <?= (int) ($currentThreadCreatorId ?? 0) ?>;
+        let currentThreadWebhookUrl = null;
+        const currentUserId = <?= (int) $_SESSION['user_id'] ?>;
+        const currentUserName = "<?= htmlspecialchars($currentUser) ?>";
+        // DM State
+        let currentPartnerId = null;
+        let dmFileToUpload = null;
+        let isDmMode = false;
+        const csrfToken = "<?= htmlspecialchars($_SESSION['csrf_token']) ?>";
+        let replyToId = null;
+        let fileToUpload = null;
 
-            // --- Markdown logic removed for strict security via innerText ---
+        // DOM Elements
+        const msgInput = document.getElementById('msg-input');
+        const replyBar = document.getElementById('reply-bar');
+        const uploadPreview = document.getElementById('upload-preview');
+        const previewContent = document.getElementById('preview-content');
 
-            function getAvatarElement(name, status = 'none', avatarUrl = null) {
-                const initial = name ? name.charAt(0).toUpperCase() : '?';
-                const colors = ['#6366f1', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b', '#3b82f6'];
-                const colorIdx = (name ? name.length : 0) % colors.length;
+        // --- Markdown logic removed for strict security via innerText ---
 
-                const container = document.createElement('div');
-                container.className = 'avatar-container';
+        function getAvatarElement(name, status = 'none', avatarUrl = null) {
+            const initial = name ? name.charAt(0).toUpperCase() : '?';
+            const colors = ['#6366f1', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b', '#3b82f6'];
+            const colorIdx = (name ? name.length : 0) % colors.length;
 
-                const div = document.createElement('div');
-                div.className = 'avatar';
+            const container = document.createElement('div');
+            container.className = 'avatar-container';
 
-                if (avatarUrl) {
-                    div.innerHTML = `<img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-                } else {
-                    div.style.background = colors[colorIdx];
-                    div.innerText = initial;
-                }
+            const div = document.createElement('div');
+            div.className = 'avatar';
 
-                container.appendChild(div);
-
-                if (status !== 'none') {
-                    const indicator = document.createElement('div');
-                    indicator.className = `status-indicator status-${status}`;
-                    container.appendChild(indicator);
-                }
-
-                return container;
+            if (avatarUrl) {
+                div.innerHTML = `<img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+            } else {
+                div.style.background = colors[colorIdx];
+                div.innerText = initial;
             }
 
-            function getSkeletonLoader() {
-                const container = document.createElement('div');
-                container.className = 'skeleton-container';
-                for (let i = 0; i < 4; i++) {
-                    const item = document.createElement('div');
-                    item.className = 'skeleton-item';
+            container.appendChild(div);
 
-                    const avatar = document.createElement('div');
-                    avatar.className = 'skeleton-avatar skeleton-shimmer';
-
-                    const info = document.createElement('div');
-                    info.className = 'skeleton-info';
-
-                    const name = document.createElement('div');
-                    name.className = 'skeleton-name skeleton-shimmer';
-
-                    const text1 = document.createElement('div');
-                    text1.className = 'skeleton-text skeleton-shimmer';
-
-                    const text2 = document.createElement('div');
-                    text2.className = 'skeleton-text short skeleton-shimmer';
-
-                    info.appendChild(name);
-                    info.appendChild(text1);
-                    info.appendChild(text2);
-
-                    item.appendChild(avatar);
-                    item.appendChild(info);
-                    container.appendChild(item);
-                }
-                return container;
+            if (status !== 'none') {
+                const indicator = document.createElement('div');
+                indicator.className = `status-indicator status-${status}`;
+                container.appendChild(indicator);
             }
 
+            return container;
+        }
+
+        function getSkeletonLoader() {
+            const container = document.createElement('div');
+            container.className = 'skeleton-container';
+            for (let i = 0; i < 4; i++) {
+                const item = document.createElement('div');
+                item.className = 'skeleton-item';
+
+                const avatar = document.createElement('div');
+                avatar.className = 'skeleton-avatar skeleton-shimmer';
+
+                const info = document.createElement('div');
+                info.className = 'skeleton-info';
+
+                const name = document.createElement('div');
+                name.className = 'skeleton-name skeleton-shimmer';
+
+                const text1 = document.createElement('div');
+                text1.className = 'skeleton-text skeleton-shimmer';
+
+                const text2 = document.createElement('div');
+                text2.className = 'skeleton-text short skeleton-shimmer';
+
+                info.appendChild(name);
+                info.appendChild(text1);
+                info.appendChild(text2);
+
+                item.appendChild(avatar);
+                item.appendChild(info);
+                container.appendChild(item);
+            }
+            return container;
+        }
 
 
-            async function updateMyStatus(status) {
-                const body = new FormData();
-                body.append('status', status);
-                const res = await api('update_status', 'POST', body);
-                if (res.success) {
-                    // Update Indicator
-                    const indicator = document.getElementById('global-status-indicator');
-                    if (indicator) indicator.className = `status-indicator status-${status}`;
 
-                    // Sync Inputs
-                    const sidebarInput = document.getElementById('sidebar-status-input');
-                    const modalInput = document.getElementById('modal-status-input');
-                    if (sidebarInput) {
-                        sidebarInput.value = status;
-                    }
-                    if (modalInput) modalInput.value = status;
+        async function updateMyStatus(status) {
+            const body = new FormData();
+            body.append('status', status);
+            const res = await api('update_status', 'POST', body);
+            if (res.success) {
+                // Update Indicator
+                const indicator = document.getElementById('global-status-indicator');
+                if (indicator) indicator.className = `status-indicator status-${status}`;
+
+                // Sync Inputs
+                const sidebarInput = document.getElementById('sidebar-status-input');
+                const modalInput = document.getElementById('modal-status-input');
+                if (sidebarInput) {
+                    sidebarInput.value = status;
                 }
+                if (modalInput) modalInput.value = status;
+            }
+        }
+
+        async function api(path, method = 'GET', body = null) {
+            const opts = {
+                method
+            };
+            if (body) {
+                // Auto-append CSRF token if body is FormData
+                if (body instanceof FormData) {
+                    body.append('csrf_token', csrfToken);
+                }
+                opts.body = body;
             }
 
-            async function api(path, method = 'GET', body = null) {
-                const opts = {
-                    method
-                };
-                if (body) {
-                    // Auto-append CSRF token if body is FormData
-                    if (body instanceof FormData) {
-                        body.append('csrf_token', csrfToken);
-                    }
-                    opts.body = body;
-                }
+            try {
+                const res = await fetch(`index.php?api=${path}`, opts);
 
+                // Get response text first
+                const text = await res.text();
+
+                // Try to parse as JSON
                 try {
-                    const res = await fetch(`index.php?api=${path}`, opts);
-
-                    // Get response text first
-                    const text = await res.text();
-
-                    // Try to parse as JSON
-                    try {
-                        const json = JSON.parse(text);
-                        return json;
-                    } catch (parseError) {
-                        console.error('JSON parse error:', parseError);
-                        return {
-                            error: 'サーバーエラー: JSONパースに失敗しました',
-                            details: text.substring(0, 200)
-                        };
-                    }
-                } catch (fetchError) {
-                    console.error('Fetch error:', fetchError);
+                    const json = JSON.parse(text);
+                    return json;
+                } catch (parseError) {
+                    console.error('JSON parse error:', parseError);
                     return {
-                        error: 'ネットワークエラー: ' + fetchError.message
+                        error: 'サーバーエラー: JSONパースに失敗しました',
+                        details: text.substring(0, 200)
                     };
                 }
-            }
-
-            async function loadThreads() {
-                const threads = await api('get_threads');
-                const list = document.getElementById('thread-list');
-                list.innerText = '';
-                threads.forEach(t => {
-                    const item = document.createElement('div');
-                    item.className = `thread-item ${t.id == currentThreadId ? 'active' : ''}`;
-                    item.textContent = '# ' + t.name;
-                    item.onclick = () => switchThread(t.id, t.name, t.creator_id);
-                    list.appendChild(item);
-                });
-            }
-
-            async function switchThread(id, name, creatorId) {
-                currentThreadId = id;
-                currentThreadCreatorId = creatorId;
-                updateThreadActions();
-                document.getElementById('current-thread-name').innerText = name;
-                document.querySelectorAll('.thread-item').forEach(el => {
-                    el.classList.remove('active');
-                    if (el.textContent === '# ' + name) el.classList.add('active');
-                });
-
-                const container = document.getElementById('message-container');
-                container.innerText = '';
-                container.appendChild(getSkeletonLoader());
-                cancelReply();
-                cancelUpload();
-                loadMessages(3000);
-                checkFavoriteStatus(); // Check fav status on switch
-                api(`set_last_thread&thread_id=${id}`);
-            }
-
-            function updateThreadActions() {
-                const block = document.getElementById('thread-actions-block');
-                if (parseInt(currentThreadId) === 1) {
-                    // Prevent editing/deleting General thread
-                    if (block) block.style.display = 'none';
-                    return;
-                }
-                if (parseInt(currentThreadCreatorId) === parseInt(currentUserId)) {
-                    if (block) block.style.display = 'flex';
-                } else {
-                    if (block) block.style.display = 'none';
-                }
-            }
-
-            async function editCurrentThread() {
-                const newName = prompt("新しいスレッド名:", document.getElementById('current-thread-name').innerText);
-                if (newName && newName.trim() !== "") {
-                    const body = new FormData();
-                    body.append('thread_id', currentThreadId);
-                    body.append('name', newName.trim());
-                    const res = await api('edit_thread', 'POST', body);
-                    if (res.success) {
-                        loadThreads();
-                        switchThread(currentThreadId, newName.trim(), currentThreadCreatorId);
-                    } else {
-                        alert("編集に失敗しました: " + (res.error || 'Unknown'));
-                    }
-                }
-            }
-
-            async function deleteCurrentThread() {
-                if (confirm("本当にこのスレッドを削除しますか？")) {
-                    const body = new FormData();
-                    body.append('thread_id', currentThreadId);
-                    const res = await api('delete_thread', 'POST', body);
-                    if (res.success) {
-                        location.reload();
-                    } else {
-                        alert("削除に失敗しました: " + (res.error || 'Unknown'));
-                    }
-                }
-            }
-
-            // --- Profile Logic ---
-            function showProfileModal() {
-                document.getElementById('profile-modal').showModal();
-            }
-
-            function updatePreviewBanner(color) {
-                document.getElementById('preview-banner').style.background = color;
-            }
-
-            function updatePreviewBio(text) {
-                document.getElementById('preview-bio').innerText = text;
-            }
-
-            function updatePreviewStatus(status) {
-                const indicator = document.getElementById('preview-status-indicator');
-                indicator.className = `discord-status-indicator status-${status}`;
-            }
-
-            let shouldRemoveAvatar = false;
-
-            function previewAvatar(input) {
-                if (input.files && input.files[0]) {
-                    shouldRemoveAvatar = false;
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const container = document.getElementById('preview-avatar-container');
-                        container.innerHTML = `<img src="${e.target.result}" class="discord-avatar" id="preview-avatar-img">`;
-                        container.innerText = '';
-                        document.getElementById('btn-remove-avatar').style.display = 'inline-block';
-                    }
-                    reader.readAsDataURL(input.files[0]);
-                }
-            }
-
-            function removeAvatarPreview() {
-                shouldRemoveAvatar = true;
-                document.getElementById('edit-avatar-input').value = '';
-                const container = document.getElementById('preview-avatar-container');
-                container.innerHTML = currentUserName ? currentUserName.charAt(0).toUpperCase() : '?';
-                container.style.background = '#6366f1';
-                document.getElementById('btn-remove-avatar').style.display = 'none';
-            }
-
-            async function saveProfile() {
-                const bio = document.getElementById('edit-bio-input').value;
-                const banner = document.getElementById('edit-banner-input').value;
-                const status = document.getElementById('modal-status-input').value;
-                const avatarFile = document.getElementById('edit-avatar-input').files[0];
-
-                const body = new FormData();
-                body.append('csrf_token', '<?= $_SESSION["csrf_token"] ?>');
-                body.append('bio', bio);
-                body.append('banner_color', banner);
-                body.append('status', status);
-                body.append('remove_avatar', shouldRemoveAvatar);
-                if (avatarFile) {
-                    body.append('avatar', avatarFile);
-                }
-
-                const res = await api('update_profile', 'POST', body);
-                if (res.success) {
-                    alert('プロフィールを更新しました');
-                    location.reload(); // Simplest to reflect all changes
-                } else {
-                    alert('更新に失敗しました: ' + (res.error || '不明なエラー'));
-                }
-            }
-
-            // --- User Profile View Logic ---
-            async function showUserProfile(userId, username) {
-                // 自分自身の場合は自分用のモーダルを開く
-                if (parseInt(userId) === currentUserId) {
-                    showProfileModal();
-                    return;
-                }
-
-                const modal = document.getElementById('user-profile-modal');
-                const res = await api(`get_user_profile&user_id=${userId}`);
-
-                if (res.error) {
-                    alert('ユーザー情報の取得に失敗しました');
-                    return;
-                }
-
-                // バナー
-                document.getElementById('user-profile-banner').style.background = res.banner_color || '#6366f1';
-
-                // アバター
-                const avatarContainer = document.getElementById('user-profile-avatar-container');
-                if (res.avatar_url) {
-                    avatarContainer.innerHTML = `<img src="${res.avatar_url}" class="discord-avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-                } else {
-                    const initial = res.username ? res.username.charAt(0).toUpperCase() : '?';
-                    avatarContainer.innerHTML = initial;
-                    avatarContainer.style.background = '#6366f1';
-                }
-
-                // ステータスインジケーター
-                const statusIndicator = document.getElementById('user-profile-status-indicator');
-                statusIndicator.className = `discord-status-indicator status-${res.status || 'offline'}`;
-
-                // ユーザー名
-                document.getElementById('user-profile-username').innerText = res.username;
-
-                // カスタムステータス
-                document.getElementById('user-profile-custom-status').innerText = res.custom_status || '';
-
-                // Bio
-                document.getElementById('user-profile-bio').innerText = res.bio || '自己紹介はまだありません';
-
-                // DMボタンの設定
-                const dmBtn = document.getElementById('user-profile-dm-btn');
-                dmBtn.onclick = () => {
-                    modal.close();
-                    // DMタブに切り替えてチャットを開始
-                    document.querySelector('.nav-item[data-tab="dm"]').click();
-                    switchToDmChat(res.id, res.username, res.avatar_url, res.status);
+            } catch (fetchError) {
+                console.error('Fetch error:', fetchError);
+                return {
+                    error: 'ネットワークエラー: ' + fetchError.message
                 };
-
-                modal.showModal();
             }
+        }
 
-            async function loadMessages(minDelay = 0) {
-                const startTime = Date.now();
-                const messages = await api(`get_messages&thread_id=${currentThreadId}`);
+        async function loadThreads() {
+            const threads = await api('get_threads');
+            const list = document.getElementById('thread-list');
+            list.innerText = '';
+            threads.forEach(t => {
+                const item = document.createElement('div');
+                item.className = `thread-item ${t.id == currentThreadId ? 'active' : ''}`;
+                item.textContent = '# ' + t.name;
+                item.onclick = () => switchThread(t.id, t.name, t.creator_id, t.discord_webhook_url);
+                list.appendChild(item);
+            });
+        }
 
-                if (minDelay > 0) {
-                    const elapsed = Date.now() - startTime;
-                    const remaining = minDelay - elapsed;
-                    if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
-                }
-                const container = document.getElementById('message-container');
-                // Auto-scroll logic needs to be smarter or just stick to bottom if already at bottom
-                const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+        async function switchThread(id, name, creatorId, webhookUrl = null) {
+            currentThreadId = id;
+            currentThreadCreatorId = creatorId;
+            currentThreadWebhookUrl = webhookUrl;
+            updateThreadActions();
+            document.getElementById('current-thread-name').innerText = name;
+            document.querySelectorAll('.thread-item').forEach(el => {
+                el.classList.remove('active');
+                if (el.textContent === '# ' + name) el.classList.add('active');
+            });
 
-                container.innerText = ''; // Clear safely
-                if (messages.length === 0) {
-                    const p = document.createElement('p');
-                    p.innerText = 'ｼｰﾝ...静かな場所ですね。\n少し世間話でもどうでしょうか?';
-                    const div = document.createElement('div');
-                    div.className = 'empty-state';
-                    div.appendChild(p);
-                    container.appendChild(div);
+            const container = document.getElementById('message-container');
+            container.innerText = '';
+            container.appendChild(getSkeletonLoader());
+            cancelReply();
+            cancelUpload();
+            loadMessages(1000);
+            checkFavoriteStatus(); // Check fav status on switch
+            api(`set_last_thread&thread_id=${id}`);
+        }
+
+        function updateThreadActions() {
+            const block = document.getElementById('thread-actions-block');
+            if (parseInt(currentThreadId) === 1) {
+                // Prevent editing/deleting General thread
+                if (block) block.style.display = 'none';
+                return;
+            }
+            if (parseInt(currentThreadCreatorId) === parseInt(currentUserId)) {
+                if (block) block.style.display = 'flex';
+            } else {
+                if (block) block.style.display = 'none';
+            }
+        }
+
+        async function editCurrentThread() {
+            document.getElementById('settings-thread-name').value = document.getElementById('current-thread-name').innerText;
+            document.getElementById('settings-thread-webhook').value = currentThreadWebhookUrl || '';
+            document.getElementById('thread-settings-modal').showModal();
+        }
+
+        async function saveThreadSettings() {
+            const newName = document.getElementById('settings-thread-name').value;
+            const webhook = document.getElementById('settings-thread-webhook').value;
+
+            if (newName && newName.trim() !== "") {
+                const body = new FormData();
+                body.append('thread_id', currentThreadId);
+                body.append('name', newName.trim());
+                body.append('discord_webhook_url', webhook.trim());
+                const res = await api('edit_thread', 'POST', body);
+                if (res.success) {
+                    document.getElementById('thread-settings-modal').close();
+                    loadThreads();
+                    switchThread(currentThreadId, newName.trim(), currentThreadCreatorId, webhook.trim());
                 } else {
-                    // Build Tree
-                    const msgMap = {};
-                    const roots = [];
-
-                    // 1. Init map
-                    messages.forEach(m => {
-                        m.children = [];
-                        msgMap[m.id] = m;
-                    });
-
-                    // 2. Assign children
-                    messages.forEach(m => {
-                        if (m.reply_to_id && msgMap[m.reply_to_id]) {
-                            msgMap[m.reply_to_id].children.push(m);
-                        } else {
-                            roots.push(m);
-                        }
-                    });
-
-                    // 3. Recursive Render
-                    roots.forEach(root => renderMessageNode(root, container));
+                    alert("保存に失敗しました: " + (res.error || 'Unknown'));
                 }
+            }
+        }
 
-                if (isAtBottom) container.scrollTop = container.scrollHeight;
+        async function deleteCurrentThread() {
+            if (confirm("本当にこのスレッドを削除しますか？")) {
+                const body = new FormData();
+                body.append('thread_id', currentThreadId);
+                const res = await api('delete_thread', 'POST', body);
+                if (res.success) {
+                    location.reload();
+                } else {
+                    alert("削除に失敗しました: " + (res.error || 'Unknown'));
+                }
+            }
+        }
+
+        // --- Profile Logic ---
+        function showProfileModal() {
+            document.getElementById('profile-modal').showModal();
+        }
+
+        function updatePreviewBanner(color) {
+            document.getElementById('preview-banner').style.background = color;
+        }
+
+        function updatePreviewBio(text) {
+            document.getElementById('preview-bio').innerText = text;
+        }
+
+        function updatePreviewStatus(status) {
+            const indicator = document.getElementById('preview-status-indicator');
+            indicator.className = `discord-status-indicator status-${status}`;
+        }
+
+        let shouldRemoveAvatar = false;
+
+        function previewAvatar(input) {
+            if (input.files && input.files[0]) {
+                shouldRemoveAvatar = false;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const container = document.getElementById('preview-avatar-container');
+                    container.innerHTML = `<img src="${e.target.result}" class="discord-avatar" id="preview-avatar-img">`;
+                    container.innerText = '';
+                    document.getElementById('btn-remove-avatar').style.display = 'inline-block';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function removeAvatarPreview() {
+            shouldRemoveAvatar = true;
+            document.getElementById('edit-avatar-input').value = '';
+            const container = document.getElementById('preview-avatar-container');
+            container.innerHTML = currentUserName ? currentUserName.charAt(0).toUpperCase() : '?';
+            container.style.background = '#6366f1';
+            document.getElementById('btn-remove-avatar').style.display = 'none';
+        }
+
+        async function saveProfile() {
+            const bio = document.getElementById('edit-bio-input').value;
+            const banner = document.getElementById('edit-banner-input').value;
+            const status = document.getElementById('modal-status-input').value;
+            const avatarFile = document.getElementById('edit-avatar-input').files[0];
+
+            const body = new FormData();
+            body.append('csrf_token', '<?= $_SESSION["csrf_token"] ?>');
+            body.append('bio', bio);
+            body.append('banner_color', banner);
+            body.append('status', status);
+            body.append('remove_avatar', shouldRemoveAvatar);
+            if (avatarFile) {
+                body.append('avatar', avatarFile);
             }
 
-            function renderMessageNode(m, parentContainer) {
-                // Wrapper for indentation
-                const wrapper = document.createElement('div');
-                wrapper.className = 'message-wrapper';
-                // If it's a child (implied by context, but we handle visual indent via nesting divs)
-                // We create the message group, then a child container.
+            const res = await api('update_profile', 'POST', body);
+            if (res.success) {
+                alert('プロフィールを更新しました');
+                location.reload(); // Simplest to reflect all changes
+            } else {
+                alert('更新に失敗しました: ' + (res.error || '不明なエラー'));
+            }
+        }
 
-                // Add ID for jumping
-                wrapper.id = 'message-' + m.id;
+        // --- User Profile View Logic ---
+        async function showUserProfile(userId, username) {
+            // 自分自身の場合は自分用のモーダルを開く
+            if (parseInt(userId) === currentUserId) {
+                showProfileModal();
+                return;
+            }
 
+            const modal = document.getElementById('user-profile-modal');
+            const res = await api(`get_user_profile&user_id=${userId}`);
+
+            if (res.error) {
+                alert('ユーザー情報の取得に失敗しました');
+                return;
+            }
+
+            // バナー
+            document.getElementById('user-profile-banner').style.background = res.banner_color || '#6366f1';
+
+            // アバター
+            const avatarContainer = document.getElementById('user-profile-avatar-container');
+            if (res.avatar_url) {
+                avatarContainer.innerHTML = `<img src="${res.avatar_url}" class="discord-avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+            } else {
+                const initial = res.username ? res.username.charAt(0).toUpperCase() : '?';
+                avatarContainer.innerHTML = initial;
+                avatarContainer.style.background = '#6366f1';
+            }
+
+            // ステータスインジケーター
+            const statusIndicator = document.getElementById('user-profile-status-indicator');
+            statusIndicator.className = `discord-status-indicator status-${res.status || 'offline'}`;
+
+            // ユーザー名
+            document.getElementById('user-profile-username').innerText = res.username;
+
+            // カスタムステータス
+            document.getElementById('user-profile-custom-status').innerText = res.custom_status || '';
+
+            // Bio
+            document.getElementById('user-profile-bio').innerText = res.bio || '自己紹介はまだありません';
+
+            // DMボタンの設定
+            const dmBtn = document.getElementById('user-profile-dm-btn');
+            dmBtn.onclick = () => {
+                modal.close();
+                // DMタブに切り替えてチャットを開始
+                document.querySelector('.nav-item[data-tab="dm"]').click();
+                switchToDmChat(res.id, res.username, res.avatar_url, res.status);
+            };
+
+            modal.showModal();
+        }
+
+        async function loadMessages(minDelay = 0) {
+            const startTime = Date.now();
+            const messages = await api(`get_messages&thread_id=${currentThreadId}`);
+
+            if (minDelay > 0) {
+                const elapsed = Date.now() - startTime;
+                const remaining = minDelay - elapsed;
+                if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
+            }
+            const container = document.getElementById('message-container');
+            // Auto-scroll logic needs to be smarter or just stick to bottom if already at bottom
+            const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+
+            container.innerText = ''; // Clear safely
+            if (messages.length === 0) {
+                const p = document.createElement('p');
+                p.innerText = 'ｼｰﾝ...静かな場所ですね。\n少し世間話でもどうでしょうか?';
+                const div = document.createElement('div');
+                div.className = 'empty-state';
+                div.appendChild(p);
+                container.appendChild(div);
+            } else {
+                // Build Tree
+                const msgMap = {};
+                const roots = [];
+
+                // 1. Init map
+                messages.forEach(m => {
+                    m.children = [];
+                    msgMap[m.id] = m;
+                });
+
+                // 2. Assign children
+                messages.forEach(m => {
+                    if (m.reply_to_id && msgMap[m.reply_to_id]) {
+                        msgMap[m.reply_to_id].children.push(m);
+                    } else {
+                        roots.push(m);
+                    }
+                });
+
+                // 3. Recursive Render
+                roots.forEach(root => renderMessageNode(root, container));
+            }
+
+            if (isAtBottom) container.scrollTop = container.scrollHeight;
+        }
+
+        function renderMessageNode(m, parentContainer) {
+            // Wrapper for indentation
+            const wrapper = document.createElement('div');
+            wrapper.className = 'message-wrapper';
+            // If it's a child (implied by context, but we handle visual indent via nesting divs)
+            // We create the message group, then a child container.
+
+            // Add ID for jumping
+            wrapper.id = 'message-' + m.id;
+
+            const group = document.createElement('div');
+            group.className = 'message-group';
+
+            // Avatar
+            group.appendChild(getAvatarElement(m.username, m.status || 'online', m.avatar_url));
+
+            const info = document.createElement('div');
+            info.className = 'message-info';
+
+            const header = document.createElement('div');
+            header.className = 'message-header';
+
+            const user = document.createElement('span');
+            user.className = 'message-user clickable-username';
+            user.textContent = m.username;
+            user.style.cursor = 'pointer';
+            user.onclick = (e) => {
+                e.stopPropagation();
+                showUserProfile(m.user_id, m.username);
+            };
+
+            const time = document.createElement('span');
+            time.className = 'message-time';
+            time.textContent = m.created_at;
+
+            // Actions
+            const actions = document.createElement('div');
+            actions.className = 'message-actions';
+
+            // Always allow reply
+            const replyBtn = document.createElement('button');
+            replyBtn.className = 'msg-action-btn';
+            replyBtn.innerHTML = '<img src="assets/img/reply.svg" alt="返信" style="width:16px; height:16px;">';
+            replyBtn.title = '返信';
+            replyBtn.onclick = () => startReply(m.id, m.username, m.content);
+            actions.appendChild(replyBtn);
+
+            // Add Delete buttons only if owner
+            if (m.username === currentUserName) {
+                const delBtn = document.createElement('button');
+                delBtn.className = 'msg-action-btn';
+                delBtn.innerHTML = '<img src="assets/img/trash.svg" alt="削除" style="width:16px; height:16px;">';
+                delBtn.title = '削除';
+                delBtn.onclick = () => deleteMessage(m.id);
+                actions.appendChild(delBtn);
+            }
+
+            header.appendChild(user);
+            header.appendChild(time);
+            header.appendChild(actions);
+
+            // If it's a reply but NOT the direct child in visual tree (redundant check but safe)
+            // Or just always show who it's replying to if it's not a root message
+            if (m.reply_to_id && m.reply_username) {
+                const quote = document.createElement('div');
+                quote.className = 'reply-quote';
+                quote.style.cursor = 'pointer';
+                quote.innerHTML = `<span style="opacity:0.6; font-size:0.8rem;">↩️ 返信先: </span><strong>${m.reply_username}</strong>`;
+                quote.onclick = () => {
+                    const target = document.getElementById('message-' + m.reply_to_id);
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                        target.style.backgroundColor = 'rgba(99, 102, 241, 0.2)';
+                        setTimeout(() => target.style.backgroundColor = '', 2000);
+                    }
+                };
+                info.appendChild(quote);
+            }
+
+            // Content
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            if (m.content) contentDiv.innerText = m.content;
+
+            if (m.attachment_path) {
+                const ext = m.attachment_path.split('.').pop().toLowerCase();
+                const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+                const isAudio = ['mp3', 'wav', 'ogg'].includes(ext);
+                const isVideo = ['mp4', 'webm', 'ogv', 'mov', 'avi'].includes(ext);
+
+                if (isImage) {
+                    const img = document.createElement('img');
+                    img.src = m.attachment_path;
+                    img.className = 'preview-img';
+                    img.style.display = 'block';
+                    img.style.marginTop = '10px';
+                    img.onclick = () => window.open(m.attachment_path, '_blank');
+                    contentDiv.appendChild(img);
+                } else if (isAudio) {
+                    const audio = document.createElement('audio');
+                    audio.src = m.attachment_path;
+                    audio.controls = true;
+                    audio.style.display = 'block';
+                    audio.style.marginTop = '10px';
+                    audio.style.maxWidth = '100%';
+                    contentDiv.appendChild(audio);
+                } else if (isVideo) {
+                    const video = document.createElement('video');
+                    video.src = m.attachment_path;
+                    video.controls = true;
+                    video.style.display = 'block';
+                    video.style.marginTop = '10px';
+                    video.style.maxWidth = '100%';
+                    contentDiv.appendChild(video);
+                }
+
+                const dlLink = document.createElement('a');
+                const fileName = m.attachment_path.split('/').pop();
+                dlLink.href = 'download.php?file=' + fileName;
+                dlLink.target = '_blank';
+                dlLink.innerText = '⬇️ ダウンロード';
+                dlLink.style.display = 'inline-block';
+                dlLink.style.fontSize = '0.75rem';
+                dlLink.style.marginTop = '5px';
+                dlLink.style.color = 'var(--accent-color)';
+                contentDiv.appendChild(dlLink);
+            }
+
+            info.appendChild(header);
+            info.appendChild(contentDiv);
+            group.appendChild(info);
+
+            wrapper.appendChild(group);
+
+            // Children Container
+            if (m.children.length > 0) {
+                const childrenDiv = document.createElement('div');
+                childrenDiv.className = 'message-children';
+                childrenDiv.style.marginLeft = '20px'; // Indent
+                childrenDiv.style.marginTop = '8px';
+                childrenDiv.style.paddingLeft = '10px';
+                childrenDiv.style.borderLeft = '2px solid var(--border-color)';
+
+                m.children.forEach(child => renderMessageNode(child, childrenDiv));
+                wrapper.appendChild(childrenDiv);
+            }
+
+            parentContainer.appendChild(wrapper);
+        }
+
+        function handleInputKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+            // Auto-resize textarea
+            const el = e.target;
+            el.style.height = 'auto';
+            el.style.height = (el.scrollHeight) + 'px';
+            if (el.value === '') el.style.height = 'auto';
+        }
+
+        async function sendMessage() {
+            const content = msgInput.value.trim();
+
+            if (!content && !fileToUpload) {
+                return;
+            }
+
+            const body = new FormData();
+            body.append('thread_id', currentThreadId);
+            body.append('content', content);
+            if (replyToId) body.append('reply_to_id', replyToId);
+            if (fileToUpload) body.append('attachment', fileToUpload);
+
+            const result = await api('send_message', 'POST', body);
+
+            if (result.error) {
+                alert('メッセージの送信に失敗しました: ' + result.error);
+                return;
+            }
+
+            // Clear UI
+            msgInput.value = '';
+            msgInput.style.height = 'auto';
+            cancelReply();
+            cancelUpload();
+
+            await loadMessages();
+        }
+
+        async function deleteMessage(id) {
+            if (!confirm('本当にこのメッセージを削除しますか？')) return;
+            const body = new FormData();
+            body.append('message_id', id);
+            await api('delete_message', 'POST', body);
+            loadMessages();
+        }
+
+        // --- Reply Logic ---
+        function startReply(id, username, content = '') {
+            replyToId = id;
+            document.getElementById('reply-target-name').innerText = username;
+            const preview = document.getElementById('reply-preview-text');
+            if (preview) {
+                preview.innerText = content.substring(0, 50) + (content.length > 50 ? '...' : '');
+            }
+            replyBar.classList.add('active');
+            msgInput.focus();
+        }
+
+        function cancelReply() {
+            replyToId = null;
+            replyBar.classList.remove('active');
+        }
+
+        // --- Drag & Drop Logic ---
+        const chatArea = document.querySelector('.chat-area');
+        const dropOverlay = document.querySelector('.drag-overlay');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            chatArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        chatArea.addEventListener('dragenter', () => chatArea.classList.add('drag-active'));
+        chatArea.addEventListener('dragleave', (e) => {
+            if (e.target === dropOverlay) chatArea.classList.remove('drag-active');
+        });
+
+        chatArea.addEventListener('drop', (e) => {
+            chatArea.classList.remove('drag-active');
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) handleMediaUploadFiles(files); // Changed to handleMediaUploadFiles
+        });
+
+        let modalFileToUpload = null;
+
+        function openMediaUploadModal() {
+            modalFileToUpload = null;
+            document.getElementById('modal-file-input').value = '';
+            document.getElementById('modal-content-input').value = '';
+            document.getElementById('media-upload-preview-container').innerHTML = `
+                    <div class="upload-placeholder">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 15px;">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p style="margin:0; color:var(--text-secondary);">クリックまたはドラッグ＆ドロップで選択</p>
+                    </div>
+                `;
+            document.getElementById('media-upload-modal').showModal();
+        }
+
+        function closeMediaUploadModal() {
+            document.getElementById('media-upload-modal').close();
+            modalFileToUpload = null;
+        }
+
+        function handleMediaUploadFiles(files) {
+            if (files.length === 0) return;
+            modalFileToUpload = files[0];
+            const container = document.getElementById('media-upload-preview-container');
+            container.innerHTML = '';
+
+            if (modalFileToUpload.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.readAsDataURL(modalFileToUpload);
+                reader.onloadend = () => {
+                    const img = document.createElement('img');
+                    img.src = reader.result;
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = '300px';
+                    img.style.borderRadius = '8px';
+                    img.style.objectFit = 'contain';
+                    container.appendChild(img);
+                }
+            } else if (modalFileToUpload.type.startsWith('audio/')) {
+                const div = document.createElement('div');
+                div.className = 'media-file-info';
+                div.innerHTML = `<span style="font-size:3rem;">🎵</span><p style="margin-top:10px;">${modalFileToUpload.name}</p>`;
+                container.appendChild(div);
+            } else if (modalFileToUpload.type.startsWith('video/')) {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(modalFileToUpload);
+                video.style.maxWidth = '100%';
+                video.style.maxHeight = '300px';
+                video.style.borderRadius = '8px';
+                video.muted = true;
+                video.autoplay = true;
+                video.loop = true;
+                container.appendChild(video);
+            } else {
+                const div = document.createElement('div');
+                div.className = 'media-file-info';
+                div.innerHTML = `<span style="font-size:3rem;">📄</span><p style="margin-top:10px;">${modalFileToUpload.name}</p>`;
+                container.appendChild(div);
+            }
+        }
+
+        async function submitMediaUpload() {
+            if (!modalFileToUpload) {
+                alert('ファイルを選択してください');
+                return;
+            }
+
+            const content = document.getElementById('modal-content-input').value.trim();
+            const body = new FormData();
+            body.append('content', content);
+            body.append('attachment', modalFileToUpload);
+
+            let result;
+            if (isDmMode) {
+                if (!currentPartnerId) return;
+                body.append('receiver_id', currentPartnerId);
+                result = await api('send_direct_message', 'POST', body);
+            } else {
+                if (!currentThreadId) return;
+                body.append('thread_id', currentThreadId);
+                if (replyToId) body.append('reply_to_id', replyToId);
+                result = await api('send_message', 'POST', body);
+            }
+
+            if (result.error) {
+                alert('送信に失敗しました: ' + result.error);
+            } else {
+                closeMediaUploadModal();
+                if (isDmMode) {
+                    await loadDms();
+                    await loadDmPartners();
+                } else {
+                    await loadMessages();
+                    cancelReply();
+                }
+            }
+        }
+
+        // Drag and drop for modal
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropzone = document.getElementById('media-upload-dropzone');
+            if (dropzone) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }, false);
+                });
+                dropzone.addEventListener('dragover', () => dropzone.classList.add('drag-active'));
+                dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-active'));
+                dropzone.addEventListener('drop', (e) => {
+                    dropzone.classList.remove('drag-active');
+                    handleMediaUploadFiles(e.dataTransfer.files);
+                });
+            }
+        });
+
+        function cancelUpload() {
+            fileToUpload = null;
+            uploadPreview.classList.remove('active');
+            previewContent.textContent = ''; // Clear safely
+        }
+
+        async function createThread() {
+            const input = document.getElementById('new-thread-name');
+            const name = input.value.trim();
+            if (!name) return;
+            const body = new FormData();
+            body.append('name', name);
+            const result = await api('create_thread', 'POST', body);
+
+            if (result.error) {
+                alert('スレッドの作成に失敗しました: ' + result.error);
+                return;
+            }
+
+            await loadThreads();
+            hideCreateThread();
+
+            // Switch to the newly created thread
+            if (result.id) {
+                switchThread(result.id, name, currentUserId);
+            }
+        }
+
+        function toggleThreadBrowser() {
+            const browser = document.getElementById('thread-browser');
+            browser.classList.toggle('active');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('main-sidebar');
+            sidebar.classList.toggle('active');
+            document.body.classList.toggle('sidebar-open');
+        }
+
+        function toggleSidebarCollapse() {
+            const sidebar = document.getElementById('main-sidebar');
+            sidebar.classList.toggle('collapsed');
+
+            // オプション: 折りたたみ状態をLocalStorage等に保存することも検討可能
+        }
+
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const tabId = item.getAttribute('data-tab');
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                document.querySelectorAll('.content-pane').forEach(p => {
+                    p.classList.remove('active')
+                    p.style.display = 'none'; // Ensure hide
+                });
+                const target = document.getElementById(tabId + '-pane');
+                target.classList.add('active');
+                target.style.display = 'flex'; // Use Flex for layouts
+
+                if (tabId === 'dm') {
+                    isDmMode = true;
+                    document.getElementById('thread-browser').classList.remove('active'); // CSS based toggle
+                    backToHub();
+                } else if (tabId === 'threads') {
+                    isDmMode = false;
+                    document.getElementById('thread-browser').classList.add('active'); // CSS based toggle
+                } else if (tabId === 'favorites') {
+                    isDmMode = false;
+                    loadFavorites();
+                }
+
+                // モバイル表示でサイドバーが開いている場合は閉じる
+                const sidebar = document.getElementById('main-sidebar');
+                if (sidebar.classList.contains('active')) {
+                    toggleSidebar();
+                }
+            });
+        });
+
+        // --- Favorites Logic ---
+        async function toggleFavorite() {
+            const body = new FormData();
+            body.append('thread_id', currentThreadId);
+            const res = await api('toggle_favorite', 'POST', body);
+            if (res.success) {
+                updateFavoriteIcon(res.status === 'added');
+                if (document.querySelector('.nav-item[data-tab="favorites"]').classList.contains('active')) {
+                    loadFavorites();
+                }
+            }
+        }
+
+        async function checkFavoriteStatus() {
+            const res = await api(`check_favorite&thread_id=${currentThreadId}`);
+            updateFavoriteIcon(res.is_favorite);
+        }
+
+        function updateFavoriteIcon(isFav) {
+            const btn = document.getElementById('fav-btn');
+            if (isFav) {
+                btn.innerText = '★';
+                btn.style.color = 'gold';
+            } else {
+                btn.innerText = '☆';
+                btn.style.color = 'var(--text-secondary)';
+            }
+        }
+
+        async function loadFavorites() {
+            const threads = await api('get_favorites');
+            const list = document.getElementById('fav-thread-list');
+            list.innerText = '';
+            if (threads.length === 0) {
+                const d = document.createElement('div');
+                d.style.padding = '1rem';
+                d.style.color = 'var(--text-secondary)';
+                d.style.fontSize = '0.85rem';
+                d.innerText = 'お気に入りスレッドがありません。\nスレッドタイトルの☆を押して追加できます。';
+                list.appendChild(d);
+                return;
+            }
+            threads.forEach(t => {
+                const item = document.createElement('div');
+                item.className = `thread-item ${t.id == currentThreadId ? 'active' : ''}`;
+                item.textContent = '# ' + t.name;
+                item.onclick = () => {
+                    // Switch to Threads tab context implicitly but keep view? 
+                    // Better UX: Switch to Threads tab and load this thread.
+                    document.querySelector('.nav-item[data-tab="threads"]').click();
+                    switchThread(t.id, t.name, t.creator_id);
+                };
+                list.appendChild(item);
+            });
+        }
+
+        // --- Discord-like Friend & DM Logic ---
+
+        function backToHub() {
+            currentPartnerId = null;
+            const hub = document.getElementById('dm-hub-view');
+            const chat = document.getElementById('dm-chat-view');
+            if (hub && chat) {
+                hub.style.display = 'flex';
+                chat.style.display = 'none';
+                loadHubFriends();
+            }
+        }
+
+        function switchToDmChat(id, name, avatarUrl = null, status = 'online') {
+            currentPartnerId = id;
+            document.getElementById('dm-hub-view').style.display = 'none';
+            document.getElementById('dm-chat-view').style.display = 'flex';
+
+            const infoContainer = document.getElementById('current-dm-partner-info');
+            infoContainer.innerHTML = '';
+            infoContainer.style.display = 'flex';
+            infoContainer.style.alignItems = 'center';
+            infoContainer.style.gap = '10px';
+
+            infoContainer.appendChild(getAvatarElement(name, status, avatarUrl));
+            const nameH3 = document.createElement('h3');
+            nameH3.className = 'thread-name';
+            nameH3.id = 'current-dm-partner-name';
+            nameH3.innerText = name;
+            infoContainer.appendChild(nameH3);
+
+            const container = document.getElementById('dm-message-container');
+            container.innerText = '';
+            container.appendChild(getSkeletonLoader());
+            loadDms(1000);
+        }
+
+        async function loadHubFriends() {
+            const friends = await api('get_friends');
+            const list = document.getElementById('hub-friend-list');
+            list.innerHTML = '';
+            if (friends.length === 0) {
+                list.innerHTML = '<div style="padding:10px; color:gray;">まだフレンドがいません</div>';
+                return;
+            }
+            friends.forEach(f => {
+                const d = document.createElement('div');
+                d.className = 'thread-item';
+                d.style.display = 'flex';
+                d.style.justifyContent = 'space-between';
+                d.style.alignItems = 'center';
+                d.style.cursor = 'pointer';
+                d.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            ${getAvatarElement(f.username, f.status || 'offline', f.avatar_url).outerHTML}
+                            <span>${f.username}</span>
+                        </div>
+                        <span style="font-size:0.8rem; color:var(--text-secondary);">
+                            ${f.last_msg_at ? new Date(f.last_msg_at).toLocaleString() : '会話なし'}
+                        </span>
+                    `;
+                d.onclick = () => switchToDmChat(f.id, f.username, f.avatar_url, f.status);
+                list.appendChild(d);
+            });
+        }
+
+        // --- Modal Logic ---
+        function showAddFriendModal() {
+            document.getElementById('add-friend-modal').showModal();
+            document.getElementById('user-search-results').innerHTML = '';
+            document.getElementById('user-search-input').value = '';
+        }
+
+        async function searchUsers() {
+            const q = document.getElementById('user-search-input').value;
+            if (!q) return;
+            const res = await api(`search_users&q=${encodeURIComponent(q)}`);
+            const list = document.getElementById('user-search-results');
+            list.innerHTML = '';
+            if (res.length === 0) {
+                list.innerText = '見つかりませんでした';
+                return;
+            }
+            res.forEach(u => {
+                const d = document.createElement('div');
+                d.className = 'thread-item';
+                d.style.display = 'flex';
+                d.style.justifyContent = 'space-between';
+                d.style.alignItems = 'center';
+                d.style.gap = '10px';
+
+                const userPart = document.createElement('div');
+                userPart.style.display = 'flex';
+                userPart.style.alignItems = 'center';
+                userPart.style.gap = '10px';
+                userPart.appendChild(getAvatarElement(u.username, u.status, u.avatar_url));
+                const nameSpan = document.createElement('span');
+                nameSpan.innerText = `${u.username} (ID:${u.id})`;
+                userPart.appendChild(nameSpan);
+                d.appendChild(userPart);
+
+                const btn = document.createElement('button');
+                btn.innerText = '申請';
+                btn.className = 'btn-primary';
+                btn.style.padding = '10px 15px';
+                btn.style.fontSize = '1.0rem';
+                btn.onclick = async () => {
+                    if (confirm(`ID:${u.id} ${u.username}に申請を送りますか？`)) {
+                        const body = new FormData();
+                        body.append('target_id', u.id);
+                        const r = await api('request_friend', 'POST', body);
+                        if (r.success) alert('送信しました');
+                        else alert(r.error);
+                    }
+                };
+                d.appendChild(btn);
+                list.appendChild(d);
+            });
+        }
+
+        function showPendingRequestsModal() {
+            document.getElementById('pending-requests-modal').showModal();
+            loadPendingRequests();
+        }
+
+        async function loadPendingRequests() {
+            const reqs = await api('get_friend_requests');
+            const list = document.getElementById('pending-requests-list-modal');
+            list.innerHTML = '';
+            if (reqs.length === 0) list.innerText = '承認待ちのリクエストはありません';
+            reqs.forEach(r => {
+                const d = document.createElement('div');
+                d.className = 'thread-item';
+                d.style.display = 'flex';
+                d.style.justifyContent = 'space-between';
+                d.innerHTML = `<span>${r.username}</span>`;
+                const btn = document.createElement('button');
+                btn.innerText = '承認';
+                btn.className = 'btn-primary';
+                btn.onclick = async () => {
+                    const body = new FormData();
+                    body.append('request_id', r.id);
+                    await api('accept_friend', 'POST', body);
+                    loadPendingRequests();
+                    loadHubFriends();
+                };
+                d.appendChild(btn);
+                list.appendChild(d);
+            });
+        }
+
+
+
+        function showBlockedModal() {
+            document.getElementById('blocked-users-modal').showModal();
+            loadBlockedUsers();
+        }
+
+        async function loadBlockedUsers() {
+            const users = await api('get_blocked_users');
+            const list = document.getElementById('blocked-users-list');
+            list.innerHTML = '';
+            if (users.length === 0) list.innerText = 'ブロックしているユーザーはいません';
+            users.forEach(u => {
+                const d = document.createElement('div');
+                d.className = 'thread-item';
+                d.style.display = 'flex';
+                d.style.justifyContent = 'space-between';
+                d.innerHTML = `<span>${u.username}</span>`;
+                const btn = document.createElement('button');
+                btn.innerText = '解除';
+                btn.className = 'btn-secondary';
+                btn.onclick = async () => {
+                    const body = new FormData();
+                    body.append('target_id', u.id);
+                    await api('unblock_user', 'POST', body);
+                    loadBlockedUsers();
+                };
+                d.appendChild(btn);
+                list.appendChild(d);
+            });
+        }
+
+        async function blockCurrentPartner() {
+            if (!currentPartnerId) return;
+            if (confirm('このユーザーをブロックしますか？\nフレンドも解除されます。')) {
+                const body = new FormData();
+                body.append('target_id', currentPartnerId);
+                await api('block_user', 'POST', body);
+                backToHub();
+            }
+        }
+
+        // Fallback for partner-list references (if any left) can be ignored as we utilize hub-friend-list
+        async function loadDmPartners() {
+            // Alias to hub loader if called from polling
+            loadHubFriends();
+        }
+
+        async function loadDms(minDelay = 0) {
+            if (!currentPartnerId) return;
+            const startTime = Date.now();
+            const dms = await api(`get_direct_messages&partner_id=${currentPartnerId}`);
+
+            if (minDelay > 0) {
+                const elapsed = Date.now() - startTime;
+                const remaining = minDelay - elapsed;
+                if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
+            }
+            const container = document.getElementById('dm-message-container');
+            const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+            container.innerText = '';
+
+            dms.forEach(m => {
                 const group = document.createElement('div');
                 group.className = 'message-group';
-
-                // Avatar
-                group.appendChild(getAvatarElement(m.username, m.status || 'online', m.avatar_url));
+                group.appendChild(getAvatarElement(m.username, 'online', m.avatar_url));
 
                 const info = document.createElement('div');
                 info.className = 'message-info';
@@ -2261,61 +3000,16 @@ if ($isLoggedIn) {
                 user.style.cursor = 'pointer';
                 user.onclick = (e) => {
                     e.stopPropagation();
-                    showUserProfile(m.user_id, m.username);
+                    showUserProfile(m.sender_id, m.username);
                 };
 
                 const time = document.createElement('span');
                 time.className = 'message-time';
                 time.textContent = m.created_at;
 
-                // Actions
-                const actions = document.createElement('div');
-                actions.className = 'message-actions';
-
-                // Always allow reply
-                const replyBtn = document.createElement('button');
-                replyBtn.className = 'msg-action-btn';
-                replyBtn.innerHTML = '<img src="assets/img/reply.svg" alt="返信" style="width:16px; height:16px;">';
-                replyBtn.title = '返信';
-                replyBtn.onclick = () => startReply(m.id, m.username, m.content);
-                actions.appendChild(replyBtn);
-
-                // Add Delete buttons only if owner
-                if (m.username === currentUserName) {
-                    const delBtn = document.createElement('button');
-                    delBtn.className = 'msg-action-btn';
-                    delBtn.innerHTML = '<img src="assets/img/trash.svg" alt="削除" style="width:16px; height:16px;">';
-                    delBtn.title = '削除';
-                    delBtn.onclick = () => deleteMessage(m.id);
-                    actions.appendChild(delBtn);
-                }
-
                 header.appendChild(user);
                 header.appendChild(time);
-                header.appendChild(actions);
 
-                // If it's a reply but NOT the direct child in visual tree (redundant check but safe)
-                // Or just always show who it's replying to if it's not a root message
-                if (m.reply_to_id && m.reply_username) {
-                    const quote = document.createElement('div');
-                    quote.className = 'reply-quote';
-                    quote.style.cursor = 'pointer';
-                    quote.innerHTML = `<span style="opacity:0.6; font-size:0.8rem;">↩️ 返信先: </span><strong>${m.reply_username}</strong>`;
-                    quote.onclick = () => {
-                        const target = document.getElementById('message-' + m.reply_to_id);
-                        if (target) {
-                            target.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'center'
-                            });
-                            target.style.backgroundColor = 'rgba(99, 102, 241, 0.2)';
-                            setTimeout(() => target.style.backgroundColor = '', 2000);
-                        }
-                    };
-                    info.appendChild(quote);
-                }
-
-                // Content
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'message-content';
                 if (m.content) contentDiv.innerText = m.content;
@@ -2367,814 +3061,156 @@ if ($isLoggedIn) {
                 info.appendChild(header);
                 info.appendChild(contentDiv);
                 group.appendChild(info);
-
-                wrapper.appendChild(group);
-
-                // Children Container
-                if (m.children.length > 0) {
-                    const childrenDiv = document.createElement('div');
-                    childrenDiv.className = 'message-children';
-                    childrenDiv.style.marginLeft = '20px'; // Indent
-                    childrenDiv.style.marginTop = '8px';
-                    childrenDiv.style.paddingLeft = '10px';
-                    childrenDiv.style.borderLeft = '2px solid var(--border-color)';
-
-                    m.children.forEach(child => renderMessageNode(child, childrenDiv));
-                    wrapper.appendChild(childrenDiv);
-                }
-
-                parentContainer.appendChild(wrapper);
-            }
-
-            function handleInputKey(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-                // Auto-resize textarea
-                const el = e.target;
-                el.style.height = 'auto';
-                el.style.height = (el.scrollHeight) + 'px';
-                if (el.value === '') el.style.height = 'auto';
-            }
-
-            async function sendMessage() {
-                const content = msgInput.value.trim();
-
-                if (!content && !fileToUpload) {
-                    return;
-                }
-
-                const body = new FormData();
-                body.append('thread_id', currentThreadId);
-                body.append('content', content);
-                if (replyToId) body.append('reply_to_id', replyToId);
-                if (fileToUpload) body.append('attachment', fileToUpload);
-
-                const result = await api('send_message', 'POST', body);
-
-                if (result.error) {
-                    alert('メッセージの送信に失敗しました: ' + result.error);
-                    return;
-                }
-
-                // Clear UI
-                msgInput.value = '';
-                msgInput.style.height = 'auto';
-                cancelReply();
-                cancelUpload();
-
-                await loadMessages();
-            }
-
-            async function deleteMessage(id) {
-                if (!confirm('本当にこのメッセージを削除しますか？')) return;
-                const body = new FormData();
-                body.append('message_id', id);
-                await api('delete_message', 'POST', body);
-                loadMessages();
-            }
-
-            // --- Reply Logic ---
-            function startReply(id, username, content = '') {
-                replyToId = id;
-                document.getElementById('reply-target-name').innerText = username;
-                const preview = document.getElementById('reply-preview-text');
-                if (preview) {
-                    preview.innerText = content.substring(0, 50) + (content.length > 50 ? '...' : '');
-                }
-                replyBar.classList.add('active');
-                msgInput.focus();
-            }
-
-            function cancelReply() {
-                replyToId = null;
-                replyBar.classList.remove('active');
-            }
-
-            // --- Drag & Drop Logic ---
-            const chatArea = document.querySelector('.chat-area');
-            const dropOverlay = document.querySelector('.drag-overlay');
-
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                chatArea.addEventListener(eventName, preventDefaults, false);
+                container.appendChild(group);
             });
+            if (isAtBottom) container.scrollTop = container.scrollHeight;
+        }
 
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
+        async function showUserPicker() {
+            const modal = document.getElementById('user-picker-modal');
+            const list = document.getElementById('all-user-list');
+            list.innerText = 'Loading...';
+            modal.showModal();
 
-            chatArea.addEventListener('dragenter', () => chatArea.classList.add('drag-active'));
-            chatArea.addEventListener('dragleave', (e) => {
-                if (e.target === dropOverlay) chatArea.classList.remove('drag-active');
-            });
+            const users = await api('get_all_users');
+            list.innerText = '';
+            users.forEach(u => {
+                const d = document.createElement('div');
+                d.style.padding = '8px';
+                d.style.cursor = 'pointer';
+                d.className = 'thread-item';
+                d.style.display = 'flex';
+                d.style.alignItems = 'center';
+                d.style.gap = '10px';
+                d.appendChild(getAvatarElement(u.username, u.status, u.avatar_url));
+                const nameSpan = document.createElement('span');
+                nameSpan.innerText = u.username;
+                d.appendChild(nameSpan);
 
-            chatArea.addEventListener('drop', (e) => {
-                chatArea.classList.remove('drag-active');
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                if (files.length > 0) handleMediaUploadFiles(files); // Changed to handleMediaUploadFiles
-            });
-
-            let modalFileToUpload = null;
-
-            function openMediaUploadModal() {
-                modalFileToUpload = null;
-                document.getElementById('modal-file-input').value = '';
-                document.getElementById('modal-content-input').value = '';
-                document.getElementById('media-upload-preview-container').innerHTML = `
-                    <div class="upload-placeholder">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 15px;">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        <p style="margin:0; color:var(--text-secondary);">クリックまたはドラッグ＆ドロップで選択</p>
-                    </div>
-                `;
-                document.getElementById('media-upload-modal').showModal();
-            }
-
-            function closeMediaUploadModal() {
-                document.getElementById('media-upload-modal').close();
-                modalFileToUpload = null;
-            }
-
-            function handleMediaUploadFiles(files) {
-                if (files.length === 0) return;
-                modalFileToUpload = files[0];
-                const container = document.getElementById('media-upload-preview-container');
-                container.innerHTML = '';
-
-                if (modalFileToUpload.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(modalFileToUpload);
-                    reader.onloadend = () => {
-                        const img = document.createElement('img');
-                        img.src = reader.result;
-                        img.style.maxWidth = '100%';
-                        img.style.maxHeight = '300px';
-                        img.style.borderRadius = '8px';
-                        img.style.objectFit = 'contain';
-                        container.appendChild(img);
-                    }
-                } else if (modalFileToUpload.type.startsWith('audio/')) {
-                    const div = document.createElement('div');
-                    div.className = 'media-file-info';
-                    div.innerHTML = `<span style="font-size:3rem;">🎵</span><p style="margin-top:10px;">${modalFileToUpload.name}</p>`;
-                    container.appendChild(div);
-                } else if (modalFileToUpload.type.startsWith('video/')) {
-                    const video = document.createElement('video');
-                    video.src = URL.createObjectURL(modalFileToUpload);
-                    video.style.maxWidth = '100%';
-                    video.style.maxHeight = '300px';
-                    video.style.borderRadius = '8px';
-                    video.muted = true;
-                    video.autoplay = true;
-                    video.loop = true;
-                    container.appendChild(video);
-                } else {
-                    const div = document.createElement('div');
-                    div.className = 'media-file-info';
-                    div.innerHTML = `<span style="font-size:3rem;">📄</span><p style="margin-top:10px;">${modalFileToUpload.name}</p>`;
-                    container.appendChild(div);
-                }
-            }
-
-            async function submitMediaUpload() {
-                if (!modalFileToUpload) {
-                    alert('ファイルを選択してください');
-                    return;
-                }
-
-                const content = document.getElementById('modal-content-input').value.trim();
-                const body = new FormData();
-                body.append('content', content);
-                body.append('attachment', modalFileToUpload);
-
-                let result;
-                if (isDmMode) {
-                    if (!currentPartnerId) return;
-                    body.append('receiver_id', currentPartnerId);
-                    result = await api('send_direct_message', 'POST', body);
-                } else {
-                    if (!currentThreadId) return;
-                    body.append('thread_id', currentThreadId);
-                    if (replyToId) body.append('reply_to_id', replyToId);
-                    result = await api('send_message', 'POST', body);
-                }
-
-                if (result.error) {
-                    alert('送信に失敗しました: ' + result.error);
-                } else {
-                    closeMediaUploadModal();
-                    if (isDmMode) {
-                        await loadDms();
-                        await loadDmPartners();
-                    } else {
-                        await loadMessages();
-                        cancelReply();
-                    }
-                }
-            }
-
-            // Drag and drop for modal
-            document.addEventListener('DOMContentLoaded', () => {
-                const dropzone = document.getElementById('media-upload-dropzone');
-                if (dropzone) {
-                    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                        dropzone.addEventListener(eventName, (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                        }, false);
-                    });
-                    dropzone.addEventListener('dragover', () => dropzone.classList.add('drag-active'));
-                    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-active'));
-                    dropzone.addEventListener('drop', (e) => {
-                        dropzone.classList.remove('drag-active');
-                        handleMediaUploadFiles(e.dataTransfer.files);
-                    });
-                }
-            });
-
-            function cancelUpload() {
-                fileToUpload = null;
-                uploadPreview.classList.remove('active');
-                previewContent.textContent = ''; // Clear safely
-            }
-
-            async function createThread() {
-                const input = document.getElementById('new-thread-name');
-                const name = input.value.trim();
-                if (!name) return;
-                const body = new FormData();
-                body.append('name', name);
-                const result = await api('create_thread', 'POST', body);
-
-                if (result.error) {
-                    alert('スレッドの作成に失敗しました: ' + result.error);
-                    return;
-                }
-
-                await loadThreads();
-                hideCreateThread();
-
-                // Switch to the newly created thread
-                if (result.id) {
-                    switchThread(result.id, name, currentUserId);
-                }
-            }
-
-            function toggleThreadBrowser() {
-                const browser = document.getElementById('thread-browser');
-                browser.classList.toggle('active');
-            }
-
-            function toggleSidebar() {
-                const sidebar = document.getElementById('main-sidebar');
-                sidebar.classList.toggle('active');
-                document.body.classList.toggle('sidebar-open');
-            }
-
-            function toggleSidebarCollapse() {
-                const sidebar = document.getElementById('main-sidebar');
-                sidebar.classList.toggle('collapsed');
-
-                // オプション: 折りたたみ状態をLocalStorage等に保存することも検討可能
-            }
-
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const tabId = item.getAttribute('data-tab');
-                    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                    item.classList.add('active');
-                    document.querySelectorAll('.content-pane').forEach(p => {
-                        p.classList.remove('active')
-                        p.style.display = 'none'; // Ensure hide
-                    });
-                    const target = document.getElementById(tabId + '-pane');
-                    target.classList.add('active');
-                    target.style.display = 'flex'; // Use Flex for layouts
-
-                    if (tabId === 'dm') {
-                        isDmMode = true;
-                        document.getElementById('thread-browser').classList.remove('active'); // CSS based toggle
-                        backToHub();
-                    } else if (tabId === 'threads') {
-                        isDmMode = false;
-                        document.getElementById('thread-browser').classList.add('active'); // CSS based toggle
-                    } else if (tabId === 'favorites') {
-                        isDmMode = false;
-                        loadFavorites();
-                    }
-
-                    // モバイル表示でサイドバーが開いている場合は閉じる
-                    const sidebar = document.getElementById('main-sidebar');
-                    if (sidebar.classList.contains('active')) {
-                        toggleSidebar();
-                    }
-                });
-            });
-
-            // --- Favorites Logic ---
-            async function toggleFavorite() {
-                const body = new FormData();
-                body.append('thread_id', currentThreadId);
-                const res = await api('toggle_favorite', 'POST', body);
-                if (res.success) {
-                    updateFavoriteIcon(res.status === 'added');
-                    if (document.querySelector('.nav-item[data-tab="favorites"]').classList.contains('active')) {
-                        loadFavorites();
-                    }
-                }
-            }
-
-            async function checkFavoriteStatus() {
-                const res = await api(`check_favorite&thread_id=${currentThreadId}`);
-                updateFavoriteIcon(res.is_favorite);
-            }
-
-            function updateFavoriteIcon(isFav) {
-                const btn = document.getElementById('fav-btn');
-                if (isFav) {
-                    btn.innerText = '★';
-                    btn.style.color = 'gold';
-                } else {
-                    btn.innerText = '☆';
-                    btn.style.color = 'var(--text-secondary)';
-                }
-            }
-
-            async function loadFavorites() {
-                const threads = await api('get_favorites');
-                const list = document.getElementById('fav-thread-list');
-                list.innerText = '';
-                if (threads.length === 0) {
-                    const d = document.createElement('div');
-                    d.style.padding = '1rem';
-                    d.style.color = 'var(--text-secondary)';
-                    d.style.fontSize = '0.85rem';
-                    d.innerText = 'お気に入りスレッドがありません。\nスレッドタイトルの☆を押して追加できます。';
-                    list.appendChild(d);
-                    return;
-                }
-                threads.forEach(t => {
-                    const item = document.createElement('div');
-                    item.className = `thread-item ${t.id == currentThreadId ? 'active' : ''}`;
-                    item.textContent = '# ' + t.name;
-                    item.onclick = () => {
-                        // Switch to Threads tab context implicitly but keep view? 
-                        // Better UX: Switch to Threads tab and load this thread.
-                        document.querySelector('.nav-item[data-tab="threads"]').click();
-                        switchThread(t.id, t.name, t.creator_id);
-                    };
-                    list.appendChild(item);
-                });
-            }
-
-            // --- Discord-like Friend & DM Logic ---
-
-            function backToHub() {
-                currentPartnerId = null;
-                const hub = document.getElementById('dm-hub-view');
-                const chat = document.getElementById('dm-chat-view');
-                if (hub && chat) {
-                    hub.style.display = 'flex';
-                    chat.style.display = 'none';
-                    loadHubFriends();
-                }
-            }
-
-            function switchToDmChat(id, name, avatarUrl = null, status = 'online') {
-                currentPartnerId = id;
-                document.getElementById('dm-hub-view').style.display = 'none';
-                document.getElementById('dm-chat-view').style.display = 'flex';
-
-                const infoContainer = document.getElementById('current-dm-partner-info');
-                infoContainer.innerHTML = '';
-                infoContainer.style.display = 'flex';
-                infoContainer.style.alignItems = 'center';
-                infoContainer.style.gap = '10px';
-
-                infoContainer.appendChild(getAvatarElement(name, status, avatarUrl));
-                const nameH3 = document.createElement('h3');
-                nameH3.className = 'thread-name';
-                nameH3.id = 'current-dm-partner-name';
-                nameH3.innerText = name;
-                infoContainer.appendChild(nameH3);
-
-                const container = document.getElementById('dm-message-container');
-                container.innerText = '';
-                container.appendChild(getSkeletonLoader());
-                loadDms(3000);
-            }
-
-            async function loadHubFriends() {
-                const friends = await api('get_friends');
-                const list = document.getElementById('hub-friend-list');
-                list.innerHTML = '';
-                if (friends.length === 0) {
-                    list.innerHTML = '<div style="padding:10px; color:gray;">まだフレンドがいません</div>';
-                    return;
-                }
-                friends.forEach(f => {
-                    const d = document.createElement('div');
-                    d.className = 'thread-item';
-                    d.style.display = 'flex';
-                    d.style.justifyContent = 'space-between';
-                    d.style.alignItems = 'center';
-                    d.style.cursor = 'pointer';
-                    d.innerHTML = `
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            ${getAvatarElement(f.username, f.status || 'offline', f.avatar_url).outerHTML}
-                            <span>${f.username}</span>
-                        </div>
-                        <span style="font-size:0.8rem; color:var(--text-secondary);">
-                            ${f.last_msg_at ? new Date(f.last_msg_at).toLocaleString() : '会話なし'}
-                        </span>
-                    `;
-                    d.onclick = () => switchToDmChat(f.id, f.username, f.avatar_url, f.status);
-                    list.appendChild(d);
-                });
-            }
-
-            // --- Modal Logic ---
-            function showAddFriendModal() {
-                document.getElementById('add-friend-modal').showModal();
-                document.getElementById('user-search-results').innerHTML = '';
-                document.getElementById('user-search-input').value = '';
-            }
-
-            async function searchUsers() {
-                const q = document.getElementById('user-search-input').value;
-                if (!q) return;
-                const res = await api(`search_users&q=${encodeURIComponent(q)}`);
-                const list = document.getElementById('user-search-results');
-                list.innerHTML = '';
-                if (res.length === 0) {
-                    list.innerText = '見つかりませんでした';
-                    return;
-                }
-                res.forEach(u => {
-                    const d = document.createElement('div');
-                    d.className = 'thread-item';
-                    d.style.display = 'flex';
-                    d.style.justifyContent = 'space-between';
-                    d.style.alignItems = 'center';
-                    d.style.gap = '10px';
-
-                    const userPart = document.createElement('div');
-                    userPart.style.display = 'flex';
-                    userPart.style.alignItems = 'center';
-                    userPart.style.gap = '10px';
-                    userPart.appendChild(getAvatarElement(u.username, u.status, u.avatar_url));
-                    const nameSpan = document.createElement('span');
-                    nameSpan.innerText = `${u.username} (ID:${u.id})`;
-                    userPart.appendChild(nameSpan);
-                    d.appendChild(userPart);
-
-                    const btn = document.createElement('button');
-                    btn.innerText = '申請';
-                    btn.className = 'btn-primary';
-                    btn.style.padding = '10px 15px';
-                    btn.style.fontSize = '1.0rem';
-                    btn.onclick = async () => {
-                        if (confirm(`ID:${u.id} ${u.username}に申請を送りますか？`)) {
-                            const body = new FormData();
-                            body.append('target_id', u.id);
-                            const r = await api('request_friend', 'POST', body);
-                            if (r.success) alert('送信しました');
-                            else alert(r.error);
-                        }
-                    };
-                    d.appendChild(btn);
-                    list.appendChild(d);
-                });
-            }
-
-            function showPendingRequestsModal() {
-                document.getElementById('pending-requests-modal').showModal();
-                loadPendingRequests();
-            }
-
-            async function loadPendingRequests() {
-                const reqs = await api('get_friend_requests');
-                const list = document.getElementById('pending-requests-list-modal');
-                list.innerHTML = '';
-                if (reqs.length === 0) list.innerText = '承認待ちのリクエストはありません';
-                reqs.forEach(r => {
-                    const d = document.createElement('div');
-                    d.className = 'thread-item';
-                    d.style.display = 'flex';
-                    d.style.justifyContent = 'space-between';
-                    d.innerHTML = `<span>${r.username}</span>`;
-                    const btn = document.createElement('button');
-                    btn.innerText = '承認';
-                    btn.className = 'btn-primary';
-                    btn.onclick = async () => {
-                        const body = new FormData();
-                        body.append('request_id', r.id);
-                        await api('accept_friend', 'POST', body);
-                        loadPendingRequests();
-                        loadHubFriends();
-                    };
-                    d.appendChild(btn);
-                    list.appendChild(d);
-                });
-            }
-
-
-
-            function showBlockedModal() {
-                document.getElementById('blocked-users-modal').showModal();
-                loadBlockedUsers();
-            }
-
-            async function loadBlockedUsers() {
-                const users = await api('get_blocked_users');
-                const list = document.getElementById('blocked-users-list');
-                list.innerHTML = '';
-                if (users.length === 0) list.innerText = 'ブロックしているユーザーはいません';
-                users.forEach(u => {
-                    const d = document.createElement('div');
-                    d.className = 'thread-item';
-                    d.style.display = 'flex';
-                    d.style.justifyContent = 'space-between';
-                    d.innerHTML = `<span>${u.username}</span>`;
-                    const btn = document.createElement('button');
-                    btn.innerText = '解除';
-                    btn.className = 'btn-secondary';
-                    btn.onclick = async () => {
+                d.onclick = async () => {
+                    if (confirm(u.username + ' にフレンドリクエストを送信しますか？')) {
                         const body = new FormData();
                         body.append('target_id', u.id);
-                        await api('unblock_user', 'POST', body);
-                        loadBlockedUsers();
-                    };
-                    d.appendChild(btn);
-                    list.appendChild(d);
-                });
-            }
-
-            async function blockCurrentPartner() {
-                if (!currentPartnerId) return;
-                if (confirm('このユーザーをブロックしますか？\nフレンドも解除されます。')) {
-                    const body = new FormData();
-                    body.append('target_id', currentPartnerId);
-                    await api('block_user', 'POST', body);
-                    backToHub();
-                }
-            }
-
-            // Fallback for partner-list references (if any left) can be ignored as we utilize hub-friend-list
-            async function loadDmPartners() {
-                // Alias to hub loader if called from polling
-                loadHubFriends();
-            }
-
-            async function loadDms(minDelay = 0) {
-                if (!currentPartnerId) return;
-                const startTime = Date.now();
-                const dms = await api(`get_direct_messages&partner_id=${currentPartnerId}`);
-
-                if (minDelay > 0) {
-                    const elapsed = Date.now() - startTime;
-                    const remaining = minDelay - elapsed;
-                    if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
-                }
-                const container = document.getElementById('dm-message-container');
-                const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
-                container.innerText = '';
-
-                dms.forEach(m => {
-                    const group = document.createElement('div');
-                    group.className = 'message-group';
-                    group.appendChild(getAvatarElement(m.username, 'online', m.avatar_url));
-
-                    const info = document.createElement('div');
-                    info.className = 'message-info';
-
-                    const header = document.createElement('div');
-                    header.className = 'message-header';
-
-                    const user = document.createElement('span');
-                    user.className = 'message-user clickable-username';
-                    user.textContent = m.username;
-                    user.style.cursor = 'pointer';
-                    user.onclick = (e) => {
-                        e.stopPropagation();
-                        showUserProfile(m.sender_id, m.username);
-                    };
-
-                    const time = document.createElement('span');
-                    time.className = 'message-time';
-                    time.textContent = m.created_at;
-
-                    header.appendChild(user);
-                    header.appendChild(time);
-
-                    const contentDiv = document.createElement('div');
-                    contentDiv.className = 'message-content';
-                    if (m.content) contentDiv.innerText = m.content;
-
-                    if (m.attachment_path) {
-                        const ext = m.attachment_path.split('.').pop().toLowerCase();
-                        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
-                        const isAudio = ['mp3', 'wav', 'ogg'].includes(ext);
-                        const isVideo = ['mp4', 'webm', 'ogv', 'mov', 'avi'].includes(ext);
-
-                        if (isImage) {
-                            const img = document.createElement('img');
-                            img.src = m.attachment_path;
-                            img.className = 'preview-img';
-                            img.style.display = 'block';
-                            img.style.marginTop = '10px';
-                            img.onclick = () => window.open(m.attachment_path, '_blank');
-                            contentDiv.appendChild(img);
-                        } else if (isAudio) {
-                            const audio = document.createElement('audio');
-                            audio.src = m.attachment_path;
-                            audio.controls = true;
-                            audio.style.display = 'block';
-                            audio.style.marginTop = '10px';
-                            audio.style.maxWidth = '100%';
-                            contentDiv.appendChild(audio);
-                        } else if (isVideo) {
-                            const video = document.createElement('video');
-                            video.src = m.attachment_path;
-                            video.controls = true;
-                            video.style.display = 'block';
-                            video.style.marginTop = '10px';
-                            video.style.maxWidth = '100%';
-                            contentDiv.appendChild(video);
+                        const res = await api('request_friend', 'POST', body);
+                        if (res.success) {
+                            alert('送信しました');
+                            modal.close();
+                        } else {
+                            alert(res.error || 'エラーが発生しました');
                         }
-
-                        const dlLink = document.createElement('a');
-                        const fileName = m.attachment_path.split('/').pop();
-                        dlLink.href = 'download.php?file=' + fileName;
-                        dlLink.target = '_blank';
-                        dlLink.innerText = '⬇️ ダウンロード';
-                        dlLink.style.display = 'inline-block';
-                        dlLink.style.fontSize = '0.75rem';
-                        dlLink.style.marginTop = '5px';
-                        dlLink.style.color = 'var(--accent-color)';
-                        contentDiv.appendChild(dlLink);
                     }
+                };
+                list.appendChild(d);
+            });
+        }
 
-                    info.appendChild(header);
-                    info.appendChild(contentDiv);
-                    group.appendChild(info);
-                    container.appendChild(group);
-                });
-                if (isAtBottom) container.scrollTop = container.scrollHeight;
+        async function sendDm() {
+            const input = document.getElementById('dm-msg-input');
+            const content = input.value.trim();
+            if ((!content && !dmFileToUpload) || !currentPartnerId) return;
+
+            const body = new FormData();
+            body.append('receiver_id', currentPartnerId);
+            body.append('content', content);
+            if (dmFileToUpload) body.append('attachment', dmFileToUpload);
+
+            const result = await api('send_direct_message', 'POST', body);
+
+            if (result.error) {
+                alert('DMの送信に失敗しました: ' + result.error);
+                return;
             }
 
-            async function showUserPicker() {
-                const modal = document.getElementById('user-picker-modal');
-                const list = document.getElementById('all-user-list');
-                list.innerText = 'Loading...';
-                modal.showModal();
+            input.value = '';
+            input.style.height = 'auto';
+            cancelDmUpload();
+            await loadDms();
+            await loadDmPartners(); // Refresh logic to put recent at top if sorted
+        }
 
-                const users = await api('get_all_users');
-                list.innerText = '';
-                users.forEach(u => {
-                    const d = document.createElement('div');
-                    d.style.padding = '8px';
-                    d.style.cursor = 'pointer';
-                    d.className = 'thread-item';
-                    d.style.display = 'flex';
-                    d.style.alignItems = 'center';
-                    d.style.gap = '10px';
-                    d.appendChild(getAvatarElement(u.username, u.status, u.avatar_url));
-                    const nameSpan = document.createElement('span');
-                    nameSpan.innerText = u.username;
-                    d.appendChild(nameSpan);
-
-                    d.onclick = async () => {
-                        if (confirm(u.username + ' にフレンドリクエストを送信しますか？')) {
-                            const body = new FormData();
-                            body.append('target_id', u.id);
-                            const res = await api('request_friend', 'POST', body);
-                            if (res.success) {
-                                alert('送信しました');
-                                modal.close();
-                            } else {
-                                alert(res.error || 'エラーが発生しました');
-                            }
-                        }
-                    };
-                    list.appendChild(d);
-                });
+        function handleDmInputKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendDm();
             }
+        }
 
-            async function sendDm() {
-                const input = document.getElementById('dm-msg-input');
-                const content = input.value.trim();
-                if ((!content && !dmFileToUpload) || !currentPartnerId) return;
-
-                const body = new FormData();
-                body.append('receiver_id', currentPartnerId);
-                body.append('content', content);
-                if (dmFileToUpload) body.append('attachment', dmFileToUpload);
-
-                const result = await api('send_direct_message', 'POST', body);
-
-                if (result.error) {
-                    alert('DMの送信に失敗しました: ' + result.error);
-                    return;
-                }
-
-                input.value = '';
-                input.style.height = 'auto';
-                cancelDmUpload();
-                await loadDms();
-                await loadDmPartners(); // Refresh logic to put recent at top if sorted
-            }
-
-            function handleDmInputKey(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
+        // Reusing drag drop logic for DM logic (simplified)
+        const dmChatArea = document.getElementById('dm-chat-area');
+        if (dmChatArea) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dmChatArea.addEventListener(eventName, (e) => {
                     e.preventDefault();
-                    sendDm();
-                }
-            }
-
-            // Reusing drag drop logic for DM logic (simplified)
-            const dmChatArea = document.getElementById('dm-chat-area');
-            if (dmChatArea) {
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    dmChatArea.addEventListener(eventName, (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    }, false);
-                });
-                dmChatArea.addEventListener('drop', (e) => {
-                    const dt = e.dataTransfer;
-                    if (dt.files.length > 0) {
-                        dmFileToUpload = dt.files[0];
-                        const pv = document.getElementById('dm-preview-content');
-                        pv.innerText = '📄 ' + dmFileToUpload.name;
-                        document.getElementById('dm-upload-preview').classList.add('active');
-                    }
-                });
-            }
-
-            function cancelDmUpload() {
-                dmFileToUpload = null;
-                document.getElementById('dm-upload-preview').classList.remove('active');
-            }
-
-
-
-            function showCreateThread() {
-                document.getElementById('create-thread-area').classList.add('active');
-                document.getElementById('create-thread-toggle-container').style.display = 'none';
-                document.getElementById('new-thread-name').focus();
-            }
-
-            function hideCreateThread() {
-                document.getElementById('create-thread-area').classList.remove('active');
-                document.getElementById('create-thread-toggle-container').style.display = 'block';
-                document.getElementById('new-thread-name').value = '';
-            }
-
-            document.addEventListener('DOMContentLoaded', () => {
-                // Initial Load
-                loadThreads();
-                if (isDmMode && currentPartnerId) {
-                    const container = document.getElementById('dm-message-container');
-                    if (container) {
-                        container.innerText = '';
-                        container.appendChild(getSkeletonLoader());
-                    }
-                    loadDms(3000);
-                } else if (!isDmMode && currentThreadId) {
-                    const container = document.getElementById('message-container');
-                    if (container) {
-                        container.innerText = '';
-                        container.appendChild(getSkeletonLoader());
-                    }
-                    loadMessages(3000);
-                }
-                // Also update thread actions logic initially
-                updateThreadActions();
-
-                // Polling
-                setInterval(() => {
-                    if (isDmMode && currentPartnerId) loadDms(3000);
-                    else if (!isDmMode && currentThreadId) loadMessages(3000);
-                }, 3000);
+                    e.stopPropagation();
+                }, false);
             });
-        </script>
-        <script src="js/webrtc.js"></script>
-        <script src="js/locate.js"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                // GPS 位置情報取得の初期化
-                locationManager.init('gps-status', 1000);
-
+            dmChatArea.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                if (dt.files.length > 0) {
+                    dmFileToUpload = dt.files[0];
+                    const pv = document.getElementById('dm-preview-content');
+                    pv.innerText = '📄 ' + dmFileToUpload.name;
+                    document.getElementById('dm-upload-preview').classList.add('active');
+                }
             });
-        </script>
-    <?php endif; ?>
+        }
+
+        function cancelDmUpload() {
+            dmFileToUpload = null;
+            document.getElementById('dm-upload-preview').classList.remove('active');
+        }
+
+
+
+        function showCreateThread() {
+            document.getElementById('create-thread-area').classList.add('active');
+            document.getElementById('create-thread-toggle-container').style.display = 'none';
+            document.getElementById('new-thread-name').focus();
+        }
+
+        function hideCreateThread() {
+            document.getElementById('create-thread-area').classList.remove('active');
+            document.getElementById('create-thread-toggle-container').style.display = 'block';
+            document.getElementById('new-thread-name').value = '';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initial Load
+            loadThreads();
+            if (isDmMode && currentPartnerId) {
+                const container = document.getElementById('dm-message-container');
+                if (container) {
+                    container.innerText = '';
+                    container.appendChild(getSkeletonLoader());
+                }
+                loadDms(1000);
+            } else if (!isDmMode && currentThreadId) {
+                const container = document.getElementById('message-container');
+                if (container) {
+                    container.innerText = '';
+                    container.appendChild(getSkeletonLoader());
+                }
+                loadMessages(1000);
+            }
+            // Also update thread actions logic initially
+            updateThreadActions();
+
+            // Polling
+            setInterval(() => {
+                if (isDmMode && currentPartnerId) loadDms(0);
+                else if (!isDmMode && currentThreadId) loadMessages(0);
+            }, 3000);
+        });
+    </script>
+    <script src="js/webrtc.js"></script>
+    <script src="js/locate.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // GPS 位置情報取得の初期化
+            locationManager.init('gps-status', 1000);
+
+        });
+    </script>
 </body>
 
 </html>
