@@ -1,9 +1,10 @@
 <?php
 // backend/apple_config.php
+require_once __DIR__ . '/EnvLoader.php';
 
-define('APPLE_CLIENT_ID', 'YOUR_APPLE_CLIENT_ID');
-define('APPLE_TEAM_ID', 'YOUR_APPLE_TEAM_ID');
-define('APPLE_KEY_ID', 'YOUR_APPLE_KEY_ID');
+define('APPLE_CLIENT_ID', getenv('APPLE_CLIENT_ID') ?: 'YOUR_APPLE_CLIENT_ID');
+define('APPLE_TEAM_ID', getenv('APPLE_TEAM_ID') ?: 'YOUR_APPLE_TEAM_ID');
+define('APPLE_KEY_ID', getenv('APPLE_KEY_ID') ?: 'YOUR_APPLE_KEY_ID');
 define('APPLE_PRIVATE_KEY_PATH', __DIR__ . '/apple_private_key.p8');
 
 function getAppleRedirectUri()

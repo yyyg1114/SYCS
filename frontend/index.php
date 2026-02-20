@@ -353,7 +353,8 @@ function sendDiscordWebhook($webhookUrl, $username, $content, $avatarUrl = null,
 // Helper to notify Realtime Server
 function notifyRealtimeServer($type, $data)
 {
-    $secret = 'SYCS_REALTIME_SECRET_TOKEN'; // Should match .env
+    require_once __DIR__ . '/../backend/EnvLoader.php';
+    $secret = getenv('REALTIME_SECRET_KEY') ?: 'SYCS_REALTIME_SECRET_TOKEN';
     $url = 'http://localhost:3000/api/notify';
     $payload = [
         'secret' => $secret,
@@ -377,7 +378,8 @@ function notifyRealtimeServer($type, $data)
 function sendPushNotification($userId, $payload)
 {
     global $mysqli;
-    $secret = 'SYCS_REALTIME_SECRET_TOKEN';
+    require_once __DIR__ . '/../backend/EnvLoader.php';
+    $secret = getenv('REALTIME_SECRET_KEY') ?: 'SYCS_REALTIME_SECRET_TOKEN';
     $url = 'http://localhost:3000/api/push';
 
     $stmt = $mysqli->prepare("SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?");
