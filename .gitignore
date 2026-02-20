@@ -1,0 +1,24 @@
+# System Files
+.DS_Store
+Thumbs.db
+
+# Sensitive Data
+.env
+.env.local
+.env.*.local
+*.log
+
+# Dependencies
+node_modules/
+realtime-server/node_modules/
+vendor/
+
+# User uploads and temporary files
+frontend/uploads/
+protected_uploads/
+logs/
+SYCS_docs/
+
+# Build outputs
+dist/
+build/
