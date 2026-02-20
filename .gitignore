@@ -6,6 +6,7 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+backend/*_local.php
 *.log
 
 # Dependencies
@@ -22,3 +23,6 @@ SYCS_docs/
 # Build outputs
 dist/
 build/
+
+#gitignore
+.gitignore

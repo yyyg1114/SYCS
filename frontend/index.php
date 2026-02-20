@@ -179,6 +179,32 @@ $mysqli->query("CREATE TABLE IF NOT EXISTS push_subscriptions (
     UNIQUE KEY (endpoint(255))
 )");
 
+// Group Chat Tables
+$mysqli->query("CREATE TABLE IF NOT EXISTS group_threads (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    creator_id INT NOT NULL,
+    avatar_url VARCHAR(255) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
+)");
+
+$mysqli->query("CREATE TABLE IF NOT EXISTS group_thread_participants (
+    thread_id INT NOT NULL,
+    user_id INT NOT NULL,
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (thread_id, user_id),
+    FOREIGN KEY (thread_id) REFERENCES group_threads(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)");
+
+// Extend messages table to support group_id
+$res = $mysqli->query("SHOW COLUMNS FROM messages LIKE 'group_thread_id'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE messages ADD COLUMN group_thread_id INT DEFAULT NULL AFTER thread_id");
+    $mysqli->query("ALTER TABLE messages ADD FOREIGN KEY (group_thread_id) REFERENCES group_threads(id) ON DELETE CASCADE");
+}
+
 // Migrations for existing schemas
 $mysqli->query("IF NOT EXISTS (SELECT * FROM information_schema.COLUMNS WHERE TABLE_NAME='messages' AND COLUMN_NAME='reply_to_id') THEN ALTER TABLE messages ADD COLUMN reply_to_id INT DEFAULT NULL AFTER content; END IF;");
 // 実際には PHP の SHOW COLUMNS の方が確実なので以前の方式にします
@@ -881,6 +907,69 @@ if (isset($_GET['api'])) {
         exit;
     }
 
+    if ($action === 'create_group_thread') {
+        verify_csrf();
+        $name = $_POST['name'] ?? 'Group Chat';
+        $participantIds = json_decode($_POST['participant_ids'] ?? '[]', true);
+
+        $stmt = $mysqli->prepare("INSERT INTO group_threads (name, creator_id) VALUES (?, ?)");
+        $stmt->bind_param("si", $name, $userId);
+        $stmt->execute();
+        $threadId = $stmt->insert_id;
+
+        // Add creator as participant
+        $stmt = $mysqli->prepare("INSERT INTO group_thread_participants (thread_id, user_id) VALUES (?, ?)");
+        $stmt->bind_param("ii", $threadId, $userId);
+        $stmt->execute();
+
+        // Add selected participants
+        foreach ($participantIds as $pId) {
+            $stmt->bind_param("ii", $threadId, $pId);
+            $stmt->execute();
+        }
+
+        echo json_encode(['success' => true, 'id' => $threadId]);
+        exit;
+    }
+
+    if ($action === 'get_group_threads') {
+        $stmt = $mysqli->prepare("
+            SELECT gt.* 
+            FROM group_threads gt
+            JOIN group_thread_participants gtp ON gt.id = gtp.thread_id
+            WHERE gtp.user_id = ?
+            ORDER BY gt.created_at DESC
+        ");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    if ($action === 'get_group_messages') {
+        $threadId = $_GET['thread_id'] ?? 0;
+        // Verify membership
+        $stmt = $mysqli->prepare("SELECT 1 FROM group_thread_participants WHERE thread_id = ? AND user_id = ?");
+        $stmt->bind_param("ii", $threadId, $userId);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows === 0) {
+            echo json_encode(['error' => 'Forbidden']);
+            exit;
+        }
+
+        $stmt = $mysqli->prepare("
+            SELECT m.*, u.username, u.avatar_url 
+            FROM messages m
+            JOIN users u ON m.user_id = u.id
+            WHERE m.group_thread_id = ?
+            ORDER BY m.created_at ASC
+        ");
+        $stmt->bind_param("i", $threadId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
     if ($action === 'get_direct_messages') {
         $partnerId = $_GET['partner_id'] ?? 0;
         $stmt = $mysqli->prepare("
@@ -1011,6 +1100,7 @@ if (isset($_GET['api'])) {
     if ($action === 'send_message') {
         verify_csrf(); // Enforce CSRF Check
         $threadId = $_POST['thread_id'] ?? 0;
+        $groupThreadId = $_POST['group_thread_id'] ?? null;
         $content = $_POST['content'] ?? '';
         $replyToId = !empty($_POST['reply_to_id']) ? $_POST['reply_to_id'] : null;
         $attachmentPath = null;
@@ -1073,12 +1163,12 @@ if (isset($_GET['api'])) {
             }
         }
 
-        if (($threadId && $content !== '') || ($threadId && $attachmentPath)) {
+        if ((($threadId || $groupThreadId) && $content !== '') || (($threadId || $groupThreadId) && $attachmentPath)) {
             $expiresIn = $_POST['expires_in'] ?? 0;
             $expiresAt = $expiresIn > 0 ? date('Y-m-d H:i:s', time() + (int)$expiresIn) : null;
 
-            $stmt = $mysqli->prepare("INSERT INTO messages (thread_id, user_id, content, reply_to_id, attachment_path, expires_at) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("iisiss", $threadId, $userId, $content, $replyToId, $attachmentPath, $expiresAt);
+            $stmt = $mysqli->prepare("INSERT INTO messages (thread_id, group_thread_id, user_id, content, reply_to_id, attachment_path, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("iiisiss", $threadId, $groupThreadId, $userId, $content, $replyToId, $attachmentPath, $expiresAt);
             $stmt->execute();
             $msgId = $stmt->insert_id;
             $stmt->close();
@@ -1087,13 +1177,19 @@ if (isset($_GET['api'])) {
             $newMsg = [
                 'id' => $msgId,
                 'thread_id' => $threadId,
+                'group_thread_id' => $groupThreadId,
                 'user_id' => $userId,
                 'content' => $content,
                 'attachment_path' => $attachmentPath,
                 'username' => $_SESSION['username'] ?? 'User',
                 'created_at' => date('Y-m-d H:i:s')
             ];
-            notifyRealtimeServer('new_message', ['threadId' => $threadId, 'message' => $newMsg]);
+
+            if ($groupThreadId) {
+                notifyRealtimeServer('new_group_message', ['groupThreadId' => $groupThreadId, 'message' => $newMsg]);
+            } else {
+                notifyRealtimeServer('new_message', ['threadId' => $threadId, 'message' => $newMsg]);
+            }
 
             // Discord Webhook Integration
             $wStmt = $mysqli->prepare("SELECT discord_webhook_url FROM threads WHERE id = ?");
@@ -1931,7 +2027,7 @@ if ($isLoggedIn) {
                 </div>
                 <aside id="thread-browser" class="thread-browser">
                     <div class="panel-header">
-                        <span>スレッド</span>
+                        <span>サイドバー</span>
                         <div class="close-btn" onclick="toggleThreadBrowser()"><svg width="18" height="18"
                                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                                 stroke-linecap="round" stroke-linejoin="round">
@@ -1939,25 +2035,35 @@ if ($isLoggedIn) {
                                 <line x1="6" y1="6" x2="18" y2="18" />
                             </svg></div>
                     </div>
+
+                    <div class="sidebar-tabs" style="display:flex; border-bottom:1px solid var(--border-color);">
+                        <button class="tab-btn active" onclick="switchSidebarTab('threads')" style="flex:1; padding:10px; background:none; border:none; color:white; cursor:pointer;">スレッド</button>
+                        <button class="tab-btn" onclick="switchSidebarTab('groups')" style="flex:1; padding:10px; background:none; border:none; color:white; cursor:pointer;">グループ</button>
+                    </div>
+
                     <div id="thread-list" class="thread-list"></div>
+                    <div id="group-list" class="thread-list" style="display:none;"></div>
+
                     <div id="create-thread-area" class="create-thread-area" style="border-top: none;">
-                        <div
-                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                            <span style="font-weight:600; font-size:0.9rem;">新規スレッド</span>
-                            <div class="close-btn" onclick="hideCreateThread()">✕</div>
-                        </div>
                         <input type="text" id="new-thread-name" class="create-input" placeholder="新スレッド名">
-                        <input type="text" id="new-thread-category" class="create-input" placeholder="カテゴリー (任意)" style="margin-top:5px;">
-                        <button onclick="createThread()" class="btn-primary" style="padding:0.6rem;">作成</button>
+                        <button onclick="createThread()" class="btn-primary" style="padding:0.6rem; margin-top:5px; width:100%;">作成</button>
+                    </div>
+
+                    <div id="create-group-area" class="create-thread-area" style="border-top: none; display:none;">
+                        <button onclick="showGroupCreationDialog()" class="btn-primary" style="padding:0.6rem; width:100%;">新規グループ作成</button>
                     </div>
                 </aside>
-                <!-- Partner Browser for DM -->
 
-                <dialog id="user-picker-modal"
+                <dialog id="group-creation-modal" class="modal"
                     style="border:none; border-radius:8px; padding:1rem; background:var(--bg-secondary); color:var(--text-primary);">
-                    <h3>ユーザーを選択</h3>
-                    <div id="all-user-list" style="max-height:300px; overflow-y:auto; margin:1rem 0;"></div>
-                    <button onclick="document.getElementById('user-picker-modal').close()">閉じる</button>
+                    <h3>グループ作成</h3>
+                    <input type="text" id="group-chat-name" class="chat-input" placeholder="グループ名" style="width:100%; margin-bottom:10px;">
+                    <p>メンバーを選択:</p>
+                    <div id="group-member-picker" style="max-height:200px; overflow-y:auto; margin-bottom:15px; border:1px solid var(--border-color); border-radius:4px; padding:5px;"></div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-secondary" onclick="document.getElementById('group-creation-modal').close()">キャンセル</button>
+                        <button class="btn-primary" onclick="submitGroupCreation()">作成</button>
+                    </div>
                 </dialog>
             </section>
             <section id="dm-pane" class="content-pane" style="display:none;height:100%; flex-direction:column;">
@@ -2369,8 +2475,9 @@ if ($isLoggedIn) {
 
         // DM State
         let currentPartnerId = null;
-        let dmFileToUpload = null;
+        let currentGroupThreadId = null;
         let isDmMode = false;
+        let isGroupMode = false;
         const csrfToken = "<?= htmlspecialchars($_SESSION['csrf_token']) ?>";
         let replyToId = null;
         let fileToUpload = null;
