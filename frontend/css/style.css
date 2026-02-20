@@ -16,14 +16,14 @@
 
 .light-theme {
   --bg-color: #dfdfdf;
-  --sidebar-bg: #ffffff;
+  --sidebar-bg: #d1d1d1;
   --panel-bg: #ffffff;
   --text-primary: #111827;
   --text-secondary: #4b5563;
-  /* --border-color: #e5e7eb98; */
+  /*--border-color: #e5e7eb98;*/
   --card-bg: #ffffff;
   --input-bg: #f9fafb;
-  --header-bg: #ffffffcc;
+  --header-bg: #dfdfdf;
 }
 
 * {

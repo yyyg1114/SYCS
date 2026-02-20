@@ -168,6 +168,17 @@ FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
 FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
 )");
 
+$mysqli->query("CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    endpoint TEXT NOT NULL,
+    p256dh VARCHAR(255) NOT NULL,
+    auth VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY (endpoint(255))
+)");
+
 // Migrations for existing schemas
 $mysqli->query("IF NOT EXISTS (SELECT * FROM information_schema.COLUMNS WHERE TABLE_NAME='messages' AND COLUMN_NAME='reply_to_id') THEN ALTER TABLE messages ADD COLUMN reply_to_id INT DEFAULT NULL AFTER content; END IF;");
 // 実際には PHP の SHOW COLUMNS の方が確実なので以前の方式にします
@@ -339,6 +350,67 @@ function sendDiscordWebhook($webhookUrl, $username, $content, $avatarUrl = null,
     @file_get_contents($webhookUrl, false, $context);
 }
 
+// Helper to notify Realtime Server
+function notifyRealtimeServer($type, $data)
+{
+    $secret = 'SYCS_REALTIME_SECRET_TOKEN'; // Should match .env
+    $url = 'http://localhost:3000/api/notify';
+    $payload = [
+        'secret' => $secret,
+        'type' => $type,
+        'data' => $data
+    ];
+
+    $options = [
+        'http' => [
+            'header'  => "Content-type: application/json\r\n",
+            'method'  => 'POST',
+            'content' => json_encode($payload),
+            'ignore_errors' => true
+        ]
+    ];
+    $context  = stream_context_create($options);
+    @file_get_contents($url, false, $context);
+}
+
+// Helper to send Push Notification
+function sendPushNotification($userId, $payload)
+{
+    global $mysqli;
+    $secret = 'SYCS_REALTIME_SECRET_TOKEN';
+    $url = 'http://localhost:3000/api/push';
+
+    $stmt = $mysqli->prepare("SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+
+    while ($sub = $res->fetch_assoc()) {
+        $pushPayload = [
+            'secret' => $secret,
+            'subscription' => [
+                'endpoint' => $sub['endpoint'],
+                'keys' => [
+                    'p256dh' => $sub['p256dh'],
+                    'auth' => $sub['auth']
+                ]
+            ],
+            'payload' => $payload
+        ];
+
+        $options = [
+            'http' => [
+                'header'  => "Content-type: application/json\r\n",
+                'method'  => 'POST',
+                'content' => json_encode($pushPayload),
+                'ignore_errors' => true
+            ]
+        ];
+        $context  = stream_context_create($options);
+        @file_get_contents($url, false, $context);
+    }
+}
+
 // Helper to verify CSRF
 function verify_csrf()
 {
@@ -428,6 +500,20 @@ if (isset($_GET['api'])) {
         }
 
         echo json_encode(['success' => true]);
+        exit;
+    }
+
+    if ($action === 'push_subscribe') {
+        verify_csrf();
+        $sub = json_decode(file_get_contents('php://input'), true);
+        if ($sub && isset($sub['endpoint'])) {
+            $stmt = $mysqli->prepare("INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE p256dh = VALUES(p256dh), auth = VALUES(auth)");
+            $stmt->bind_param("isss", $userId, $sub['endpoint'], $sub['keys']['p256dh'], $sub['keys']['auth']);
+            $stmt->execute();
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Invalid subscription data']);
+        }
         exit;
     }
 
@@ -891,6 +977,28 @@ if (isset($_GET['api'])) {
             $stmt = $mysqli->prepare("INSERT INTO direct_messages (sender_id, receiver_id, content, attachment_path, expires_at) VALUES (?, ?, ?, ?, ?)");
             $stmt->bind_param("iisss", $userId, $receiverId, $content, $attachmentPath, $expiresAt);
             $stmt->execute();
+            $dmId = $stmt->insert_id;
+
+            // Notify Realtime Server
+            $newDm = [
+                'id' => $dmId,
+                'sender_id' => $userId,
+                'receiver_id' => $receiverId,
+                'content' => $content,
+                'attachment_path' => $attachmentPath,
+                'username' => $_SESSION['username'] ?? 'User',
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+            notifyRealtimeServer('new_dm', ['receiverId' => $receiverId, 'message' => $newDm]);
+
+            // Push Notification
+            sendPushNotification($receiverId, [
+                'title' => '新着DM: ' . ($_SESSION['username'] ?? 'User'),
+                'body' => $content,
+                'icon' => 'assets/img/SYCS_favicon.svg',
+                'data' => ['url' => 'index.php?dm=' . $userId]
+            ]);
+
             echo json_encode(['success' => true]);
         } else {
             echo json_encode(['error' => 'Receiver and content/attachment required']);
@@ -970,7 +1078,20 @@ if (isset($_GET['api'])) {
             $stmt = $mysqli->prepare("INSERT INTO messages (thread_id, user_id, content, reply_to_id, attachment_path, expires_at) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt->bind_param("iisiss", $threadId, $userId, $content, $replyToId, $attachmentPath, $expiresAt);
             $stmt->execute();
+            $msgId = $stmt->insert_id;
             $stmt->close();
+
+            // Notify Realtime Server
+            $newMsg = [
+                'id' => $msgId,
+                'thread_id' => $threadId,
+                'user_id' => $userId,
+                'content' => $content,
+                'attachment_path' => $attachmentPath,
+                'username' => $_SESSION['username'] ?? 'User',
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+            notifyRealtimeServer('new_message', ['threadId' => $threadId, 'message' => $newMsg]);
 
             // Discord Webhook Integration
             $wStmt = $mysqli->prepare("SELECT discord_webhook_url FROM threads WHERE id = ?");
@@ -3782,9 +3903,101 @@ if ($isLoggedIn) {
             document.getElementById('new-thread-name').value = '';
         }
 
+        // Realtime with Socket.io
+        let socket = null;
+
+        function initRealtime() {
+            if (typeof io === 'undefined') return;
+            socket = io('http://localhost:3000');
+
+            socket.on('connect', () => {
+                console.log('Connected to realtime server');
+                socket.emit('register', currentUserId);
+                if (currentThreadId) socket.emit('join_thread', currentThreadId);
+            });
+
+            socket.on('new_message', (msg) => {
+                if (!isDmMode && currentThreadId == msg.thread_id) {
+                    loadMessages();
+                }
+            });
+
+            socket.on('new_dm', (msg) => {
+                if (isDmMode && currentPartnerId == msg.sender_id) {
+                    loadDms();
+                } else {
+                    // Refresh partner list for notification dot if needed
+                    loadDmPartners();
+                }
+            });
+
+            socket.on('typing_status', (data) => {
+                const indicator = document.getElementById(isDmMode ? 'dm-typing-indicator' : 'typing-indicator');
+                if (indicator) {
+                    if (data.isTyping) {
+                        indicator.innerText = `${data.username} が入力中...`;
+                        indicator.style.visibility = 'visible';
+                    } else {
+                        indicator.style.visibility = 'hidden';
+                    }
+                }
+            });
+        }
+
+        // Push Notifications
+        async function initPush() {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+            const registration = await navigator.serviceWorker.register('sw.js');
+            let subscription = await registration.pushManager.getSubscription();
+
+            if (!subscription) {
+                const publicKey = 'BN1pSd_YbB6fni2gJ1jRDrPipOsYQlrSXXA6LusnqUuSIi9KRYOMAAHxR-xTKV-nNjybdxHwHoxn2HeDgN1guh8';
+                subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: publicKey
+                });
+
+                // Save to backend
+                await fetch('index.php?api=push_subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        csrf_token: document.querySelector('[name=csrf_token]').value,
+                        ...subscription.toJSON()
+                    })
+                });
+            }
+        }
+
+        async function selectThread(id, name) {
+            currentThreadId = id;
+            const title = document.getElementById('thread-title');
+            if (title) title.innerText = '#' + name;
+
+            const container = document.getElementById('message-container');
+            if (container) {
+                container.innerText = '';
+                container.appendChild(getSkeletonLoader());
+            }
+
+            if (socket) {
+                socket.emit('join_thread', id);
+            }
+
+            await loadMessages(500);
+            updateThreadActions();
+            api(`set_last_thread&thread_id=${id}`);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             // Initial Load
             loadThreads();
+            initRealtime();
+            initPush();
+
             if (isDmMode && currentPartnerId) {
                 const container = document.getElementById('dm-message-container');
                 if (container) {
@@ -3808,12 +4021,11 @@ if ($isLoggedIn) {
                 Notification.requestPermission();
             }
 
-            // Polling
+            // Polling (Reduced/Removed except for status)
             setInterval(() => {
-                if (isDmMode && currentPartnerId) loadDms(0);
-                else if (!isDmMode && currentThreadId) loadMessages(0);
-                fetchTypingUsers();
-            }, 3000);
+                // We keep status update as it's not strictly real-time message dependent
+                // fetchTypingUsers(); // Replaced by Socket.io
+            }, 5000);
         });
 
         function sendNotification(title, body) {
@@ -3825,6 +4037,7 @@ if ($isLoggedIn) {
             }
         }
     </script>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
     <script src="js/webrtc.js"></script>
     <script src="js/locate.js"></script>
     <script>
@@ -3959,9 +4172,27 @@ if ($isLoggedIn) {
         }
 
         function handleTyping() {
+            if (socket) {
+                const targetId = isDmMode ? `dm_${currentPartnerId}` : currentThreadId;
+                socket.emit('typing', {
+                    threadId: targetId,
+                    userId: currentUserId,
+                    username: currentUserName,
+                    isTyping: true
+                });
+            }
             updateTypingStatus(true);
             if (typingTimeout) clearTimeout(typingTimeout);
             typingTimeout = setTimeout(() => {
+                if (socket) {
+                    const targetId = isDmMode ? `dm_${currentPartnerId}` : currentThreadId;
+                    socket.emit('typing', {
+                        threadId: targetId,
+                        userId: currentUserId,
+                        username: currentUserName,
+                        isTyping: false
+                    });
+                }
                 updateTypingStatus(false);
             }, 3000);
         }
