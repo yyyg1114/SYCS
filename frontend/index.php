@@ -496,8 +496,9 @@ if (isset($_GET['api'])) {
 
         $social = $_POST['social_links'] ?? null;
         $themePref = $_POST['theme_preference'] ?? null;
-        $stmt = $mysqli->prepare("UPDATE users SET bio = ?, banner_color = ?, status = ?, social_links = ?, theme_preference = ? WHERE id = ?");
-        $stmt->bind_param("sssssi", $bio, $bannerColor, $status, $social, $themePref, $userId);
+        $keywords = $_POST['notification_keywords'] ?? null;
+        $stmt = $mysqli->prepare("UPDATE users SET bio = ?, banner_color = ?, status = ?, social_links = ?, theme_preference = ?, notification_keywords = ? WHERE id = ?");
+        $stmt->bind_param("ssssssi", $bio, $bannerColor, $status, $social, $themePref, $keywords, $userId);
         $stmt->execute();
         $stmt->close();
 
@@ -749,23 +750,76 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'search_messages') {
-        $threadId = $_GET['thread_id'] ?? 0;
+        $threadId = $_GET['thread_id'] ?? null;
+        $groupThreadId = $_GET['group_thread_id'] ?? null;
+        $partnerId = $_GET['partner_id'] ?? null;
         $keyword = $_GET['keyword'] ?? '';
-        if ($threadId && $keyword) {
-            $query = "%$keyword%";
-            $stmt = $mysqli->prepare("
-            SELECT m.*, u.username 
-            FROM messages m 
-            JOIN users u ON m.user_id = u.id 
-            WHERE m.thread_id = ? AND m.content LIKE ? 
-            ORDER BY m.created_at DESC 
-            LIMIT 50
-        ");
-            $stmt->bind_param("is", $threadId, $query);
+        $hasAttachment = isset($_GET['has_attachment']) && $_GET['has_attachment'] === '1';
+        $dateFrom = $_GET['date_from'] ?? null;
+        $dateTo = $_GET['date_to'] ?? null;
+
+        if ($partnerId) {
+            // Search in DMs
+            $sql = "SELECT dm.*, u.username, u.avatar_url 
+                    FROM direct_messages dm 
+                    JOIN users u ON dm.sender_id = u.id 
+                    WHERE ((dm.sender_id = ? AND dm.receiver_id = ?) OR (dm.sender_id = ? AND dm.receiver_id = ?))";
+            $params = [$userId, $partnerId, $partnerId, $userId];
+            $types = "iiii";
+        } else {
+            // Search in Threads or Groups
+            $sql = "SELECT m.*, u.username, u.avatar_url 
+                    FROM messages m 
+                    JOIN users u ON m.user_id = u.id 
+                    WHERE 1=1";
+            $params = [];
+            $types = "";
+
+            if ($threadId) {
+                $sql .= " AND m.thread_id = ?";
+                $params[] = $threadId;
+                $types .= "i";
+            } elseif ($groupThreadId) {
+                $sql .= " AND m.group_thread_id = ?";
+                $params[] = $groupThreadId;
+                $types .= "i";
+            } else {
+                echo json_encode(['error' => 'Thread, Group or Partner ID required']);
+                exit;
+            }
+        }
+
+        if ($keyword) {
+            $sql .= " AND " . ($partnerId ? "dm.content" : "m.content") . " LIKE ?";
+            $params[] = "%$keyword%";
+            $types .= "s";
+        }
+
+        if ($hasAttachment) {
+            $sql .= " AND " . ($partnerId ? "dm.attachment_path" : "m.attachment_path") . " IS NOT NULL";
+        }
+
+        if ($dateFrom) {
+            $sql .= " AND " . ($partnerId ? "dm.created_at" : "m.created_at") . " >= ?";
+            $params[] = $dateFrom . " 00:00:00";
+            $types .= "s";
+        }
+        if ($dateTo) {
+            $sql .= " AND " . ($partnerId ? "dm.created_at" : "m.created_at") . " <= ?";
+            $params[] = $dateTo . " 23:59:59";
+            $types .= "s";
+        }
+
+        $sql .= " ORDER BY " . ($partnerId ? "dm.created_at" : "m.created_at") . " DESC LIMIT 50";
+
+        if ($types) {
+            $stmt = $mysqli->prepare($sql);
+            $stmt->bind_param($types, ...$params);
             $stmt->execute();
             echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
         } else {
-            echo json_encode(['error' => 'Keyword and Thread ID required']);
+            $res = $mysqli->query($sql);
+            echo json_encode($res->fetch_all(MYSQLI_ASSOC));
         }
         exit;
     }
@@ -970,6 +1024,34 @@ if (isset($_GET['api'])) {
         exit;
     }
 
+    if ($action === 'update_location') {
+        $lat = $_POST['lat'] ?? null;
+        $lon = $_POST['lon'] ?? null;
+        $accuracy = $_POST['accuracy'] ?? null;
+
+        if ($lat && $lon) {
+            $stmt = $mysqli->prepare("INSERT INTO user_locations (user_id, lat, lon, accuracy) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE lat = VALUES(lat), lon = VALUES(lon), accuracy = VALUES(accuracy), updated_at = CURRENT_TIMESTAMP");
+            $stmt->bind_param("iddd", $userId, $lat, $lon, $accuracy);
+            $stmt->execute();
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Invalid coordinates']);
+        }
+        exit;
+    }
+
+    if ($action === 'get_user_locations') {
+        // Only return locations updated in the last 15 minutes
+        $res = $mysqli->query("
+            SELECT ul.*, u.username, u.avatar_url 
+            FROM user_locations ul
+            JOIN users u ON ul.user_id = u.id
+            WHERE ul.updated_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+        ");
+        echo json_encode($res->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
     if ($action === 'get_direct_messages') {
         $partnerId = $_GET['partner_id'] ?? 0;
         $stmt = $mysqli->prepare("
@@ -1099,8 +1181,8 @@ if (isset($_GET['api'])) {
 
     if ($action === 'send_message') {
         verify_csrf(); // Enforce CSRF Check
-        $threadId = $_POST['thread_id'] ?? 0;
-        $groupThreadId = $_POST['group_thread_id'] ?? null;
+        $threadId = !empty($_POST['thread_id']) ? $_POST['thread_id'] : null;
+        $groupThreadId = !empty($_POST['group_thread_id']) ? $_POST['group_thread_id'] : null;
         $content = $_POST['content'] ?? '';
         $replyToId = !empty($_POST['reply_to_id']) ? $_POST['reply_to_id'] : null;
         $attachmentPath = null;
@@ -1163,7 +1245,7 @@ if (isset($_GET['api'])) {
             }
         }
 
-        if ((($threadId || $groupThreadId) && $content !== '') || (($threadId || $groupThreadId) && $attachmentPath)) {
+        if ((($threadId !== null || $groupThreadId !== null) && ($content !== '' || $attachmentPath !== null))) {
             $expiresIn = $_POST['expires_in'] ?? 0;
             $expiresAt = $expiresIn > 0 ? date('Y-m-d H:i:s', time() + (int)$expiresIn) : null;
 
@@ -1187,29 +1269,31 @@ if (isset($_GET['api'])) {
 
             if ($groupThreadId) {
                 notifyRealtimeServer('new_group_message', ['groupThreadId' => $groupThreadId, 'message' => $newMsg]);
-            } else {
+            } elseif ($threadId) {
                 notifyRealtimeServer('new_message', ['threadId' => $threadId, 'message' => $newMsg]);
             }
 
-            // Discord Webhook Integration
-            $wStmt = $mysqli->prepare("SELECT discord_webhook_url FROM threads WHERE id = ?");
-            $wStmt->bind_param("i", $threadId);
-            $wStmt->execute();
-            $wRes = $wStmt->get_result();
-            if ($wRow = $wRes->fetch_assoc()) {
-                if ($wRow['discord_webhook_url']) {
-                    // Get user info for webhook
-                    $uStmt = $mysqli->prepare("SELECT username, avatar_url FROM users WHERE id = ?");
-                    $uStmt->bind_param("i", $userId);
-                    $uStmt->execute();
-                    $uRes = $uStmt->get_result();
-                    if ($uRow = $uRes->fetch_assoc()) {
-                        sendDiscordWebhook($wRow['discord_webhook_url'], $uRow['username'], $content, $uRow['avatar_url'], $attachmentPath);
+            if ($threadId) {
+                // Discord Webhook Integration
+                $wStmt = $mysqli->prepare("SELECT discord_webhook_url FROM threads WHERE id = ?");
+                $wStmt->bind_param("i", $threadId);
+                $wStmt->execute();
+                $wRes = $wStmt->get_result();
+                if ($wRow = $wRes->fetch_assoc()) {
+                    if ($wRow['discord_webhook_url']) {
+                        // Get user info for webhook
+                        $uStmt = $mysqli->prepare("SELECT username, avatar_url FROM users WHERE id = ?");
+                        $uStmt->bind_param("i", $userId);
+                        $uStmt->execute();
+                        $uRes = $uStmt->get_result();
+                        if ($uRow = $uRes->fetch_assoc()) {
+                            sendDiscordWebhook($wRow['discord_webhook_url'], $uRow['username'], $content, $uRow['avatar_url'], $attachmentPath);
+                        }
+                        $uStmt->close();
                     }
-                    $uStmt->close();
                 }
+                $wStmt->close();
             }
-            $wStmt->close();
 
             echo json_encode(['success' => true]);
         } else {
@@ -1549,6 +1633,122 @@ if (isset($_GET['api'])) {
         echo json_encode($res);
         exit;
     }
+
+    if ($action === 'toggle_mute') {
+        verify_csrf();
+        $targetType = $_POST['target_type'] ?? '';
+        $targetId = $_POST['target_id'] ?? 0;
+        $isMuted = ($_POST['is_muted'] ?? '1') === '1';
+
+        if ($isMuted) {
+            $stmt = $mysqli->prepare("INSERT IGNORE INTO user_notification_settings (user_id, target_type, target_id) VALUES (?, ?, ?)");
+            $stmt->bind_param("isi", $userId, $targetType, $targetId);
+            $stmt->execute();
+            echo json_encode(['success' => true, 'muted' => true]);
+        } else {
+            $stmt = $mysqli->prepare("DELETE FROM user_notification_settings WHERE user_id = ? AND target_type = ? AND target_id = ?");
+            $stmt->bind_param("isi", $userId, $targetType, $targetId);
+            $stmt->execute();
+            echo json_encode(['success' => true, 'muted' => false]);
+        }
+        exit;
+    }
+
+    if ($action === 'get_mute_statuses') {
+        $stmt = $mysqli->prepare("SELECT target_type, target_id FROM user_notification_settings WHERE user_id = ?");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    if ($action === 'update_notification_keywords') {
+        verify_csrf();
+        $keywords = $_POST['keywords'] ?? '';
+        $stmt = $mysqli->prepare("UPDATE users SET notification_keywords = ? WHERE id = ?");
+        $stmt->bind_param("si", $keywords, $userId);
+        $stmt->execute();
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    // --- New: Pinned Messages List ---
+    if ($action === 'get_pinned_messages') {
+        $threadId = $_GET['thread_id'] ?? null;
+        $groupThreadId = $_GET['group_thread_id'] ?? null;
+
+        if ($threadId) {
+            $stmt = $mysqli->prepare("
+                SELECT m.*, u.username, u.avatar_url
+                FROM messages m
+                JOIN users u ON m.user_id = u.id
+                WHERE m.thread_id = ? AND m.is_pinned = 1
+                ORDER BY m.created_at DESC
+            ");
+            $stmt->bind_param("i", $threadId);
+        } elseif ($groupThreadId) {
+            $stmt = $mysqli->prepare("
+                SELECT m.*, u.username, u.avatar_url
+                FROM messages m
+                JOIN users u ON m.user_id = u.id
+                WHERE m.group_thread_id = ? AND m.is_pinned = 1
+                ORDER BY m.created_at DESC
+            ");
+            $stmt->bind_param("i", $groupThreadId);
+        } else {
+            echo json_encode([]);
+            exit;
+        }
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    // --- New: Online Users List ---
+    if ($action === 'get_online_users') {
+        $stmt = $mysqli->prepare("
+            SELECT id, username, status, custom_status, avatar_url
+            FROM users
+            WHERE status IN ('online', 'busy', 'not_allowed', 'step_out', 'going_away', 'away')
+            AND id != ?
+            ORDER BY
+                CASE status
+                    WHEN 'online' THEN 1
+                    WHEN 'not_allowed' THEN 2
+                    WHEN 'busy' THEN 3
+                    WHEN 'step_out' THEN 4
+                    WHEN 'going_away' THEN 5
+                    WHEN 'away' THEN 6
+                    ELSE 7
+                END,
+                username ASC
+            LIMIT 50
+        ");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    // --- New: Unread DM Counts ---
+    if ($action === 'get_unread_dm_counts') {
+        $stmt = $mysqli->prepare("
+            SELECT sender_id, COUNT(*) as unread_count
+            FROM direct_messages
+            WHERE receiver_id = ? AND is_read = 0
+            GROUP BY sender_id
+        ");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[$row['sender_id']] = (int)$row['unread_count'];
+        }
+        $total = array_sum($counts);
+        echo json_encode(['counts' => $counts, 'total' => $total]);
+        exit;
+    }
 }
 
 // --- Auth Status Check ---
@@ -1841,7 +2041,60 @@ if ($isLoggedIn) {
         .modal-textarea:focus {
             background: #000;
         }
+
+        #tac-map-container {
+            border-top: 1px solid var(--border-color);
+        }
+
+        .leaflet-container {
+            background: #111 !important;
+        }
+
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-tip {
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-color) !important;
+        }
+
+        .custom-div-icon {
+            background: none !important;
+            border: none !important;
+        }
+
+        .marker-pin {
+            width: 30px;
+            height: 30px;
+            border-radius: 50% 50% 50% 0;
+            background: var(--accent-color);
+            position: absolute;
+            transform: rotate(-45deg);
+            left: 50%;
+            top: 50%;
+            margin: -21px 0 0 -15px;
+            border: 2px solid white;
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .marker-pin::after {
+            content: '';
+            width: 24px;
+            height: 24px;
+            margin: 1px 0 0 1px;
+            background: #fff;
+            position: absolute;
+            border-radius: 50%;
+            z-index: -1;
+        }
+
+        .marker-pin.me {
+            background-color: #10b981;
+            box-shadow: 0 0 15px #10b981;
+        }
     </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 </head>
 
 <body>
@@ -1871,6 +2124,7 @@ if ($isLoggedIn) {
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                             </svg>
                             <span>DM</span>
+                            <span id="dm-unread-badge" style="display:none; background:#ef4444; color:white; border-radius:9999px; font-size:0.65rem; font-weight:700; padding:1px 6px; margin-left:6px; min-width:18px; text-align:center;"></span>
                         </li>
                         <li class="nav-item" data-tab="favorites">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1950,13 +2204,49 @@ if ($isLoggedIn) {
                         <div class="thread-actions" id="thread-actions-block" style="display:flex; margin-left: auto; align-items:center; gap:8px;">
                             <div class="search-input-wrapper" style="position:relative; display:flex; align-items:center; background:rgba(0,0,0,0.2); border-radius:4px; padding:2px 8px; margin-right:8px;">
                                 <input type="text" id="search-input" placeholder="検索..." style="background:transparent; border:none; color:white; font-size:0.85rem; outline:none; width:120px;" onkeydown="if(event.key==='Enter') searchMessages()">
+                                <button class="icon-btn" onclick="toggleAdvancedSearch()" style="padding:2px; height:auto; background:transparent;" title="検索フィルター">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="4" y1="21" x2="4" y2="14"></line>
+                                        <line x1="4" y1="10" x2="4" y2="3"></line>
+                                        <line x1="12" y1="21" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12" y2="3"></line>
+                                        <line x1="20" y1="21" x2="20" y2="16"></line>
+                                        <line x1="20" y1="12" x2="20" y2="3"></line>
+                                        <line x1="1" y1="14" x2="7" y2="14"></line>
+                                        <line x1="9" y1="8" x2="15" y2="8"></line>
+                                        <line x1="17" y1="16" x2="23" y2="16"></line>
+                                    </svg>
+                                </button>
                                 <button class="icon-btn" onclick="searchMessages()" style="padding:2px; height:auto; background:transparent;">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <circle cx="11" cy="11" r="8"></circle>
                                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                                     </svg>
                                 </button>
+                                <!-- Advanced Search Panel -->
+                                <div id="advanced-search-panel" style="display:none; position:absolute; top:36px; right:0; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px; padding:12px; width:220px; z-index:100; box-shadow:0 8px 16px rgba(0,0,0,0.4);">
+                                    <div style="margin-bottom:10px;">
+                                        <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
+                                            <input type="checkbox" id="search-has-attachment"> 添付ファイルあり
+                                        </label>
+                                    </div>
+                                    <div style="margin-bottom:10px;">
+                                        <div style="font-size:0.7rem; color:var(--text-secondary); margin-bottom:4px;">開始日</div>
+                                        <input type="date" id="search-date-from" style="width:100%; height:28px; font-size:0.75rem; background:var(--input-bg); border:1px solid var(--border-color); color:white; border-radius:4px; padding:0 4px;">
+                                    </div>
+                                    <div style="margin-bottom:10px;">
+                                        <div style="font-size:0.7rem; color:var(--text-secondary); margin-bottom:4px;">終了日</div>
+                                        <input type="date" id="search-date-to" style="width:100%; height:28px; font-size:0.75rem; background:var(--input-bg); border:1px solid var(--border-color); color:white; border-radius:4px; padding:0 4px;">
+                                    </div>
+                                    <button class="btn-primary" onclick="searchMessages(); toggleAdvancedSearch();" style="width:100%; padding:6px; font-size:0.8rem;">検索</button>
+                                </div>
                             </div>
+                            <button id="mute-btn" class="icon-btn" onclick="toggleMute()" title="通知をミュート" style="color: var(--text-secondary);">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                                </svg>
+                            </button>
                             <button class="icon-btn" onclick="startMeeting()" title="ビデオ会議">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <polygon points="23 7 16 12 23 17 23 7"></polygon>
@@ -1965,6 +2255,9 @@ if ($isLoggedIn) {
                             </button>
                             <button class="icon-btn" onclick="showAttachmentGallery()" title="添付ファイル一覧">
                                 <img src="assets/img/files.svg" alt="ギャラリー" style="width:16px; height:16px; filter: grayscale(1) invert(1);">
+                            </button>
+                            <button class="icon-btn" onclick="showPinnedMessages()" title="ピン留めメッセージ一覧">
+                                <span style="font-size:14px;">📌</span>
                             </button>
                             <button class="icon-btn" onclick="editCurrentThread()" title="編集">
                                 <img src="assets/img/edit.svg" alt="編集" style="width:16px; height:16px;">
@@ -2051,6 +2344,15 @@ if ($isLoggedIn) {
 
                     <div id="create-group-area" class="create-thread-area" style="border-top: none; display:none;">
                         <button onclick="showGroupCreationDialog()" class="btn-primary" style="padding:0.6rem; width:100%;">新規グループ作成</button>
+                    </div>
+
+                    <!-- Online Users Section -->
+                    <div id="online-users-section" style="border-top: 1px solid var(--border-color); padding: 10px 0;">
+                        <div style="padding: 8px 10px 5px; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleOnlineUsers()">
+                            <span>オンラインユーザー</span>
+                            <span id="online-users-toggle-icon" style="font-size:0.9rem;">▾</span>
+                        </div>
+                        <div id="online-users-list" style="max-height:200px; overflow-y:auto;"></div>
                     </div>
                 </aside>
 
@@ -2241,6 +2543,54 @@ if ($isLoggedIn) {
                 </div>
             </dialog>
 
+            <!-- Pinned Messages Modal -->
+            <dialog id="pinned-messages-modal" class="modal"
+                style="border:none; border-radius:12px; padding:0; background:var(--bg-color); color:var(--text-primary); width:90%; max-width:720px; max-height:80vh;">
+                <div style="display:flex; flex-direction:column; height:100%;">
+                    <div style="padding:16px 20px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; background:var(--bg-secondary);">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:1.2rem;">📌</span>
+                            <h3 style="margin:0; font-size:1rem;">ピン留めメッセージ</h3>
+                        </div>
+                        <button class="close-btn" onclick="document.getElementById('pinned-messages-modal').close()" style="background:none; border:none; color:var(--text-primary); font-size:1.2rem; cursor:pointer;">✕</button>
+                    </div>
+                    <div id="pinned-messages-list" style="flex:1; overflow-y:auto; padding:16px;">
+                        <div style="text-align:center; color:var(--text-secondary); padding:40px 0;">読み込み中...</div>
+                    </div>
+                </div>
+            </dialog>
+
+            <!-- Keyboard Shortcuts Help Modal -->
+            <dialog id="keyboard-shortcuts-modal" class="modal"
+                style="border:none; border-radius:12px; padding:24px; background:var(--bg-secondary); color:var(--text-primary); width:90%; max-width:480px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="margin:0; display:flex; align-items:center; gap:8px;"><span>⌨️</span> キーボードショートカット</h3>
+                    <button onclick="document.getElementById('keyboard-shortcuts-modal').close()" style="background:none; border:none; color:var(--text-primary); font-size:1.2rem; cursor:pointer;">✕</button>
+                </div>
+                <div style="display:grid; gap:10px;">
+                    <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
+                        <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">Esc</kbd>
+                        <span style="font-size:0.9rem;">リプライ/検索結果を閉じる</span>
+                    </div>
+                    <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
+                        <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">/</kbd>
+                        <span style="font-size:0.9rem;">メッセージ検索</span>
+                    </div>
+                    <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
+                        <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">Alt + P</kbd>
+                        <span style="font-size:0.9rem;">ピン留め一覧を表示</span>
+                    </div>
+                    <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
+                        <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">Alt + Shift + ?</kbd>
+                        <span style="font-size:0.9rem;">ショートカット一覧</span>
+                    </div>
+                    <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
+                        <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">Enter</kbd>
+                        <span style="font-size:0.9rem;">メッセージ送信 (Shift+Enterで改行)</span>
+                    </div>
+                </div>
+            </dialog>
+
             <dialog id="thread-settings-modal" class="modal"
                 style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
                 <div class="modal-content" style="min-width:400px;">
@@ -2295,7 +2645,6 @@ if ($isLoggedIn) {
 
                     <div class="modal-actions" style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end;">
                         <button class="btn-secondary" onclick="closeMediaUploadModal()" style="padding:10px 30px;">キャンセル</button>
-                        <button class="btn-secondary" onclick="submitMediaUpload()" style="padding:10px 50px;">送信</button>
                     </div>
                 </div>
             </dialog>
@@ -2367,6 +2716,15 @@ if ($isLoggedIn) {
                             <label class="modal-label">自己紹介</label>
                             <textarea id="edit-bio-input" class="modal-textarea" placeholder="自分について書こう"
                                 oninput="updatePreviewBio(this.value)"><?= htmlspecialchars($currentUserBio) ?></textarea>
+                        </div>
+
+                        <div class="modal-form-group">
+                            <label class="modal-label">通知キーワード (カンマ区切り)</label>
+                            <input type="text" id="edit-keywords-input" class="modal-input" placeholder="メンション,緊急,重要"
+                                value="<?= htmlspecialchars($currentUserData['notification_keywords'] ?? '') ?>">
+                            <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:5px;">
+                                指定した単語が含まれるメッセージを受信した際、ミュート設定に関わらず通知されます。
+                            </p>
                         </div>
 
                         <div class="modal-form-group">
@@ -2462,6 +2820,7 @@ if ($isLoggedIn) {
         const currentUserId = <?= (int) $_SESSION['user_id'] ?>;
         const currentUserName = "<?= htmlspecialchars($currentUser) ?>";
         const currentUserTheme = <?= json_encode($currentUserThemePref ?? (object) []) ?>;
+        let userKeywords = <?= json_encode(array_filter(array_map('trim', explode(',', $currentUserData['notification_keywords'] ?? '')))) ?>;
 
         // Apply theme on early load
         if (currentUserTheme.theme === 'light') document.body.classList.add('light-theme');
@@ -2606,10 +2965,10 @@ if ($isLoggedIn) {
                     const json = JSON.parse(text);
                     return json;
                 } catch (parseError) {
-                    console.error('JSON parse error:', parseError);
+                    console.error('JSON parse error:', parseError, text);
                     return {
                         error: 'サーバーエラー: JSONパースに失敗しました',
-                        details: text.substring(0, 200)
+                        details: text.substring(0, 500)
                     };
                 }
             } catch (fetchError) {
@@ -2645,16 +3004,159 @@ if ($isLoggedIn) {
 
                 catThreads.forEach(t => {
                     const item = document.createElement('div');
-                    item.className = `thread-item ${t.id == currentThreadId ? 'active' : ''}`;
+                    item.className = `thread-item ${!isGroupMode && !isDmMode && t.id == currentThreadId ? 'active' : ''}`;
                     item.textContent = '# ' + t.name;
                     item.onclick = () => switchThread(t.id, t.name, t.creator_id, t.discord_webhook_url, t.category);
                     list.appendChild(item);
                 });
             }
+            loadGroupThreads();
+        }
+
+        async function loadGroupThreads() {
+            const groups = await api('get_group_threads');
+            const list = document.getElementById('group-list');
+            if (!list) return;
+            list.innerText = '';
+            groups.forEach(g => {
+                const item = document.createElement('div');
+                item.className = `thread-item ${isGroupMode && g.id == currentGroupThreadId ? 'active' : ''}`;
+                item.textContent = '👥 ' + g.name;
+                item.onclick = () => switchGroupThread(g.id, g.name);
+                list.appendChild(item);
+            });
+        }
+
+        function switchSidebarTab(tab) {
+            const threadList = document.getElementById('thread-list');
+            const groupList = document.getElementById('group-list');
+            const threadCreate = document.getElementById('create-thread-area');
+            const groupCreate = document.getElementById('create-group-area');
+            const btns = document.querySelectorAll('.sidebar-tabs .tab-btn');
+
+            btns.forEach(b => b.classList.remove('active'));
+
+            if (tab === 'threads') {
+                threadList.style.display = 'block';
+                groupList.style.display = 'none';
+                threadCreate.style.display = 'block';
+                groupCreate.style.display = 'none';
+                btns[0].classList.add('active');
+            } else {
+                threadList.style.display = 'none';
+                groupList.style.display = 'block';
+                threadCreate.style.display = 'none';
+                groupCreate.style.display = 'block';
+                btns[1].classList.add('active');
+            }
+        }
+
+        async function showGroupCreationDialog() {
+            const users = await api('get_all_users');
+            const picker = document.getElementById('group-member-picker');
+            picker.innerHTML = '';
+            users.forEach(u => {
+                const label = document.createElement('label');
+                label.style.display = 'flex';
+                label.style.alignItems = 'center';
+                label.style.gap = '10px';
+                label.style.padding = '5px';
+                label.style.cursor = 'pointer';
+                label.innerHTML = `<input type="checkbox" name="group_members" value="${u.id}"> ${u.username}`;
+                picker.appendChild(label);
+            });
+            document.getElementById('group-creation-modal').showModal();
+        }
+
+        async function submitGroupCreation() {
+            const name = document.getElementById('group-chat-name').value;
+            const checkboxes = document.querySelectorAll('input[name="group_members"]:checked');
+            const ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+            if (!name) return alert('グループ名を入力してください');
+            if (ids.length === 0) return alert('メンバーを1人以上選択してください');
+
+            const body = new FormData();
+            body.append('name', name);
+            body.append('participant_ids', JSON.stringify(ids));
+            body.append('csrf_token', csrfToken);
+            const res = await api('create_group_thread', 'POST', body);
+            if (res.success) {
+                document.getElementById('group-creation-modal').close();
+                await loadGroupThreads();
+            }
+        }
+
+        async function switchGroupThread(id, name) {
+            isGroupMode = true;
+            isDmMode = false;
+            currentGroupThreadId = id;
+            currentThreadId = null;
+            currentPartnerId = null;
+
+            document.getElementById('current-thread-name').innerText = name;
+            document.querySelectorAll('.thread-item').forEach(el => el.classList.remove('active'));
+
+            const container = document.getElementById('message-container');
+            container.innerText = '';
+            container.appendChild(getSkeletonLoader());
+
+            if (socket) {
+                socket.emit('join_group_thread', id);
+            }
+            loadGroupMessages();
+            updateMuteIcon();
+        }
+
+        async function loadGroupMessages() {
+            if (!currentGroupThreadId) return;
+            const msgs = await api(`get_group_messages&thread_id=${currentGroupThreadId}`);
+            const container = document.getElementById('message-container');
+            container.innerText = '';
+
+            if (msgs.length === 0) {
+                const div = document.createElement('div');
+                div.className = 'empty-state';
+                div.innerHTML = '<p>グループメッセージはありません。<br>新しく会話を始めましょう！</p>';
+                container.appendChild(div);
+                return;
+            }
+
+            const msgMap = {};
+            const roots = [];
+
+            msgs.forEach(m => {
+                m.children = [];
+                msgMap[m.id] = m;
+            });
+
+            msgs.forEach(m => {
+                if (m.reply_to_id && msgMap[m.reply_to_id]) {
+                    msgMap[m.reply_to_id].children.push(m);
+                } else {
+                    roots.push(m);
+                }
+            });
+
+            roots.forEach(root => renderMessageNode(root, container));
+
+            // Notification Trigger for Groups
+            const latest = msgs[msgs.length - 1];
+            if (lastMessageId !== 0 && latest.id > lastMessageId && latest.user_id != currentUserId) {
+                sendNotification(`新着グループメッセージ (👥 ${document.getElementById('current-thread-name').innerText})`, `${latest.username}: ${latest.content}`, 'group', currentGroupThreadId);
+            }
+            lastMessageId = latest.id;
+
+            container.scrollTop = container.scrollHeight;
         }
 
         async function switchThread(id, name, creatorId, webhookUrl = null, category = 'General') {
+            isGroupMode = false;
+            isDmMode = false;
             currentThreadId = id;
+            currentGroupThreadId = null;
+            currentPartnerId = null;
+
             currentThreadCreatorId = creatorId;
             currentThreadWebhookUrl = webhookUrl;
             currentThreadCategory = category;
@@ -2671,7 +3173,8 @@ if ($isLoggedIn) {
             cancelReply();
             cancelUpload();
             loadMessages(1000);
-            checkFavoriteStatus(); // Check fav status on switch
+            checkFavoriteStatus();
+            updateMuteIcon();
             api(`set_last_thread&thread_id=${id}`);
         }
 
@@ -2785,11 +3288,14 @@ if ($isLoggedIn) {
             const accentColor = document.getElementById('edit-accent-input').value;
             const theme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
 
+            const keywords = document.getElementById('edit-keywords-input').value;
+
             const body = new FormData();
             body.append('csrf_token', '<?= $_SESSION["csrf_token"] ?>');
             body.append('bio', bio);
             body.append('banner_color', banner);
             body.append('status', status);
+            body.append('notification_keywords', keywords);
             body.append('social_links', JSON.stringify({
                 twitter,
                 github
@@ -2937,7 +3443,7 @@ if ($isLoggedIn) {
                 // Notification Trigger
                 const latest = messages[messages.length - 1];
                 if (lastMessageId !== 0 && latest.id > lastMessageId && latest.user_id != currentUserId) {
-                    sendNotification(`新着メッセージ (#${document.getElementById('current-thread-name').innerText})`, `${latest.username}: ${latest.content}`);
+                    sendNotification(`新着メッセージ (#${document.getElementById('current-thread-name').innerText})`, `${latest.username}: ${latest.content}`, 'thread', currentThreadId);
                 }
                 lastMessageId = latest.id;
             }
@@ -3198,8 +3704,13 @@ if ($isLoggedIn) {
             const expiresSec = timer ? timer.value : 0;
 
             const body = new FormData();
-            body.append('thread_id', currentThreadId);
+            if (isGroupMode) {
+                body.append('group_thread_id', currentGroupThreadId);
+            } else {
+                body.append('thread_id', currentThreadId);
+            }
             body.append('content', content);
+            body.append('csrf_token', csrfToken);
             if (replyToId) body.append('reply_to_id', replyToId);
             if (expiresSec > 0) body.append('expires_in', expiresSec);
             if (fileToUpload) body.append('attachment', fileToUpload);
@@ -3207,7 +3718,7 @@ if ($isLoggedIn) {
             const result = await api('send_message', 'POST', body);
 
             if (result.error) {
-                alert('メッセージの送信に失敗しました: ' + result.error);
+                alert('メッセージの送信に失敗しました: ' + result.error + (result.details ? '\n' + result.details : ''));
                 return;
             }
 
@@ -3217,7 +3728,8 @@ if ($isLoggedIn) {
             cancelReply();
             cancelUpload();
 
-            await loadMessages();
+            if (isGroupMode) await loadGroupMessages();
+            else await loadMessages();
         }
 
         async function deleteMessage(id) {
@@ -3225,7 +3737,8 @@ if ($isLoggedIn) {
             const body = new FormData();
             body.append('message_id', id);
             await api('delete_message', 'POST', body);
-            loadMessages();
+            if (isGroupMode) loadGroupMessages();
+            else loadMessages();
         }
 
         // --- Reply Logic ---
@@ -3466,6 +3979,9 @@ if ($isLoggedIn) {
                 } else if (tabId === 'favorites') {
                     isDmMode = false;
                     loadFavorites();
+                } else if (tabId === 'tactical-map') {
+                    isDmMode = false;
+                    initTacticalMap();
                 }
 
                 // モバイル表示でサイドバーが開いている場合は閉じる
@@ -3584,7 +4100,11 @@ if ($isLoggedIn) {
             const container = document.getElementById('dm-message-container');
             container.innerText = '';
             container.appendChild(getSkeletonLoader());
+            isDmMode = true;
+            isGroupMode = false;
+            currentGroupThreadId = null;
             loadDms(1000);
+            updateMuteIcon();
         }
 
         async function loadHubFriends() {
@@ -3892,7 +4412,7 @@ if ($isLoggedIn) {
             if (dms.length > 0) {
                 const latest = dms[dms.length - 1];
                 if (lastDmId !== 0 && latest.id > lastDmId && latest.sender_id != currentUserId) {
-                    sendNotification(`新着DM: ${latest.username}`, latest.content);
+                    sendNotification(`新着DM: ${latest.username}`, latest.content, 'dm', currentPartnerId);
                 }
                 lastDmId = latest.id;
             }
@@ -4026,8 +4546,14 @@ if ($isLoggedIn) {
             });
 
             socket.on('new_message', (msg) => {
-                if (!isDmMode && currentThreadId == msg.thread_id) {
+                if (!isGroupMode && !isDmMode && currentThreadId == msg.thread_id) {
                     loadMessages();
+                }
+            });
+
+            socket.on('new_group_message', (msg) => {
+                if (isGroupMode && currentGroupThreadId == msg.group_thread_id) {
+                    loadGroupMessages();
                 }
             });
 
@@ -4104,8 +4630,14 @@ if ($isLoggedIn) {
         document.addEventListener('DOMContentLoaded', () => {
             // Initial Load
             loadThreads();
+            loadGroupThreads();
+            loadMuteStatuses();
             initRealtime();
             initPush();
+            // GPS 位置情報取得の初期化 (インターバルを10秒に広げて負荷軽減)
+            if (typeof locationManager !== 'undefined') {
+                locationManager.init('gps-status-header', 10000);
+            }
 
             if (isDmMode && currentPartnerId) {
                 const container = document.getElementById('dm-message-container');
@@ -4130,6 +4662,14 @@ if ($isLoggedIn) {
                 Notification.requestPermission();
             }
 
+            // 新機能: オンラインユーザーリストの初期ロードと定期更新 (15秒おき)
+            loadOnlineUsers();
+            setInterval(loadOnlineUsers, 15000);
+
+            // 新機能: DM未読バッジの初期ロードと定期更新 (10秒おき)
+            updateUnreadDmBadge();
+            setInterval(updateUnreadDmBadge, 10000);
+
             // Polling (Reduced/Removed except for status)
             setInterval(() => {
                 // We keep status update as it's not strictly real-time message dependent
@@ -4137,7 +4677,59 @@ if ($isLoggedIn) {
             }, 5000);
         });
 
-        function sendNotification(title, body) {
+        async function loadMuteStatuses() {
+            const res = await api('get_mute_statuses');
+            mutedTargets = new Set(res.map(m => `${m.target_type}:${m.target_id}`));
+            updateMuteIcon();
+        }
+
+        async function toggleMute() {
+            const targetType = isDmMode ? 'dm' : (isGroupMode ? 'group' : 'thread');
+            const targetId = isDmMode ? currentPartnerId : (isGroupMode ? currentGroupThreadId : currentThreadId);
+            if (!targetId) return;
+
+            const key = `${targetType}:${targetId}`;
+            const isCurrentlyMuted = mutedTargets.has(key);
+            const res = await api('toggle_mute', 'POST', {
+                target_type: targetType,
+                target_id: targetId,
+                is_muted: isCurrentlyMuted ? '0' : '1'
+            });
+
+            if (res.success) {
+                if (isCurrentlyMuted) mutedTargets.delete(key);
+                else mutedTargets.add(key);
+                updateMuteIcon();
+            }
+        }
+
+        function updateMuteIcon() {
+            const btn = document.getElementById('mute-btn');
+            if (!btn) return;
+            const targetType = isDmMode ? 'dm' : (isGroupMode ? 'group' : 'thread');
+            const targetId = isDmMode ? currentPartnerId : (isGroupMode ? currentGroupThreadId : currentThreadId);
+            const key = `${targetType}:${targetId}`;
+
+            if (mutedTargets.has(key)) {
+                btn.style.color = '#f87171';
+                btn.title = 'ミュート中';
+            } else {
+                btn.style.color = 'var(--text-secondary)';
+                btn.title = '通知をミュート';
+            }
+        }
+
+        function sendNotification(title, body, targetType = 'thread', targetId = 0) {
+            const key = `${targetType}:${targetId}`;
+
+            // Check keywords first (Keywords override mute)
+            let isKeywordMatch = false;
+            if (userKeywords.length > 0) {
+                isKeywordMatch = userKeywords.some(k => k && body.includes(k));
+            }
+
+            if (mutedTargets.has(key) && !isKeywordMatch) return;
+
             if (!isWindowFocused && Notification.permission === 'granted') {
                 new Notification(title, {
                     body,
@@ -4147,14 +4739,10 @@ if ($isLoggedIn) {
         }
     </script>
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="js/webrtc.js"></script>
     <script src="js/locate.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // GPS 位置情報取得の初期化
-            locationManager.init('gps-status', 1000);
-
-        });
         // --- Reactions & Pinning ---
         async function toggleReaction(messageId, emoji) {
             const body = new FormData();
@@ -4214,12 +4802,30 @@ if ($isLoggedIn) {
         }
 
         // --- Search Logic ---
+        function toggleAdvancedSearch() {
+            const panel = document.getElementById('advanced-search-panel');
+            if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
         async function searchMessages() {
             const queryInput = document.getElementById('search-input');
             const keyword = queryInput ? queryInput.value.trim() : '';
-            if (!keyword) return;
 
-            const res = await api(`search_messages&thread_id=${currentThreadId}&keyword=${encodeURIComponent(keyword)}`);
+            const hasAttachment = document.getElementById('search-has-attachment').checked ? '1' : '0';
+            const dateFrom = document.getElementById('search-date-from').value;
+            const dateTo = document.getElementById('search-date-to').value;
+
+            if (!keyword && hasAttachment === '0' && !dateFrom && !dateTo) return;
+
+            let url = `search_messages&keyword=${encodeURIComponent(keyword)}&has_attachment=${hasAttachment}`;
+            if (dateFrom) url += `&date_from=${dateFrom}`;
+            if (dateTo) url += `&date_to=${dateTo}`;
+
+            if (isDmMode) url += `&partner_id=${currentPartnerId}`;
+            else if (isGroupMode) url += `&group_thread_id=${currentGroupThreadId}`;
+            else url += `&thread_id=${currentThreadId}`;
+
+            const res = await api(url);
             const list = document.getElementById('search-results-list');
             const overlay = document.getElementById('search-results-overlay');
 
@@ -4236,7 +4842,7 @@ if ($isLoggedIn) {
                 div.className = 'search-result-item';
                 div.innerHTML = `
                 <div style="font-size:0.75rem; color:var(--accent-color); font-weight:700;">${m.username}</div>
-                <div style="font-size:0.85rem; margin:4px 0;">${m.content}</div>
+                <div style="font-size:0.85rem; margin:4px 0;">${m.content || (m.attachment_path ? '[添付ファイル]' : '')}</div>
                 <div style="font-size:0.65rem; opacity:0.6;">${m.created_at}</div>
             `;
                 div.onclick = () => {
@@ -4261,6 +4867,232 @@ if ($isLoggedIn) {
             const overlay = document.getElementById('search-results-overlay');
             if (overlay) overlay.style.display = show ? 'flex' : 'none';
         }
+
+        // ========== 新機能: ピン留めメッセージ一覧 ==========
+        async function showPinnedMessages() {
+            const modal = document.getElementById('pinned-messages-modal');
+            const list = document.getElementById('pinned-messages-list');
+            list.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:40px 0;">読み込み中...</div>';
+            modal.showModal();
+
+            let url = 'get_pinned_messages';
+            if (isGroupMode && currentGroupThreadId) url += `&group_thread_id=${currentGroupThreadId}`;
+            else if (currentThreadId) url += `&thread_id=${currentThreadId}`;
+            else {
+                list.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:40px 0;">スレッドを選択してください</div>';
+                return;
+            }
+
+            const msgs = await api(url);
+            list.innerHTML = '';
+
+            if (!msgs || msgs.length === 0) {
+                list.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:40px 0;">ピン留めされたメッセージはありません</div>';
+                return;
+            }
+
+            msgs.forEach(m => {
+                const div = document.createElement('div');
+                div.style.cssText = 'border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:10px; background:var(--bg-secondary); cursor:pointer; transition: background 0.15s;';
+                div.onmouseenter = () => div.style.background = 'var(--card-bg)';
+                div.onmouseleave = () => div.style.background = 'var(--bg-secondary)';
+
+                const header = document.createElement('div');
+                header.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:6px;';
+                header.innerHTML = `
+                    ${getAvatarElement(m.username, 'online', m.avatar_url).outerHTML}
+                    <span style="font-weight:600; font-size:0.9rem;">${m.username}</span>
+                    <span style="font-size:0.75rem; color:var(--text-secondary);">${m.created_at}</span>
+                `;
+
+                const content = document.createElement('div');
+                content.style.cssText = 'font-size:0.9rem; color:var(--text-primary); padding-left:4px; white-space:pre-wrap; word-break:break-word;';
+                content.innerText = m.content || '[添付ファイル]';
+
+                const actions = document.createElement('div');
+                actions.style.cssText = 'display:flex; gap:8px; margin-top:10px;';
+
+                const jumpBtn = document.createElement('button');
+                jumpBtn.className = 'btn-secondary';
+                jumpBtn.style.cssText = 'padding:4px 12px; font-size:0.8rem;';
+                jumpBtn.innerText = '↗️ ジャンプ';
+                jumpBtn.onclick = () => {
+                    modal.close();
+                    const target = document.getElementById('message-' + m.id);
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                        target.style.backgroundColor = 'rgba(99, 102, 241, 0.25)';
+                        setTimeout(() => target.style.backgroundColor = '', 2000);
+                    }
+                };
+
+                const unpinBtn = document.createElement('button');
+                unpinBtn.className = 'btn-secondary';
+                unpinBtn.style.cssText = 'padding:4px 12px; font-size:0.8rem; color:#f87171;';
+                unpinBtn.innerText = '📌 解除';
+                unpinBtn.onclick = async () => {
+                    const body = new FormData();
+                    body.append('message_id', m.id);
+                    await api('toggle_pin', 'POST', body);
+                    showPinnedMessages();
+                    if (!isDmMode && !isGroupMode) loadMessages();
+                };
+
+                actions.appendChild(jumpBtn);
+                actions.appendChild(unpinBtn);
+
+                div.appendChild(header);
+                div.appendChild(content);
+                div.appendChild(actions);
+                list.appendChild(div);
+            });
+        }
+
+        // ========== 新機能: オンラインユーザーリスト ==========
+        let onlineUsersCollapsed = false;
+
+        function toggleOnlineUsers() {
+            onlineUsersCollapsed = !onlineUsersCollapsed;
+            const list = document.getElementById('online-users-list');
+            const icon = document.getElementById('online-users-toggle-icon');
+            if (list) list.style.display = onlineUsersCollapsed ? 'none' : 'block';
+            if (icon) icon.innerText = onlineUsersCollapsed ? '▸' : '▾';
+        }
+
+        async function loadOnlineUsers() {
+            if (onlineUsersCollapsed) return;
+            const list = document.getElementById('online-users-list');
+            if (!list) return;
+
+            const users = await api('get_online_users');
+            list.innerHTML = '';
+
+            if (!users || users.length === 0) {
+                list.innerHTML = '<div style="padding:6px 12px; font-size:0.8rem; color:var(--text-secondary);">オンラインユーザーなし</div>';
+                return;
+            }
+
+            const statusLabels = {
+                online: '連絡可能',
+                busy: '取り込み中',
+                not_allowed: '応答不可',
+                step_out: '一時退席中',
+                going_away: '外出中',
+                away: '退席中'
+            };
+
+            users.forEach(u => {
+                const item = document.createElement('div');
+                item.style.cssText = 'display:flex; align-items:center; gap:8px; padding:5px 10px; cursor:pointer; border-radius:4px; transition:background 0.15s;';
+                item.onmouseenter = () => item.style.background = 'var(--hover-bg, rgba(255,255,255,0.05))';
+                item.onmouseleave = () => item.style.background = 'transparent';
+
+                const avatarEl = getAvatarElement(u.username, u.status || 'online', u.avatar_url);
+                avatarEl.style.transform = 'scale(0.8)';
+                avatarEl.style.transformOrigin = 'left center';
+
+                const info = document.createElement('div');
+                info.style.cssText = 'flex:1; min-width:0;';
+                info.innerHTML = `
+                    <div style="font-size:0.8rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${u.username}</div>
+                    <div style="font-size:0.68rem; color:var(--text-secondary);">${statusLabels[u.status] || u.status}</div>
+                `;
+
+                item.appendChild(avatarEl);
+                item.appendChild(info);
+                item.onclick = () => showUserProfile(u.id, u.username);
+                list.appendChild(item);
+            });
+        }
+
+        // ========== 新機能: DM未読バッジ ==========
+        async function updateUnreadDmBadge() {
+            const res = await api('get_unread_dm_counts');
+            if (!res || res.error) return;
+
+            const badge = document.getElementById('dm-unread-badge');
+            if (!badge) return;
+
+            if (res.total > 0) {
+                badge.style.display = 'inline-block';
+                badge.innerText = res.total > 99 ? '99+' : res.total;
+            } else {
+                badge.style.display = 'none';
+                badge.innerText = '';
+            }
+
+            // フレンドリストの各アイテムにもバッジを付与
+            if (res.counts) {
+                Object.entries(res.counts).forEach(([senderId, count]) => {
+                    const el = document.getElementById(`hub-friend-unread-${senderId}`);
+                    if (el) {
+                        el.style.display = count > 0 ? 'inline-block' : 'none';
+                        el.innerText = count > 9 ? '9+' : count;
+                    }
+                });
+            }
+        }
+
+        // フレンドリストにバッジを付与するためloadHubFriendsを拡張
+        const _origLoadHubFriends = loadHubFriends;
+        loadHubFriends = async function() {
+            await _origLoadHubFriends();
+            // バッジ要素を各フレンドアイテムに追加
+            const friends = document.querySelectorAll('#hub-friend-list .thread-item');
+            // Note: バッジは動的に未読カウント取得後に反映されるため再取得
+            await updateUnreadDmBadge();
+        };
+
+        // ========== 新機能: キーボードショートカット ==========
+        document.addEventListener('keydown', (e) => {
+            const focused = document.activeElement;
+            const isInputFocused = focused && (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA' || focused.tagName === 'SELECT');
+
+            // Esc: リプライキャンセル / 検索結果を閉じる / モーダルを閉じる
+            if (e.key === 'Escape') {
+                const overlay = document.getElementById('search-results-overlay');
+                if (overlay && overlay.style.display !== 'none') {
+                    toggleSearch(false);
+                    return;
+                }
+                if (replyToId) {
+                    cancelReply();
+                    return;
+                }
+                // 開いているモーダルを閉じる
+                const openDialogs = document.querySelectorAll('dialog[open]');
+                openDialogs.forEach(d => d.close());
+                return;
+            }
+
+            // Alt+? : キーボードショートカット一覧
+            if (e.altKey && e.key === '?') {
+                e.preventDefault();
+                document.getElementById('keyboard-shortcuts-modal').showModal();
+                return;
+            }
+
+            // Alt+P : ピン留め一覧
+            if (e.altKey && (e.key === 'p' || e.key === 'P')) {
+                e.preventDefault();
+                showPinnedMessages();
+                return;
+            }
+
+            // / : 入力フィールドにフォーカスがない場合、検索入力にフォーカス
+            if (e.key === '/' && !isInputFocused) {
+                e.preventDefault();
+                const searchInput = document.getElementById('search-input');
+                if (searchInput) {
+                    searchInput.focus();
+                    searchInput.select();
+                }
+                return;
+            }
+        });
 
         // --- Typing Indicator ---
         let typingTimeout = null;
@@ -4338,11 +5170,87 @@ if ($isLoggedIn) {
             const res = await api('edit_message', 'POST', body);
             if (res.success) {
                 if (isDm) loadDms();
+                else if (isGroupMode) loadGroupMessages();
                 else loadMessages();
             } else {
                 alert('編集に失敗しました');
             }
         }
+
+        let tacticalMap = null;
+        let mapMarkers = {};
+
+        function initTacticalMap() {
+            if (tacticalMap) {
+                tacticalMap.remove();
+                tacticalMap = null;
+            }
+
+            // Default to Tokyo if no GPS
+            const lat = locationManager.gpsData.lat || 35.6812;
+            const lon = locationManager.gpsData.lon || 139.7671;
+
+            tacticalMap = L.map('tac-map-container', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([lat, lon], 15);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 20
+            }).addTo(tacticalMap);
+
+            L.control.zoom({
+                position: 'bottomright'
+            }).addTo(tacticalMap);
+
+            updateMapMarkers();
+            // 既にインターバルが設定されている場合は重複を避ける（本来は一箇所で管理すべきだが）
+        }
+
+        async function updateMapMarkers() {
+            if (!tacticalMap || !document.getElementById('tactical-map-pane').classList.contains('active')) return;
+
+            const locations = await api('get_user_locations');
+
+            const statusHeader = document.getElementById('gps-status-header');
+            if (statusHeader && locationManager.gpsData.lat) {
+                statusHeader.innerText = `自機位置: ${locationManager.gpsData.lat.toFixed(4)}, ${locationManager.gpsData.lon.toFixed(4)}`;
+            }
+
+            const currentIds = locations.map(l => l.user_id.toString());
+            Object.keys(mapMarkers).forEach(id => {
+                if (!currentIds.includes(id)) {
+                    tacticalMap.removeLayer(mapMarkers[id]);
+                    delete mapMarkers[id];
+                }
+            });
+
+            locations.forEach(loc => {
+                const id = loc.user_id;
+                const latlon = [loc.lat, loc.lon];
+                const isMe = id == currentUserId;
+
+                if (mapMarkers[id]) {
+                    mapMarkers[id].setLatLng(latlon);
+                } else {
+                    const icon = L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div class="marker-pin ${isMe ? 'me' : ''}" style="background-image: url('${loc.avatar_url || 'assets/img/default-avatar.png'}')"></div>`,
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 30]
+                    });
+
+                    const marker = L.marker(latlon, {
+                        icon: icon
+                    }).addTo(tacticalMap);
+                    marker.bindPopup(`<strong>${loc.username}</strong><br>精度: ${loc.accuracy}m<br>更新: ${loc.updated_at}`);
+                    mapMarkers[id] = marker;
+                }
+            });
+        }
+
+        // 定期更新用のインターバルを設定（一度だけ）
+        setInterval(updateMapMarkers, 10000);
 
         async function showAttachmentGallery() {
             const modal = document.getElementById('gallery-modal');

@@ -168,18 +168,15 @@ class LocationManager {
             return;
         }
 
-        fetch('tac-ops-dashboard/backend/api/gps.php', {
+        const body = new FormData();
+        body.append('lat', lat);
+        body.append('lon', lon);
+        body.append('accuracy', accuracy);
+        body.append('altitude', altitude);
+
+        fetch('index.php?api=update_location', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                lat: lat,
-                lon: lon,
-                accuracy: accuracy,
-                altitude: altitude,
-                timestamp: new Date().toISOString()
-            })
+            body: body
         })
             .catch(err => {
                 console.error('GPS送信エラー:', err);

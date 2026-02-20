@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYCS リリースノート</title>
+    <meta name="description" content="SYCS チャットアプリケーションのリリースノート・変更履歴">
+    <link rel="icon" href="assets/img/SYCS_favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d0f14;
+            --bg2: #13161e;
+            --bg3: #1a1e28;
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --accent: #6366f1;
+            --accent2: #818cf8;
+            --green: #10b981;
+            --yellow: #f59e0b;
+            --red: #ef4444;
+            --blue: #3b82f6;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.7;
+        }
+
+        /* ---- Header ---- */
+        header {
+            background: linear-gradient(135deg, #1a1e30 0%, #0d0f14 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 60px 24px 48px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 60% 80% at 50% -20%, rgba(99, 102, 241, 0.18), transparent);
+            pointer-events: none;
+        }
+
+        .header-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .header-logo img {
+            width: 40px;
+            height: 40px;
+        }
+
+        .header-logo span {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 30%, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #fff 40%, var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+
+        header p {
+            color: var(--muted);
+            font-size: 1rem;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        /* ---- Layout ---- */
+        main {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 48px 24px 96px;
+        }
+
+        /* ---- Release Card ---- */
+        .release {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 32px;
+            transition: border-color 0.2s;
+        }
+
+        .release:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        .release-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 24px 28px;
+            background: var(--bg3);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .version-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 500;
+            background: linear-gradient(135deg, var(--accent), #7c3aed);
+            color: white;
+            padding: 4px 14px;
+            border-radius: 9999px;
+            white-space: nowrap;
+        }
+
+        .release-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .release-date {
+            font-size: 0.8rem;
+            color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+        }
+
+        .label-new {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .label-fix {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--blue);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .label-remove {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .label-improve {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--yellow);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .type-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .release-body {
+            padding: 28px;
+        }
+
+        /* ---- Section ---- */
+        .section {
+            margin-bottom: 28px;
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-title .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .dot-green {
+            background: var(--green);
+        }
+
+        .dot-blue {
+            background: var(--blue);
+        }
+
+        .dot-red {
+            background: var(--red);
+        }
+
+        .dot-yellow {
+            background: var(--yellow);
+        }
+
+        ul {
+            list-style: none;
+            display: grid;
+            gap: 8px;
+        }
+
+        li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        li .icon {
+            flex-shrink: 0;
+            font-size: 1rem;
+            margin-top: 2px;
+        }
+
+        li .detail {
+            color: var(--muted);
+            font-size: 0.82rem;
+            display: block;
+            margin-top: 2px;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82em;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 1px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        kbd {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8em;
+            background: var(--bg3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-bottom-width: 2px;
+            padding: 1px 7px;
+            border-radius: 5px;
+        }
+
+        /* ---- Footer ---- */
+        footer {
+            text-align: center;
+            padding: 32px 24px;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        footer a {
+            color: var(--accent2);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .release-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="header-logo">
+            <img src="assets/img/SYCS_Logo.svg" alt="SYCS Logo">
+            <span>SYCS</span>
+        </div>
+        <h1>リリースノート</h1>
+        <p>SYCS チャットアプリケーションの変更履歴と新機能のまとめ</p>
+    </header>
+
+    <main>
+
+        <!-- ===== v1.0.82 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.82</span>
+                <span class="release-title">新機能追加・UX 強化アップデート</span>
+                <span class="release-date">2026-02-21</span>
+            </div>
+            <div class="release-body">
+
+                <!-- 新機能 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能 (New Features)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">📌</span>
+                            <div>
+                                <strong>ピン留めメッセージ一覧パネル</strong>
+                                <span
+                                    class="detail">スレッドヘッダーのボタンから、現在のスレッド内のピン留め済みメッセージをモーダルで一覧表示。各メッセージへのジャンプ・ピン解除も可能。グループスレッドにも対応。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🌐</span>
+                            <div>
+                                <strong>オンラインユーザーリスト</strong>
+                                <span class="detail">スレッドブラウザのサイドバー下部に、現在オンラインの他ユーザーを一覧表示。ステータス順（連絡可能 → 取込中 → 応答不可 →
+                                    退席中）でソート。15秒おきに自動更新。クリックでプロフィール表示。折りたたみ可能。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🔴</span>
+                            <div>
+                                <strong>DM未読バッジ</strong>
+                                <span class="detail">サイドバーの「DM」タブに未読メッセージ数の赤いバッジを表示。10秒ごとに自動更新。99件超は「99+」と表示。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">⌨️</span>
+                            <div>
+                                <strong>キーボードショートカット</strong>
+                                <span class="detail">
+                                    <kbd>Esc</kbd> リプライキャンセル / 検索結果を閉じる / モーダルを閉じる<br>
+                                    <kbd>/</kbd> 入力欄外から検索フォームにフォーカス<br>
+                                    <kbd>Alt+P</kbd> ピン留め一覧を開く<br>
+                                    <kbd>Alt+Shift+?</kbd> ショートカット一覧を表示
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🔍</span>
+                            <div>
+                                <strong>詳細検索フィルター（添付・日付範囲）</strong>
+                                <span
+                                    class="detail">検索バーに詳細フィルターボタンを追加。「添付ファイルあり」チェックボックスと日付範囲（開始日・終了日）でメッセージを絞り込み可能。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🔔</span>
+                            <div>
+                                <strong>ミュート機能（スレッド / DM / グループ）</strong>
+                                <span
+                                    class="detail">チャットヘッダーのベルボタンから、スレッド・DM・グループチャットごとに通知をミュート。キーワードが一致する場合はミュートを無視してプッシュ通知を届ける仕様。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- バックエンド -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-blue"></span> バックエンド API 追加
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">⚙️</span>
+                            <div>
+                                <code>get_pinned_messages</code> — スレッド・グループのピン留めメッセージ一覧を取得
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">⚙️</span>
+                            <div>
+                                <code>get_online_users</code> — ステータス順にオンラインユーザー一覧を最大50件取得
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">⚙️</span>
+                            <div>
+                                <code>get_unread_dm_counts</code> — 送信者別・合計の未読DM件数を返す
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">⚙️</span>
+                            <div>
+                                <code>toggle_mute</code> / <code>get_mute_statuses</code> — ミュート設定の保存・取得
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">⚙️</span>
+                            <div>
+                                <code>search_messages</code> 拡張 —
+                                <code>has_attachment</code>・<code>date_from</code>・<code>date_to</code> パラメータを追加
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">⚙️</span>
+                            <div>
+                                <code>update_notification_keywords</code> — キーワード通知の保存 API
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 削除 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-red"></span> 削除 (Removed)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🗑️</span>
+                            <div>
+                                <strong><code>add_notif_col.php</code> を削除</strong>
+                                <span class="detail"><code>notification_keywords</code> カラムの追加は <code>index.php</code> の
+                                    DB スキーマ初期化で自動処理されるため、1回限りのマイグレーションスクリプトを削除。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </article>
+
+        <!-- ===== v1.0.81 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.81</span>
+                <span class="release-title">Login System Rebuild</span>
+                <span class="release-date">2026-02-20</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-yellow"></span> 改善・修正
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🔒</span>
+                            <div>
+                                <strong>ログインシステム全面リビルド</strong>
+                                <span class="detail">認証フローを整理し、セッション管理・CSRF保護の安定性を向上。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.80 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.80</span>
+                <span class="release-title">Security: Remove hardcoded secrets</span>
+                <span class="release-date">2026-02-20</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-red"></span> セキュリティ修正
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🔐</span>
+                            <div>
+                                <strong>ハードコードされたシークレットを除去</strong>
+                                <span class="detail">APIキー・シークレット等を <code>.env</code> ファイルへ移行。<code>.gitignore</code>
+                                    を修正してリポジトリへのシークレット混入を防止。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+    </main>
+
+    <footer>
+        <p>SYCS &copy; 2026 &nbsp;|&nbsp; <a href="index.php">アプリに戻る</a></p>
+    </footer>
+
+</body>
+
+</html>
