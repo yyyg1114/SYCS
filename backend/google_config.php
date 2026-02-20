@@ -1,9 +1,8 @@
 <?php
 // backend/google_config.php
-require_once __DIR__ . '/EnvLoader.php';
 
-define('GOOGLE_CLIENT_ID', getenv('GOOGLE_CLIENT_ID'));
-define('GOOGLE_CLIENT_SECRET', getenv('GOOGLE_CLIENT_SECRET'));
+define('GOOGLE_CLIENT_ID', '152940732317-aohoelvdg1k122p7q14h4u2dka9bsqur.apps.googleusercontent.com');
+define('GOOGLE_CLIENT_SECRET', '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');
 
 function getGoogleRedirectUri()
 {

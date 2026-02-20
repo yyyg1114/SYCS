@@ -1,9 +1,8 @@
 <?php
 // backend/outlook_config.php
-require_once __DIR__ . '/EnvLoader.php';
 
-define('OUTLOOK_CLIENT_ID', getenv('OUTLOOK_CLIENT_ID') ?: 'YOUR_OUTLOOK_CLIENT_ID');
-define('OUTLOOK_CLIENT_SECRET', getenv('OUTLOOK_CLIENT_SECRET') ?: 'YOUR_OUTLOOK_CLIENT_SECRET');
+define('OUTLOOK_CLIENT_ID', 'YOUR_OUTLOOK_CLIENT_ID');
+define('OUTLOOK_CLIENT_SECRET', 'YOUR_OUTLOOK_CLIENT_SECRET');
 
 function getOutlookRedirectUri()
 {

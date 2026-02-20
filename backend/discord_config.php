@@ -1,10 +1,9 @@
 <?php
 // backend/discord_config.php
-require_once __DIR__ . '/EnvLoader.php';
 
-define('DISCORD_CLIENT_ID', getenv('DISCORD_CLIENT_ID'));
-define('DISCORD_CLIENT_SECRET', getenv('DISCORD_CLIENT_SECRET'));
-define('DISCORD_BOT_TOKEN', getenv('DISCORD_BOT_TOKEN'));
+define('DISCORD_CLIENT_ID', '1313813135487930368');
+define('DISCORD_CLIENT_SECRET', 'T_Bb2xIVcNooySoDpTNh-VqceyAiZtTq');
+define('DISCORD_BOT_TOKEN', 'MTMxMzgxMzEzNTQ4NzkzMDM2OA.GYFT7w.Nsg78LVvK67wvxVpcR1hi1oIUwVqG1l6v71DeA');
 
 // Redirect URI will be dynamically generated or set here
 // For SYCS, we'll use index.php?api=discord_callback
