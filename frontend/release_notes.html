@@ -510,6 +510,725 @@
             </div>
         </article>
 
+        <!-- ===== v1.0.79 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.79</span>
+                <span class="release-title">WebSocket リアルタイム通信への移行</span>
+                <span class="release-date">2026-02-20</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能 / 改善
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">⚡</span>
+                            <div>
+                                <strong>ポーリングから WebSocket (Socket.IO) へ移行</strong>
+                                <span class="detail">メッセージ取得・タイピング表示などのリアルタイム通信をポーリング方式から WebSocket
+                                    ベースに全面移行。サーバー負荷の大幅削減とリアルタイム性を向上。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.78 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.78</span>
+                <span class="release-title">テーマ切り替え等の機能追加</span>
+                <span class="release-date">2026-02-16</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🎨</span>
+                            <div>
+                                <strong>テーマ切り替え機能</strong>
+                                <span class="detail">ダークテーマ・ライトテーマなどの外観切り替え機能を追加。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">✨</span>
+                            <div>
+                                <strong>その他 UI 改善</strong>
+                                <span class="detail">各種 UI コンポーネントの改善・機能追加。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.77 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.77</span>
+                <span class="release-title">OAuth ソーシャルログイン対応</span>
+                <span class="release-date">2026-02-16</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🔑</span>
+                            <div>
+                                <strong>OAuth 認証の追加</strong>
+                                <span class="detail">Google・Discord・Apple・Outlook アカウントによるソーシャルログイン機能を実装。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.76 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.76</span>
+                <span class="release-title">ローディングアニメーション追加</span>
+                <span class="release-date">2026-02-16</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">⏳</span>
+                            <div>
+                                <strong>ローディングアニメーション</strong>
+                                <span class="detail">データ読み込み中にスケルトンローダー等のアニメーションを表示し、ユーザー体験を向上。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.75 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.75</span>
+                <span class="release-title">バックドア対策</span>
+                <span class="release-date">2026-02-15</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-red"></span> セキュリティ修正
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🛡️</span>
+                            <div>
+                                <strong>バックドア脆弱性への対策を実施</strong>
+                                <span class="detail">不正アクセスの経路となりうるバックドアを特定・修正。認証チェックの強化。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.74 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.74</span>
+                <span class="release-title">CSRF セキュリティパッチ</span>
+                <span class="release-date">2026-02-07</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-red"></span> セキュリティ修正
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🔐</span>
+                            <div>
+                                <strong><code>signup.php</code> に CSRF 保護を適用</strong>
+                                <span class="detail">サインアップフォームにCSRFトークン検証を追加し、クロスサイトリクエストフォージェリ攻撃を防止。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.73 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.73</span>
+                <span class="release-title">ファイルアップロード機能</span>
+                <span class="release-date">2026-02-07</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">📎</span>
+                            <div>
+                                <strong>ファイルアップロード機能を実装</strong>
+                                <span
+                                    class="detail">チャット内で画像・動画・ドキュメント等のファイルを添付して送信可能に。アップロードプレビュー・ドラッグ＆ドロップにも対応。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.72 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.72</span>
+                <span class="release-title">ミーティング機能改善・アイコン変更</span>
+                <span class="release-date">2026-02-07</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-yellow"></span> 改善
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">📹</span>
+                            <div>
+                                <strong>Web ミーティング機能の改善</strong>
+                                <span class="detail">ミーティング機能の UI・動作を改善。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🖼️</span>
+                            <div>
+                                <strong>アイコンの編集</strong>
+                                <span class="detail">各種アクションアイコンの見た目を更新。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.71 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.71</span>
+                <span class="release-title">Web ミーティングセキュリティパッチ</span>
+                <span class="release-date">2026-02-06</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-red"></span> セキュリティ修正
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🔒</span>
+                            <div>
+                                <strong>Web ミーティング機能のセキュリティアップデート</strong>
+                                <span class="detail">ミーティングルーム作成・参加時の認証チェックを強化。不正なシグナリングデータの送信を防止。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.70 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.70</span>
+                <span class="release-title">Web ミーティング機能を実装</span>
+                <span class="release-date">2026-02-06</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">📹</span>
+                            <div>
+                                <strong>WebRTC を使った Web ミーティング</strong>
+                                <span class="detail">ビデオ通話・音声通話・画面共有機能を搭載。ミーティングルームの作成・参加・退出に対応。カメラ / マイク /
+                                    画面共有のオン・オフ切り替え。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.69 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.69</span>
+                <span class="release-title">レスポンシブデザイン対応</span>
+                <span class="release-date">2026-02-06</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-yellow"></span> 改善
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">📱</span>
+                            <div>
+                                <strong>レスポンシブデザインへの対応を実施</strong>
+                                <span class="detail">モバイル端末・タブレットでも快適に利用できるようレイアウトを最適化。サイドバーの折りたたみ・メディアクエリ対応。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.68 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.68</span>
+                <span class="release-title">チャットリンクからプロフィールアクセス</span>
+                <span class="release-date">2026-02-06</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">👤</span>
+                            <div>
+                                <strong>チャット内ユーザー名からプロフィールへアクセス</strong>
+                                <span class="detail">メッセージ内のユーザー名をクリックすることで、そのユーザーのプロフィールを表示可能に。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.67 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.67</span>
+                <span class="release-title">メール認証・メールアドレス更新</span>
+                <span class="release-date">2026-02-05</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">✉️</span>
+                            <div>
+                                <strong>メール認証済みの確認とメールアドレス更新</strong>
+                                <span class="detail">メールアドレスの変更機能と、変更時の再認証フローを実装。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.65 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.64 – v1.0.66</span>
+                <span class="release-title">ステータス機能・メール送信統合</span>
+                <span class="release-date">2026-02-03</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🟢</span>
+                            <div>
+                                <strong>ユーザーステータス機能を追加</strong>
+                                <span class="detail">オンライン / 取り込み中 / 離席中 / 外出中 / カスタムステータスの設定・表示に対応。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">📧</span>
+                            <div>
+                                <strong>メール送信機能の統合</strong>
+                                <span class="detail">メール送信機能ブランチの統合。送信元メールアドレスの更新。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.62 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.62 – v1.0.63</span>
+                <span class="release-title">アカウント画像の変更・削除機能</span>
+                <span class="release-date">2026-02-02</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🖼️</span>
+                            <div>
+                                <strong>アカウント画像（アバター）の変更と削除機能を実装</strong>
+                                <span class="detail">プロフィール設定からアバター画像のアップロード・プレビュー・削除が可能に。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.60 – v1.0.61 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.60 – v1.0.61</span>
+                <span class="release-title">メール認証・基盤安定化</span>
+                <span class="release-date">2026-02-02</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-yellow"></span> 改善
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">📧</span>
+                            <div>
+                                <strong>送信元メールアドレスの更新</strong>
+                                <span class="detail">認証メール等の送信元アドレスを正式なものに更新。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🛠️</span>
+                            <div>
+                                <strong>基盤の安定性向上</strong>
+                                <span class="detail">バグ修正・コード整理を実施。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.55 – v1.0.59 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.55 – v1.0.59</span>
+                <span class="release-title">メール認証機能の実装</span>
+                <span class="release-date">2026-02-01</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">✉️</span>
+                            <div>
+                                <strong>メール認証システムの実装</strong>
+                                <span class="detail">PHPMailer を導入し、ユーザー登録時にメールアドレス認証を必須化。認証トークンの生成・検証・有効期限管理を実装。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">📄</span>
+                            <div>
+                                <strong>メール設定のサンプル化</strong>
+                                <span class="detail"><code>mail_config_sample.php</code> を提供し、デプロイ時の設定手順を簡素化。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.50 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.50</span>
+                <span class="release-title">中間リリース</span>
+                <span class="release-date">2026-02-01</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-yellow"></span> 改善
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🛠️</span>
+                            <div>
+                                <strong>コードベースの整理・安定化</strong>
+                                <span class="detail">不要なアップロードファイルの削除、コード整理を実施。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.40 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.40</span>
+                <span class="release-title">パッチ・バグ修正</span>
+                <span class="release-date">2026-01-21</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-blue"></span> バグ修正
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🐛</span>
+                            <div>
+                                <strong>各種パッチ適用</strong>
+                                <span class="detail">スレッドモデルの修正・バグフィックス・安定性向上パッチを適用。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.3 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.3</span>
+                <span class="release-title">UI 改善・アイコンボタン修正</span>
+                <span class="release-date">2026-01-15</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-yellow"></span> 改善
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🖱️</span>
+                            <div>
+                                <strong>アイコンボタンの表示修正</strong>
+                                <span class="detail">アクションアイコンの表示を修正し、操作性を向上。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.2 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.2</span>
+                <span class="release-title">軽微な修正</span>
+                <span class="release-date">2026-01-14</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-yellow"></span> 改善
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🛠️</span>
+                            <div>
+                                <strong>コードベースの軽微な修正・安定化</strong>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.1 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.1</span>
+                <span class="release-title">初回パッチ</span>
+                <span class="release-date">2026-01-14</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-blue"></span> バグ修正
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🐛</span>
+                            <div>
+                                <strong>初回リリース後のバグ修正</strong>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.0.0 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.0.0</span>
+                <span class="release-title">🎉 正式リリース</span>
+                <span class="release-date">2026-01-13</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 正式リリース
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🎉</span>
+                            <div>
+                                <strong>SYCS v1.0.0 正式リリース</strong>
+                                <span class="detail">チャット・スレッド・ダイレクトメッセージ・ユーザー認証などのコア機能を搭載した初の安定版。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v0.8.x ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v0.8.0 – v0.8.8</span>
+                <span class="release-title">リリース候補・機能整備</span>
+                <span class="release-date">2026-01-08 – 2026-01-12</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 追加・改善
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">💬</span>
+                            <div>
+                                <strong>v0.8.8 — <code>chat.php</code> を作成</strong>
+                                <span class="detail">チャット画面の専用ページを実装。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🎨</span>
+                            <div>
+                                <strong>v0.8.5 – v0.8.7 — CSS・スタイルの修正</strong>
+                                <span class="detail">ログインページ・フロントエンド全般のスタイルを改善。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🧹</span>
+                            <div>
+                                <strong>v0.8.2 – v0.8.4 — 不要なスクリプト削除・軽微な修正</strong>
+                                <span class="detail"><code>index.php</code> から不要なスクリプトを削除。フロントエンド各ファイルの軽微な修正。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🗑️</span>
+                            <div>
+                                <strong>v0.8.0 – v0.8.1 — アカウント削除ページ追加・修正</strong>
+                                <span class="detail">アカウント削除等の管理ページを追加。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v0.1.0 – v0.7.0 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v0.1.0 – v0.7.0</span>
+                <span class="release-title">初期開発フェーズ</span>
+                <span class="release-date">2026-01-07 – 2026-01-08</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 開発マイルストーン
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🏗️</span>
+                            <div>
+                                <strong>v0.7.0 — プレリリース候補</strong>
+                                <span class="detail">主要機能の実装完了。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🏗️</span>
+                            <div>
+                                <strong>v0.6.0 — 機能拡張</strong>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🏗️</span>
+                            <div>
+                                <strong>v0.5.0 — 中間マイルストーン</strong>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🏗️</span>
+                            <div>
+                                <strong>v0.4.0 – v0.4.1 — 基本機能実装</strong>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🏗️</span>
+                            <div>
+                                <strong>v0.3.0 — コア機能開発</strong>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🏗️</span>
+                            <div>
+                                <strong>v0.2.0 — 初期開発</strong>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🌱</span>
+                            <div>
+                                <strong>v0.1.0 — 初回コミット・プロジェクト開始</strong>
+                                <span class="detail">SYCS プロジェクトの初期構築。README・基本ファイル構成のセットアップ。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
     </main>
 
     <footer>
