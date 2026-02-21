@@ -324,6 +324,117 @@
 
     <main>
 
+        <!-- ===== v1.1.0 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.1.0</span>
+                <span class="release-title">PWA（Progressive Web App）対応</span>
+                <span class="release-date">2026-02-21</span>
+            </div>
+            <div class="release-body">
+
+                <!-- 新機能 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能 (New Features)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">📱</span>
+                            <div>
+                                <strong>PWA（Progressive Web App）化</strong>
+                                <span class="detail">SYCSをホーム画面に追加して、ネイティブアプリのように利用可能に。スタンドアロンモードでの表示に対応。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">📦</span>
+                            <div>
+                                <strong>Web App Manifest (<code>manifest.json</code>) を新規作成</strong>
+                                <span
+                                    class="detail">アプリ名・テーマカラー（<code>#6366f1</code>）・アイコン・表示モード（<code>standalone</code>）・ショートカット等を定義。iOS
+                                    / Android / デスクトップでのインストールに対応。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">⚡</span>
+                            <div>
+                                <strong>Service Worker を大幅拡張</strong>
+                                <span class="detail">既存のプッシュ通知専用 <code>sw.js</code> を、フルPWA対応のService
+                                    Workerに拡張。静的アセットの事前キャッシュ、キャッシュ戦略の使い分け（API→キャッシュなし / 静的→キャッシュファースト /
+                                    HTML→ネットワークファースト）、古いキャッシュの自動クリーンアップを実装。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">📡</span>
+                            <div>
+                                <strong>オフラインフォールバックページ</strong>
+                                <span class="detail">インターネット接続がない場合に、専用のオフラインページを表示。再接続ボタンでリトライ可能。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🔔</span>
+                            <div>
+                                <strong>インストールバナー</strong>
+                                <span
+                                    class="detail">初回訪問時に3秒後にスライドアップアニメーションでPWAインストールバナーを表示。「インストール」ボタンで即座にホーム画面へ追加可能。一度閉じたバナーはlocalStorageで記憶。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">⚠️</span>
+                            <div>
+                                <strong>オフラインインジケーター</strong>
+                                <span class="detail">ネットワーク切断時に画面上部に赤いバーで「オフラインです」と警告表示。オンライン復帰時は自動で非表示。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 改善 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-yellow"></span> 改善 (Improvements)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🏷️</span>
+                            <div>
+                                <strong>全ページにPWAメタタグを追加</strong>
+                                <span class="detail"><code>index.php</code>・<code>login.php</code> に
+                                    <code>theme-color</code>、<code>apple-mobile-web-app-capable</code>、<code>apple-mobile-web-app-status-bar-style</code>、<code>manifest</code>
+                                    リンク等のPWA関連メタタグを追加。iOS Safari / Edge / Chrome で最適に表示。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🔧</span>
+                            <div>
+                                <strong>Service Worker登録の統合</strong>
+                                <span class="detail">プッシュ通知の <code>initPush()</code> 内で行っていたSW登録を
+                                    <code>navigator.serviceWorker.ready</code>
+                                    に変更し、グローバルなPWA登録と統合。重複登録を防止。1時間おきにSWの更新チェックを実施。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">📐</span>
+                            <div>
+                                <strong>Safe Area対応</strong>
+                                <span class="detail">スタンドアロンモード時に <code>env(safe-area-inset-*)</code>
+                                    を適用し、ノッチ付きデバイスや角丸ディスプレイでのレイアウト崩れを防止。<code>viewport-fit=cover</code> を追加。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🔔</span>
+                            <div>
+                                <strong>プッシュ通知のアクション追加</strong>
+                                <span
+                                    class="detail">プッシュ通知に「開く」「閉じる」のアクションボタンとバイブレーションパターンを追加。通知クリック時に既存ウィンドウにフォーカスする動作を改善。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </article>
+
         <!-- ===== v1.0.83 ===== -->
         <article class="release">
             <div class="release-header">
