@@ -221,9 +221,10 @@ class SecurityUtil
     {
         $key = getenv('ENCRYPTION_KEY');
         if (!$key) {
-            // Fallback for development if .env is missing, but warn in logs
-            error_log("SecurityUtil: ENCRYPTION_KEY is not set in environment variables!");
-            return 'sycs-secret-key-change-this-in-production';
+            throw new \RuntimeException(
+                "SecurityUtil: ENCRYPTION_KEY is not set in environment variables. " .
+                    "Set this variable before using encryption features."
+            );
         }
         return $key;
     }

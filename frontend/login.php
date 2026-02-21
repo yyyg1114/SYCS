@@ -10,29 +10,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
     $u = $_POST['username'];
     $p = $_POST['password'];
 
-    $stmt = $mysqli->prepare("SELECT id, username, password, is_verified, last_thread_id FROM users WHERE username = ?");
-    $stmt->bind_param("s", $u);
-    $stmt->execute();
-    $res = $stmt->get_result();
+    // --- ログイン試行制限チェック ---
+    $ip          = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $lockMinutes = 15;
+    $lockWindow  = $lockMinutes * 60;
+    $maxAttempts = 5;
 
-    if ($row = $res->fetch_assoc()) {
-        if (password_verify($p, $row['password'])) {
-            if ($row['is_verified'] == 0) {
+    $countByUser = 0;
+    $stmtU = $mysqli->prepare(
+        "SELECT COUNT(*) FROM login_attempts
+        WHERE identifier = ?
+        AND attempted_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
+    );
+    if ($stmtU) {
+        $stmtU->bind_param("si", $u, $lockWindow);
+        $stmtU->execute();
+        $stmtU->bind_result($countByUser);
+        $stmtU->fetch();
+        $stmtU->close();
+    }
+
+    $countByIp = 0;
+    $stmtI = $mysqli->prepare(
+        "SELECT COUNT(*) FROM login_attempts
+        WHERE identifier = ?
+        AND attempted_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
+    );
+    if ($stmtI) {
+        $stmtI->bind_param("si", $ip, $lockWindow);
+        $stmtI->execute();
+        $stmtI->bind_result($countByIp);
+        $stmtI->fetch();
+        $stmtI->close();
+    }
+
+    if ((int)$countByUser >= $maxAttempts || (int)$countByIp >= $maxAttempts) {
+        $error = "ログイン試行回数の上限（{$maxAttempts}回）に達しました。{$lockMinutes}分後に再試行してください。";
+    } else {
+        // --- 認証処理 ---
+        $stmt = $mysqli->prepare("SELECT id, username, password, is_verified, last_thread_id FROM users WHERE username = ?");
+        $stmt->bind_param("s", $u);
+        $stmt->execute();
+        $stmt->bind_result($userId, $dbUsername, $dbPassword, $isVerified, $lastThreadId);
+        $stmt->fetch();
+        $stmt->close();
+
+        if ($userId && $dbPassword !== null && password_verify($password, $dbPassword)) {
+            if ($isVerified == 0) {
                 $error = 'メールアドレスの本登録が完了していません。';
             } else {
-                $_SESSION['user_id'] = $row['id'];
-                $_SESSION['user'] = $row['username'];
-                $_SESSION['last_thread_id'] = $row['last_thread_id'] ?: 1;
+                // ログイン成功: セッション固定攻撃対策
+                session_regenerate_id(true);
+                $_SESSION['user_id']        = $userId;
+                $_SESSION['user']           = $dbUsername;
+                $_SESSION['last_thread_id'] = $lastThreadId ?: 1;
+
+                // 失敗記録をクリア
+                $del = $mysqli->prepare("DELETE FROM login_attempts WHERE identifier = ? OR identifier = ?");
+                if ($del) {
+                    $del->bind_param("ss", $u, $ip);
+                    $del->execute();
+                    $del->close();
+                }
+
                 header('Location: index.php');
                 exit;
             }
         } else {
             $error = 'ユーザー名またはパスワードが正しくありません。';
+
+            // ログイン失敗を記録
+            $ins = $mysqli->prepare("INSERT INTO login_attempts (identifier) VALUES (?)");
+            if ($ins) {
+                $ins->bind_param("s", $u);
+                $ins->execute();
+                $ins->close();
+            }
+            $ins2 = $mysqli->prepare("INSERT INTO login_attempts (identifier) VALUES (?)");
+            if ($ins2) {
+                $ins2->bind_param("s", $ip);
+                $ins2->execute();
+                $ins2->close();
+            }
         }
-    } else {
-        $error = 'ユーザー名またはパスワードが正しくありません。';
     }
 }
+
 
 // OAuth2 Handlers
 if (isset($_GET['api'])) {
@@ -655,6 +718,8 @@ if (isset($_GET['api'])) {
             </p>
         </div>
     </div>
+
+
 
     <footer>
         &copy; 2026 SYCS · Shinjuku Yamabuki Chat System

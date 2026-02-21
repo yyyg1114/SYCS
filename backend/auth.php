@@ -40,8 +40,27 @@ function getCurrentUser($mysqli)
  */
 function logout()
 {
+    // セッション変数をすべてクリア
     $_SESSION = [];
+
+    // セッションクッキーを明示的に削除
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(
+            session_name(),
+            '',
+            time() - 42000,
+            $params["path"],
+            $params["domain"],
+            $params["secure"],
+            $params["httponly"]
+        );
+    }
+
+    // セッションIDを再生成してから破棄（古いIDを無効化）
+    session_regenerate_id(true);
     session_destroy();
+
     header('Location: ../frontend/login.php');
     exit();
 }

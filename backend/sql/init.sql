@@ -100,6 +100,14 @@ CREATE TABLE IF NOT EXISTS blocked_users (
     UNIQUE KEY unique_block (blocker_id, blocked_id)
 );
 
+-- ログイン試行履歴（ブルートフォース対策）
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    identifier   VARCHAR(255) NOT NULL COMMENT 'ユーザー名またはIPアドレス',
+    attempted_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_identifier_time (identifier, attempted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 -- 初期データ投入
 -- 外部キー制約を満たすため、まずダミーユーザーを一人作成
 -- パスワードは 'admin_pass' のハッシュ値
