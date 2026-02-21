@@ -1,0 +1,38 @@
+{
+  "name": "SYCS - Shinjuku Yamabuki Chat System",
+  "short_name": "SYCS",
+  "description": "新宿山吹チャットシステム - リアルタイムコミュニケーションプラットフォーム",
+  "start_url": "./index.php",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1a1a2e",
+  "theme_color": "#6366f1",
+  "lang": "ja",
+  "dir": "ltr",
+  "categories": ["social", "communication"],
+  "icons": [
+    {
+      "src": "assets/img/SYCS_favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/img/SYCS_favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "チャットを開く",
+      "url": "./index.php",
+      "description": "SYCSチャットを開きます"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

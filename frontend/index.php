@@ -1800,14 +1800,25 @@ if ($isLoggedIn) {
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>SYCS - Shinjuku Yamabuki Chat System</title>
+    <meta name="description" content="SYCS - 新宿山吹チャットシステム。リアルタイムメッセージング、ビデオ通話、グループチャット対応。">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SYCS">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="SYCS">
+    <meta name="msapplication-TileColor" content="#1a1a2e">
+    <meta name="msapplication-navbutton-color" content="#6366f1">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="assets/img/SYCS_favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="assets/img/SYCS_favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
-    <link rel="icon" href="SYCS_favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="css/style.css">
     <style>
         /* Status Indicators */
@@ -4588,7 +4599,7 @@ if ($isLoggedIn) {
         async function initPush() {
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
-            const registration = await navigator.serviceWorker.register('sw.js');
+            const registration = await navigator.serviceWorker.ready;
             let subscription = await registration.pushManager.getSubscription();
 
             if (!subscription) {
@@ -5306,6 +5317,139 @@ if ($isLoggedIn) {
                 content.appendChild(item);
             });
         }
+    </script>
+
+    <!-- PWA Registration & Install Prompt -->
+    <div id="pwa-install-banner" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color:white; padding:14px 24px; border-radius:12px; box-shadow:0 8px 32px rgba(99,102,241,0.4); z-index:10000; font-family:'Inter',sans-serif; display:none; align-items:center; gap:14px; max-width:420px; width:calc(100% - 40px); animation: slideUpBanner 0.4s ease-out;">
+        <div style="flex:1;">
+            <div style="font-weight:600; font-size:0.95rem; margin-bottom:2px;">📱 SYCSをインストール</div>
+            <div style="font-size:0.8rem; opacity:0.85;">ホーム画面に追加して、より快適に使えます</div>
+        </div>
+        <button onclick="installPWA()" style="background:white; color:#4f46e5; border:none; padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer; font-size:0.85rem; white-space:nowrap;">インストール</button>
+        <button onclick="dismissInstallBanner()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.2rem; opacity:0.7; padding:4px;">✕</button>
+    </div>
+
+    <!-- Offline Indicator -->
+    <div id="offline-indicator" style="display:none; position:fixed; top:0; left:0; right:0; background:#ef4444; color:white; text-align:center; padding:6px; font-size:0.8rem; font-family:'Inter',sans-serif; z-index:10001; animation: slideDown 0.3s ease-out;">
+        ⚠️ オフラインです - 一部の機能が制限されます
+    </div>
+
+    <style>
+        @keyframes slideUpBanner {
+            from {
+                transform: translateX(-50%) translateY(100px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        /* Standalone mode adjustments */
+        @media all and (display-mode: standalone) {
+            body {
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
+            }
+        }
+    </style>
+
+    <script>
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('./sw.js', {
+                        scope: './'
+                    });
+                    console.log('[PWA] Service Worker 登録成功:', registration.scope);
+
+                    // Check for updates periodically
+                    setInterval(() => {
+                        registration.update();
+                    }, 60 * 60 * 1000); // 1時間ごと
+                } catch (error) {
+                    console.warn('[PWA] Service Worker 登録失敗:', error);
+                }
+            });
+        }
+
+        // PWA Install Prompt
+        let deferredPrompt = null;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Show install banner if not dismissed before
+            if (!localStorage.getItem('pwa-install-dismissed')) {
+                setTimeout(() => {
+                    const banner = document.getElementById('pwa-install-banner');
+                    if (banner) banner.style.display = 'flex';
+                }, 3000); // 3秒後に表示
+            }
+        });
+
+        async function installPWA() {
+            if (!deferredPrompt) return;
+
+            deferredPrompt.prompt();
+            const {
+                outcome
+            } = await deferredPrompt.userChoice;
+            console.log('[PWA] インストール結果:', outcome);
+
+            deferredPrompt = null;
+            const banner = document.getElementById('pwa-install-banner');
+            if (banner) banner.style.display = 'none';
+        }
+
+        function dismissInstallBanner() {
+            const banner = document.getElementById('pwa-install-banner');
+            if (banner) banner.style.display = 'none';
+            localStorage.setItem('pwa-install-dismissed', Date.now());
+        }
+
+        // Online/Offline detection
+        window.addEventListener('online', () => {
+            const indicator = document.getElementById('offline-indicator');
+            if (indicator) indicator.style.display = 'none';
+            console.log('[PWA] オンラインに復帰');
+        });
+
+        window.addEventListener('offline', () => {
+            const indicator = document.getElementById('offline-indicator');
+            if (indicator) indicator.style.display = 'block';
+            console.log('[PWA] オフラインになりました');
+        });
+
+        // Check initial state
+        if (!navigator.onLine) {
+            const indicator = document.getElementById('offline-indicator');
+            if (indicator) indicator.style.display = 'block';
+        }
+
+        // App installed event
+        window.addEventListener('appinstalled', () => {
+            console.log('[PWA] アプリがインストールされました');
+            deferredPrompt = null;
+            const banner = document.getElementById('pwa-install-banner');
+            if (banner) banner.style.display = 'none';
+        });
     </script>
 </body>
 
