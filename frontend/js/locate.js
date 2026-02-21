@@ -16,12 +16,6 @@ class LocationManager {
         };
     }
 
-    escapeHTML(str) {
-        if (!str) return '';
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    }
 
     /**
      * 初期化処理
@@ -119,34 +113,40 @@ class LocationManager {
         const { lat, lon, accuracy, altitude, timestamp } = this.gpsData;
         const timeStr = timestamp ? timestamp.toLocaleTimeString('ja-JP') : '---';
 
-        this.statusElement.innerHTML = `
-            <div class="gps-info">
-                <div class="gps-row">
-                    <span class="gps-label">緯度:</span>
-                    <span class="gps-value">${lat ? lat.toFixed(6) : '取得中...'}</span>
-                </div>
-                <div class="gps-row">
-                    <span class="gps-label">経度:</span>
-                    <span class="gps-value">${lon ? lon.toFixed(6) : '取得中...'}</span>
-                </div>
-                <div class="gps-row">
-                    <span class="gps-label">精度:</span>
-                    <span class="gps-value">${accuracy ? accuracy.toFixed(2) + 'm' : '---'}</span>
-                </div>
-                <div class="gps-row">
-                    <span class="gps-label">高度:</span>
-                    <span class="gps-value">${altitude ? altitude.toFixed(2) + 'm' : '取得不可'}</span>
-                </div>
-                <div class="gps-row">
-                    <span class="gps-label">更新時刻:</span>
-                    <span class="gps-value">${this.escapeHTML(timeStr)}</span>
-                </div>
-                <div class="gps-status-indicator">
-                    <span class="status-dot active"></span>
-                    位置情報取得中
-                </div>
-            </div>
-        `;
+        this.statusElement.textContent = '';
+        
+        const wrapper = document.createElement('div');
+        wrapper.className = 'gps-info';
+
+        const createRow = (label, value) => {
+            const row = document.createElement('div');
+            row.className = 'gps-row';
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'gps-label';
+            labelSpan.textContent = label;
+            const valueSpan = document.createElement('span');
+            valueSpan.className = 'gps-value';
+            valueSpan.textContent = value;
+            row.appendChild(labelSpan);
+            row.appendChild(valueSpan);
+            return row;
+        };
+
+        wrapper.appendChild(createRow('緯度:', lat ? lat.toFixed(6) : '取得中...'));
+        wrapper.appendChild(createRow('経度:', lon ? lon.toFixed(6) : '取得中...'));
+        wrapper.appendChild(createRow('精度:', accuracy ? accuracy.toFixed(2) + 'm' : '---'));
+        wrapper.appendChild(createRow('高度:', altitude ? altitude.toFixed(2) + 'm' : '取得不可'));
+        wrapper.appendChild(createRow('更新時刻:', timeStr));
+
+        const indicator = document.createElement('div');
+        indicator.className = 'gps-status-indicator';
+        const dot = document.createElement('span');
+        dot.className = 'status-dot active';
+        indicator.appendChild(dot);
+        indicator.appendChild(document.createTextNode(' 位置情報取得中'));
+        wrapper.appendChild(indicator);
+
+        this.statusElement.appendChild(wrapper);
     }
 
     /**
@@ -156,12 +156,14 @@ class LocationManager {
     displayError(message) {
         if (!this.statusElement) return;
 
-        this.statusElement.innerHTML = `
-            <div class="gps-error">
-                <span class="status-dot error"></span>
-                ${this.escapeHTML(message)}
-            </div>
-        `;
+        this.statusElement.textContent = '';
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'gps-error';
+        const dot = document.createElement('span');
+        dot.className = 'status-dot error';
+        errorDiv.appendChild(dot);
+        errorDiv.appendChild(document.createTextNode(' ' + message));
+        this.statusElement.appendChild(errorDiv);
     }
 
     /**

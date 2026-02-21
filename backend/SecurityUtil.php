@@ -216,13 +216,21 @@ class SecurityUtil
 
     /**
      * Encrypt data using AES-256-CBC
-     * Note: In production, store the key in an environment variable or secure config.
      */
-    private const ENCRYPTION_KEY = 'sycs-secret-key-change-this-in-production'; // 32 bytes recommended for AES-256
+    private static function getEncryptionKey(): string
+    {
+        $key = getenv('ENCRYPTION_KEY');
+        if (!$key) {
+            // Fallback for development if .env is missing, but warn in logs
+            error_log("SecurityUtil: ENCRYPTION_KEY is not set in environment variables!");
+            return 'sycs-secret-key-change-this-in-production';
+        }
+        return $key;
+    }
 
     public static function encrypt(string $data): string
     {
-        $key = hash('sha256', self::ENCRYPTION_KEY, true);
+        $key = hash('sha256', self::getEncryptionKey(), true);
         $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
         $encrypted = openssl_encrypt($data, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
         return base64_encode($iv . '::' . $encrypted);
@@ -230,7 +238,7 @@ class SecurityUtil
 
     public static function decrypt(string $data): ?string
     {
-        $key = hash('sha256', self::ENCRYPTION_KEY, true);
+        $key = hash('sha256', self::getEncryptionKey(), true);
         $decoded = base64_decode($data);
         if (!$decoded || strpos($decoded, '::') === false) return null;
 

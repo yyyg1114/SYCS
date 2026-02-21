@@ -328,7 +328,7 @@
         <article class="release">
             <div class="release-header">
                 <span class="version-badge">v1.1.1</span>
-                <span class="release-title">セキュリティ強化（XSS脆弱性の修正）</span>
+                <span class="release-title">セキュリティ・オーバーホール（XSS対策の徹底と機密情報の分離）</span>
                 <span class="release-date">2026-02-21</span>
             </div>
             <div class="release-body">
@@ -340,10 +340,18 @@
                         <li>
                             <span class="icon">🛡️</span>
                             <div>
-                                <strong>XSS脆弱性の修正</strong>
-                                <span class="detail"><code>innerHTML</code>
-                                    の不適切な使用箇所を修正し、ユーザー名やメッセージ内容を安全にエスケープするように改善。<code>escapeHTML</code>
-                                    ヘルパー関数を導入しました。</span>
+                                <strong>XSS脆弱性の完全な排除</strong>
+                                <span class="detail"><code>index.php</code> および <code>locate.js</code> 内のすべての
+                                    <code>innerHTML</code> 使用箇所（計48箇所）を、<code>textContent</code> や
+                                    <code>createElement</code> 等の安全な DOM 操作に全面的に置き換えました。</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🔐</span>
+                            <div>
+                                <strong>機密情報の環境変数化</strong>
+                                <span class="detail"><code>ENCRYPTION_KEY</code> 等のハードコードされたシークレットを <code>.env</code>
+                                    ファイルへ移行し、<code>SecurityUtil.php</code> 等から環境変数として読み込むように改善しました。</span>
                             </div>
                         </li>
                     </ul>

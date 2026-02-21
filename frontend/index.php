@@ -2115,7 +2115,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.1.1</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.1.2</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
@@ -2895,10 +2895,16 @@ if ($isLoggedIn) {
             div.className = 'avatar';
 
             if (avatarUrl) {
-                div.innerHTML = `<img src="${escapeHTML(avatarUrl)}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+                const img = document.createElement('img');
+                img.src = avatarUrl;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.borderRadius = '50%';
+                img.style.objectFit = 'cover';
+                div.appendChild(img);
             } else {
                 div.style.background = colors[colorIdx];
-                div.innerText = initial;
+                div.textContent = initial;
             }
 
             container.appendChild(div);
@@ -3078,7 +3084,7 @@ if ($isLoggedIn) {
         async function showGroupCreationDialog() {
             const users = await api('get_all_users');
             const picker = document.getElementById('group-member-picker');
-            picker.innerHTML = '';
+            picker.textContent = '';
             users.forEach(u => {
                 const label = document.createElement('label');
                 label.style.display = 'flex';
@@ -3364,7 +3370,15 @@ if ($isLoggedIn) {
             // アバター
             const avatarContainer = document.getElementById('user-profile-avatar-container');
             if (res.avatar_url) {
-                avatarContainer.innerHTML = `<img src="${escapeHTML(res.avatar_url)}" class="discord-avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                avatarContainer.textContent = '';
+                const img = document.createElement('img');
+                img.src = res.avatar_url;
+                img.className = 'discord-avatar';
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.borderRadius = '50%';
+                img.style.objectFit = 'cover';
+                avatarContainer.appendChild(img);
             } else {
                 const initial = res.username ? res.username.charAt(0).toUpperCase() : '?';
                 avatarContainer.textContent = initial;
@@ -3386,7 +3400,7 @@ if ($isLoggedIn) {
 
             // SNS
             const snsContainer = document.getElementById('user-profile-sns');
-            snsContainer.innerHTML = '';
+            snsContainer.textContent = '';
             const links = JSON.parse(res.social_links || '{}');
             if (links.twitter) {
                 const a = document.createElement('a');
@@ -3550,7 +3564,13 @@ if ($isLoggedIn) {
 
                 const delBtn = document.createElement('button');
                 delBtn.className = 'msg-action-btn';
-                delBtn.innerHTML = '<img src="assets/img/trash.svg" alt="削除" style="width:16px; height:16px;">';
+                delBtn.textContent = '';
+                const delImg = document.createElement('img');
+                delImg.src = 'assets/img/trash.svg';
+                delImg.alt = '削除';
+                delImg.style.width = '16px';
+                delImg.style.height = '16px';
+                delBtn.appendChild(delImg);
                 delBtn.title = '削除';
                 delBtn.onclick = () => deleteMessage(m.id);
                 actions.appendChild(delBtn);
@@ -3566,7 +3586,15 @@ if ($isLoggedIn) {
                 const quote = document.createElement('div');
                 quote.className = 'reply-quote';
                 quote.style.cursor = 'pointer';
-                quote.innerHTML = `<span style="opacity:0.6; font-size:0.8rem;">↩️ 返信先: </span><strong>${escapeHTML(m.reply_username)}</strong>`;
+                const replyPrefix = document.createElement('span');
+                replyPrefix.style.opacity = '0.6';
+                replyPrefix.style.fontSize = '0.8rem';
+                replyPrefix.textContent = '↩️ 返信先: ';
+                quote.appendChild(replyPrefix);
+
+                const replyUser = document.createElement('strong');
+                replyUser.textContent = m.reply_username;
+                quote.appendChild(replyUser);
                 quote.onclick = () => {
                     const target = document.getElementById('message-' + m.reply_to_id);
                     if (target) {
@@ -3656,7 +3684,7 @@ if ($isLoggedIn) {
             if (!!+m.is_pinned) {
                 const pinBadge = document.createElement('div');
                 pinBadge.className = 'message-pinned-badge';
-                pinBadge.innerHTML = '📌 ピン留めされたメッセージ';
+                pinBadge.textContent = '📌 ピン留めされたメッセージ';
                 info.appendChild(pinBadge);
                 group.classList.add('message-pinned');
             }
@@ -3679,7 +3707,14 @@ if ($isLoggedIn) {
                     const badge = document.createElement('div');
                     const isMyReaction = grouped[emoji].includes(currentUserId);
                     badge.className = `reaction-badge ${isMyReaction ? 'active' : ''}`;
-                    badge.innerHTML = `<span>${escapeHTML(emoji)}</span><span class="reaction-count">${grouped[emoji].length}</span>`;
+                    const emojiSpan = document.createElement('span');
+                    emojiSpan.textContent = emoji;
+                    badge.appendChild(emojiSpan);
+
+                    const countSpan = document.createElement('span');
+                    countSpan.className = 'reaction-count';
+                    countSpan.textContent = grouped[emoji].length;
+                    badge.appendChild(countSpan);
                     badge.onclick = () => toggleReaction(m.id, emoji);
                     reactContainer.appendChild(badge);
                 });
@@ -3814,16 +3849,76 @@ if ($isLoggedIn) {
             modalFileToUpload = null;
             document.getElementById('modal-file-input').value = '';
             document.getElementById('modal-content-input').value = '';
-            document.getElementById('media-upload-preview-container').innerHTML = `
-                <div class="upload-placeholder">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 15px;">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    <p style="margin:0; color:var(--text-secondary);">クリックまたはドラッグ＆ドロップで選択</p>
-                </div>
-            `;
+            const previewContainer = document.getElementById('media-upload-preview-container');
+            previewContainer.textContent = '';
+
+            const previewWrapper = document.createElement('div');
+            previewWrapper.className = 'upload-preview-item';
+            previewWrapper.style.position = 'relative';
+            previewWrapper.style.width = '100px';
+            previewWrapper.style.height = '100px';
+            previewWrapper.style.borderRadius = '8px';
+            previewWrapper.style.overflow = 'hidden';
+            previewWrapper.style.background = 'var(--bg-secondary)';
+            previewWrapper.style.display = 'flex';
+            previewWrapper.style.alignItems = 'center';
+            previewWrapper.style.justifyContent = 'center';
+
+            if (isImage) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                previewWrapper.appendChild(img);
+            } else if (isVideo) {
+                const video = document.createElement('video');
+                video.src = e.target.result;
+                video.style.width = '100%';
+                video.style.height = '100%';
+                video.style.objectFit = 'cover';
+                previewWrapper.appendChild(video);
+            } else {
+                const icon = document.createElement('span');
+                icon.style.fontSize = '2rem';
+                icon.textContent = isAudio ? '🎵' : '📄';
+                previewWrapper.appendChild(icon);
+            }
+
+            const fileNameLabel = document.createElement('p');
+            fileNameLabel.style.fontSize = '0.7rem';
+            fileNameLabel.style.marginTop = '8px';
+            fileNameLabel.style.textAlign = 'center';
+            fileNameLabel.style.color = 'var(--text-secondary)';
+            fileNameLabel.textContent = file.name;
+
+            previewContainer.appendChild(previewWrapper);
+            previewContainer.appendChild(fileNameLabel);
+
+            // Note: Removed direct innerHTML assignment
+            <
+            div class = "upload-placeholder" >
+            <
+            svg width = "48"
+            height = "48"
+            viewBox = "0 0 24 24"
+            fill = "none"
+            stroke = "currentColor"
+            stroke - width = "2"
+            stroke - linecap = "round"
+            stroke - linejoin = "round"
+            style = "color: var(--text-secondary); margin-bottom: 15px;" >
+                <
+                path d = "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" > < /path> <
+            polyline points = "17 8 12 3 7 8" > < /polyline> <
+            line x1 = "12"
+            y1 = "3"
+            x2 = "12"
+            y2 = "15" > < /line> < /
+            svg > <
+                p style = "margin:0; color:var(--text-secondary);" > クリックまたはドラッグ＆ ドロップで選択 < /p> < /
+            div >
+                `;
             document.getElementById('media-upload-modal').showModal();
         }
 
@@ -3836,7 +3931,7 @@ if ($isLoggedIn) {
             if (files.length === 0) return;
             modalFileToUpload = files[0];
             const container = document.getElementById('media-upload-preview-container');
-            container.innerHTML = '';
+            container.textContent = '';
 
             if (modalFileToUpload.type.startsWith('image/')) {
                 const reader = new FileReader();
@@ -3853,7 +3948,7 @@ if ($isLoggedIn) {
             } else if (modalFileToUpload.type.startsWith('audio/')) {
                 const div = document.createElement('div');
                 div.className = 'media-file-info';
-                div.innerHTML = `<span style="font-size:3rem;">🎵</span><p style="margin-top:10px;">${escapeHTML(modalFileToUpload.name)}</p>`;
+                div.innerHTML = ` < span style = "font-size:3rem;" > 🎵 < /span><p style="margin-top:10px;">${escapeHTML(modalFileToUpload.name)}</p > `;
                 container.appendChild(div);
             } else if (modalFileToUpload.type.startsWith('video/')) {
                 const video = document.createElement('video');
@@ -3868,7 +3963,7 @@ if ($isLoggedIn) {
             } else {
                 const div = document.createElement('div');
                 div.className = 'media-file-info';
-                div.innerHTML = `<span style="font-size:3rem;">📄</span><p style="margin-top:10px;">${escapeHTML(modalFileToUpload.name)}</p>`;
+                div.innerHTML = ` < span style = "font-size:3rem;" > 📄 < /span><p style="margin-top:10px;">${escapeHTML(modalFileToUpload.name)}</p > `;
                 container.appendChild(div);
             }
         }
@@ -4031,7 +4126,11 @@ if ($isLoggedIn) {
         }
 
         async function checkFavoriteStatus() {
-            const res = await api(`check_favorite&thread_id=${currentThreadId}`);
+            const res = await api(`
+            check_favorite & thread_id = $ {
+                currentThreadId
+            }
+            `);
             updateFavoriteIcon(res.is_favorite);
         }
 
@@ -4060,7 +4159,14 @@ if ($isLoggedIn) {
             const r = parseInt(color.slice(1, 3), 16);
             const g = parseInt(color.slice(3, 5), 16);
             const b = parseInt(color.slice(5, 7), 16);
-            const hoverColor = `rgba(${r}, ${g}, ${b}, 0.8)`;
+            const hoverColor = `
+            rgba($ {
+                r
+            }, $ {
+                g
+            }, $ {
+                b
+            }, 0.8)`;
             document.documentElement.style.setProperty('--accent-hover', hoverColor);
         }
 
@@ -4079,7 +4185,11 @@ if ($isLoggedIn) {
             }
             threads.forEach(t => {
                 const item = document.createElement('div');
-                item.className = `thread-item ${t.id == currentThreadId ? 'active' : ''}`;
+                item.className = `
+            thread - item $ {
+                t.id == currentThreadId ? 'active' : ''
+            }
+            `;
                 item.textContent = '# ' + t.name;
                 item.onclick = () => {
                     // Switch to Threads tab context implicitly but keep view? 
@@ -4110,7 +4220,7 @@ if ($isLoggedIn) {
             document.getElementById('dm-chat-view').style.display = 'flex';
 
             const infoContainer = document.getElementById('current-dm-partner-info');
-            infoContainer.innerHTML = '';
+            infoContainer.textContent = '';
             infoContainer.style.display = 'flex';
             infoContainer.style.alignItems = 'center';
             infoContainer.style.gap = '10px';
@@ -4137,7 +4247,11 @@ if ($isLoggedIn) {
             const list = document.getElementById('hub-friend-list');
             list.innerHTML = '';
             if (friends.length === 0) {
-                list.innerHTML = '<div style="padding:10px; color:gray;">まだフレンドがいません</div>';
+                const emptyMsg = document.createElement('div');
+                emptyMsg.style.padding = '10px';
+                emptyMsg.style.color = 'gray';
+                emptyMsg.textContent = 'まだフレンドがいません';
+                list.appendChild(emptyMsg);
                 return;
             }
             friends.forEach(f => {
@@ -4147,15 +4261,24 @@ if ($isLoggedIn) {
                 d.style.justifyContent = 'space-between';
                 d.style.alignItems = 'center';
                 d.style.cursor = 'pointer';
-                d.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        ${getAvatarElement(f.username, f.status || 'offline', f.avatar_url).outerHTML}
-                        <span>${escapeHTML(f.username)}</span>
-                    </div>
-                    <span style="font-size:0.8rem; color:var(--text-secondary);">
-                        ${f.last_msg_at ? new Date(f.last_msg_at).toLocaleString() : '会話なし'}
-                    </span>
-                `;
+                
+                const leftSide = document.createElement('div');
+                leftSide.style.display = 'flex';
+                leftSide.style.alignItems = 'center';
+                leftSide.style.gap = '10px';
+                leftSide.appendChild(getAvatarElement(f.username, f.status || 'offline', f.avatar_url));
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = f.username;
+                leftSide.appendChild(nameSpan);
+                d.appendChild(leftSide);
+                
+                const timeSpan = document.createElement('span');
+                timeSpan.style.fontSize = '0.8rem';
+                timeSpan.style.color = 'var(--text-secondary)';
+                timeSpan.textContent = f.last_msg_at ? new Date(f.last_msg_at).toLocaleString() : '会話なし';
+                d.appendChild(timeSpan);
+                
                 d.onclick = () => switchToDmChat(f.id, f.username, f.avatar_url, f.status);
                 list.appendChild(d);
             });
@@ -4164,14 +4287,18 @@ if ($isLoggedIn) {
         // --- Modal Logic ---
         function showAddFriendModal() {
             document.getElementById('add-friend-modal').showModal();
-            document.getElementById('user-search-results').innerHTML = '';
+            document.getElementById('user-search-results').textContent = '';
             document.getElementById('user-search-input').value = '';
         }
 
         async function searchUsers() {
             const q = document.getElementById('user-search-input').value;
             if (!q) return;
-            const res = await api(`search_users&q=${encodeURIComponent(q)}`);
+            const res = await api(`
+            search_users & q = $ {
+                encodeURIComponent(q)
+            }
+            `);
             const list = document.getElementById('user-search-results');
             list.innerHTML = '';
             if (res.length === 0) {
@@ -4192,7 +4319,12 @@ if ($isLoggedIn) {
                 userPart.style.gap = '10px';
                 userPart.appendChild(getAvatarElement(u.username, u.status, u.avatar_url));
                 const nameSpan = document.createElement('span');
-                nameSpan.innerText = `${u.username} (ID:${u.id})`;
+                nameSpan.textContent = `
+            $ {
+                u.username
+            }(ID: $ {
+                u.id
+            })`;
                 userPart.appendChild(nameSpan);
                 d.appendChild(userPart);
 
@@ -4202,7 +4334,14 @@ if ($isLoggedIn) {
                 btn.style.padding = '10px 15px';
                 btn.style.fontSize = '1.0rem';
                 btn.onclick = async () => {
-                    if (confirm(`ID:${u.id} ${u.username}に申請を送りますか？`)) {
+                    if (confirm(`
+            ID: $ {
+                u.id
+            }
+            $ {
+                u.username
+            }
+            に申請を送りますか`)) {
                         const body = new FormData();
                         body.append('target_id', u.id);
                         const r = await api('request_friend', 'POST', body);
@@ -4230,20 +4369,22 @@ if ($isLoggedIn) {
                 d.className = 'thread-item';
                 d.style.display = 'flex';
                 d.style.justifyContent = 'space-between';
-                d.innerHTML = `<span>${escapeHTML(r.username)}</span>`;
-                const btn = document.createElement('button');
-                btn.innerText = '承認';
-                btn.className = 'btn-primary';
-                btn.onclick = async () => {
-                    const body = new FormData();
-                    body.append('request_id', r.id);
-                    await api('accept_friend', 'POST', body);
-                    loadPendingRequests();
-                    loadHubFriends();
-                };
-                d.appendChild(btn);
-                list.appendChild(d);
-            });
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = r.username;
+                d.appendChild(nameSpan);
+            const btn = document.createElement('button');
+            btn.innerText = '承認';
+            btn.className = 'btn-primary';
+            btn.onclick = async () => {
+                const body = new FormData();
+                body.append('request_id', r.id);
+                await api('accept_friend', 'POST', body);
+                loadPendingRequests();
+                loadHubFriends();
+            };
+            d.appendChild(btn);
+            list.appendChild(d);
+        });
         }
 
 
@@ -4263,7 +4404,9 @@ if ($isLoggedIn) {
                 d.className = 'thread-item';
                 d.style.display = 'flex';
                 d.style.justifyContent = 'space-between';
-                d.innerHTML = `<span>${escapeHTML(u.username)}</span>`;
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = u.username;
+                d.appendChild(nameSpan);
                 const btn = document.createElement('button');
                 btn.innerText = '解除';
                 btn.className = 'btn-secondary';
@@ -4297,7 +4440,11 @@ if ($isLoggedIn) {
         async function loadDms(minDelay = 0) {
             if (!currentPartnerId) return;
             const startTime = Date.now();
-            const dms = await api(`get_direct_messages&partner_id=${currentPartnerId}`);
+            const dms = await api(`
+            get_direct_messages & partner_id = $ {
+                currentPartnerId
+            }
+            `);
 
             if (minDelay > 0) {
                 const elapsed = Date.now() - startTime;
@@ -4358,92 +4505,100 @@ if ($isLoggedIn) {
                 const mentionRegex = /@([a-zA-Z0-9_]+)/g;
                 const highlightedText = escapedText.replace(mentionRegex, (match, username) => {
                     if (username === currentUserName) {
-                        return `<span class="mention mention-me">${match}</span>`;
-                    }
-                    return `<span class="mention">${match}</span>`;
-                });
-                contentDiv.innerHTML = highlightedText;
+                        return ` < span class = "mention mention-me" > $ {
+                match
+            } < /span>`;
+        }
+        return `<span class="mention">${match}</span>`;
+        });
+        contentDiv.innerHTML = highlightedText;
 
-                if (m.attachment_path) {
-                    const ext = m.attachment_path.split('.').pop().toLowerCase();
-                    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
-                    const isAudio = ['mp3', 'wav', 'ogg'].includes(ext);
-                    const isVideo = ['mp4', 'webm', 'ogv', 'mov', 'avi'].includes(ext);
+        if (m.attachment_path) {
+            const ext = m.attachment_path.split('.').pop().toLowerCase();
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+            const isAudio = ['mp3', 'wav', 'ogg'].includes(ext);
+            const isVideo = ['mp4', 'webm', 'ogv', 'mov', 'avi'].includes(ext);
 
-                    if (isImage) {
-                        const img = document.createElement('img');
-                        img.src = m.attachment_path;
-                        img.className = 'preview-img';
-                        img.style.display = 'block';
-                        img.style.marginTop = '10px';
-                        img.onclick = () => window.open(m.attachment_path, '_blank');
-                        contentDiv.appendChild(img);
-                    } else if (isAudio) {
-                        const audio = document.createElement('audio');
-                        audio.src = m.attachment_path;
-                        audio.controls = true;
-                        audio.style.display = 'block';
-                        audio.style.marginTop = '10px';
-                        audio.style.maxWidth = '100%';
-                        contentDiv.appendChild(audio);
-                    } else if (isVideo) {
-                        const video = document.createElement('video');
-                        video.src = m.attachment_path;
-                        video.controls = true;
-                        video.style.display = 'block';
-                        video.style.marginTop = '10px';
-                        video.style.maxWidth = '100%';
-                        contentDiv.appendChild(video);
-                    }
-
-                    const dlLink = document.createElement('a');
-                    const fileName = m.attachment_path.split('/').pop();
-                    dlLink.href = 'download.php?file=' + fileName;
-                    dlLink.target = '_blank';
-                    dlLink.innerText = '⬇️ ダウンロード';
-                    dlLink.style.display = 'inline-block';
-                    dlLink.style.fontSize = '0.75rem';
-                    dlLink.style.marginTop = '5px';
-                    dlLink.style.color = 'var(--accent-color)';
-                    contentDiv.appendChild(dlLink);
-                }
-
-                info.appendChild(header);
-                info.appendChild(contentDiv);
-
-                if (m.is_edited == 1) {
-                    const editedLabel = document.createElement('span');
-                    editedLabel.style.fontSize = '0.7rem';
-                    editedLabel.style.opacity = '0.5';
-                    editedLabel.style.marginLeft = '5px';
-                    editedLabel.innerText = '(編集済み)';
-                    contentDiv.appendChild(editedLabel);
-                }
-
-                if (m.sender_id == currentUserId) {
-                    const editBtn = document.createElement('button');
-                    editBtn.className = 'msg-action-btn';
-                    editBtn.style.position = 'absolute';
-                    editBtn.style.right = '10px';
-                    editBtn.style.top = '10px';
-                    editBtn.innerHTML = '<img src="assets/img/edit.svg" alt="編集" style="width:16px; height:16px;">';
-                    editBtn.onclick = () => startEditMessage(m, true);
-                    group.appendChild(editBtn);
-                }
-
-                group.appendChild(info);
-                container.appendChild(group);
-            });
-
-            if (dms.length > 0) {
-                const latest = dms[dms.length - 1];
-                if (lastDmId !== 0 && latest.id > lastDmId && latest.sender_id != currentUserId) {
-                    sendNotification(`新着DM: ${latest.username}`, latest.content, 'dm', currentPartnerId);
-                }
-                lastDmId = latest.id;
+            if (isImage) {
+                const img = document.createElement('img');
+                img.src = m.attachment_path;
+                img.className = 'preview-img';
+                img.style.display = 'block';
+                img.style.marginTop = '10px';
+                img.onclick = () => window.open(m.attachment_path, '_blank');
+                contentDiv.appendChild(img);
+            } else if (isAudio) {
+                const audio = document.createElement('audio');
+                audio.src = m.attachment_path;
+                audio.controls = true;
+                audio.style.display = 'block';
+                audio.style.marginTop = '10px';
+                audio.style.maxWidth = '100%';
+                contentDiv.appendChild(audio);
+            } else if (isVideo) {
+                const video = document.createElement('video');
+                video.src = m.attachment_path;
+                video.controls = true;
+                video.style.display = 'block';
+                video.style.marginTop = '10px';
+                video.style.maxWidth = '100%';
+                contentDiv.appendChild(video);
             }
 
-            if (isAtBottom) container.scrollTop = container.scrollHeight;
+            const dlLink = document.createElement('a');
+            const fileName = m.attachment_path.split('/').pop();
+            dlLink.href = 'download.php?file=' + fileName;
+            dlLink.target = '_blank';
+            dlLink.innerText = '⬇️ ダウンロード';
+            dlLink.style.display = 'inline-block';
+            dlLink.style.fontSize = '0.75rem';
+            dlLink.style.marginTop = '5px';
+            dlLink.style.color = 'var(--accent-color)';
+            contentDiv.appendChild(dlLink);
+        }
+
+        info.appendChild(header);
+        info.appendChild(contentDiv);
+
+        if (m.is_edited == 1) {
+            const editedLabel = document.createElement('span');
+            editedLabel.style.fontSize = '0.7rem';
+            editedLabel.style.opacity = '0.5';
+            editedLabel.style.marginLeft = '5px';
+            editedLabel.innerText = '(編集済み)';
+            contentDiv.appendChild(editedLabel);
+        }
+
+        if (m.sender_id == currentUserId) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'msg-action-btn';
+            editBtn.style.position = 'absolute';
+            editBtn.style.right = '10px';
+            editBtn.style.top = '10px';
+            editBtn.textContent = '';
+            const editImg = document.createElement('img');
+            editImg.src = 'assets/img/edit.svg';
+            editImg.alt = '編集';
+            editImg.style.width = '16px';
+            editImg.style.height = '16px';
+            editBtn.appendChild(editImg);
+            editBtn.onclick = () => startEditMessage(m, true);
+            group.appendChild(editBtn);
+        }
+
+        group.appendChild(info);
+        container.appendChild(group);
+        });
+
+        if (dms.length > 0) {
+            const latest = dms[dms.length - 1];
+            if (lastDmId !== 0 && latest.id > lastDmId && latest.sender_id != currentUserId) {
+                sendNotification(`新着DM: ${latest.username}`, latest.content, 'dm', currentPartnerId);
+            }
+            lastDmId = latest.id;
+        }
+
+        if (isAtBottom) container.scrollTop = container.scrollHeight;
         }
 
         async function showUserPicker() {
@@ -4859,7 +5014,11 @@ if ($isLoggedIn) {
             overlay.style.display = 'flex';
 
             if (res.length === 0) {
-                list.innerHTML = '<div style="padding:10px; color:var(--text-secondary);">結果が見つかりませんでした</div>';
+                const emptyMsg = document.createElement('div');
+                emptyMsg.style.padding = '10px';
+                emptyMsg.style.color = 'var(--text-secondary)';
+                emptyMsg.textContent = '結果が見つかりませんでした';
+                list.appendChild(emptyMsg);
                 return;
             }
 
@@ -4898,14 +5057,27 @@ if ($isLoggedIn) {
         async function showPinnedMessages() {
             const modal = document.getElementById('pinned-messages-modal');
             const list = document.getElementById('pinned-messages-list');
-            list.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:40px 0;">読み込み中...</div>';
+            list.textContent = '';
+            const loadingMsg = document.createElement('div');
+            loadingMsg.style.textAlign = 'center';
+            loadingMsg.style.color = 'var(--text-secondary)';
+            loadingMsg.style.padding = '40px 0';
+            loadingMsg.textContent = '読み込み中...';
+            list.appendChild(loadingMsg);
             modal.showModal();
 
             let url = 'get_pinned_messages';
             if (isGroupMode && currentGroupThreadId) url += `&group_thread_id=${currentGroupThreadId}`;
             else if (currentThreadId) url += `&thread_id=${currentThreadId}`;
             else {
-                list.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:40px 0;">スレッドを選択してください</div>';
+                list.textContent = '';
+                const selectMsg = document.createElement('div');
+                selectMsg.style.textAlign = 'center';
+                selectMsg.style.color = 'var(--text-secondary)';
+                selectMsg.style.padding = '40px 0';
+                selectMsg.textContent = 'スレッドを選択してください';
+                list.appendChild(selectMsg);
+                return;
                 return;
             }
 
@@ -4913,7 +5085,12 @@ if ($isLoggedIn) {
             list.innerHTML = '';
 
             if (!msgs || msgs.length === 0) {
-                list.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:40px 0;">ピン留めされたメッセージはありません</div>';
+                const noMsg = document.createElement('div');
+                noMsg.style.textAlign = 'center';
+                noMsg.style.color = 'var(--text-secondary)';
+                noMsg.style.padding = '40px 0';
+                noMsg.textContent = 'ピン留めされたメッセージはありません';
+                list.appendChild(noMsg);
                 return;
             }
 
@@ -4997,7 +5174,12 @@ if ($isLoggedIn) {
             list.innerHTML = '';
 
             if (!users || users.length === 0) {
-                list.innerHTML = '<div style="padding:6px 12px; font-size:0.8rem; color:var(--text-secondary);">オンラインユーザーなし</div>';
+                const noOnline = document.createElement('div');
+                noOnline.style.padding = '6px 12px';
+                noOnline.style.fontSize = '0.8rem';
+                noOnline.style.color = 'var(--text-secondary)';
+                noOnline.textContent = 'オンラインユーザーなし';
+                list.appendChild(noOnline);
                 return;
             }
 
@@ -5281,15 +5463,25 @@ if ($isLoggedIn) {
         async function showAttachmentGallery() {
             const modal = document.getElementById('gallery-modal');
             const content = document.getElementById('gallery-content');
-            content.innerHTML = '<div style="grid-column: 1/-1; text-align:center;">読み込み中...</div>';
+            content.textContent = '';
+            const loading = document.createElement('div');
+            loading.style.gridColumn = '1/-1';
+            loading.style.textAlign = 'center';
+            loading.textContent = '読み込み中...';
+            content.appendChild(loading);
             modal.showModal();
 
             const url = isDmMode ? `get_attachments&partner_id=${currentPartnerId}` : `get_attachments&thread_id=${currentThreadId}`;
             const files = await api(url);
 
-            content.innerHTML = '';
+            content.textContent = '';
             if (files.length === 0) {
-                content.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:var(--text-secondary);">添付ファイルはありません</div>';
+                const noFiles = document.createElement('div');
+                noFiles.style.gridColumn = '1/-1';
+                noFiles.style.textAlign = 'center';
+                noFiles.style.color = 'var(--text-secondary)';
+                noFiles.textContent = '添付ファイルはありません';
+                content.appendChild(noFiles);
                 return;
             }
 
@@ -5321,7 +5513,17 @@ if ($isLoggedIn) {
                     placeholder.style.justifyContent = 'center';
                     placeholder.style.alignItems = 'center';
                     placeholder.style.fontSize = '2rem';
-                    placeholder.innerHTML = '📄<div style="font-size:0.7rem; margin-top:8px; padding:0 4px; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center;">' + path.split('/').pop() + '</div>';
+                    placeholder.textContent = '📄';
+                    const nameDiv = document.createElement('div');
+                    nameDiv.style.fontSize = '0.7rem';
+                    nameDiv.style.marginTop = '8px';
+                    nameDiv.style.padding = '0 4px';
+                    nameDiv.style.overflow = 'hidden';
+                    nameDiv.style.textOverflow = 'ellipsis';
+                    nameDiv.style.width = '100%';
+                    nameDiv.style.textAlign = 'center';
+                    nameDiv.textContent = path.split('/').pop();
+                    placeholder.appendChild(nameDiv);
                     item.appendChild(placeholder);
                 }
                 content.appendChild(item);
