@@ -324,6 +324,53 @@
 
     <main>
 
+        <!-- ===== v1.1.2 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.1.2</span>
+                <span class="release-title">データベース・メンテナンスと安定性の向上</span>
+                <span class="release-date">2026-02-21</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-blue"></span> データベース修正 (Database Fixes)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🗄️</span>
+                            <div>
+                                <strong>スキーマの整合性向上</strong>
+                                <span class="detail">不足していた <code>user_notification_settings</code> テーブルおよび
+                                    <code>notification_keywords</code> カラムを追加するマイグレーションを実装しました。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-yellow"></span> 改善・修正 (Improvements & Fixes)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">✨</span>
+                            <div>
+                                <strong>不具合の修正とコードの安定化</strong>
+                                <span class="detail">
+                                    <ul>
+                                        <li><strong>メディアアップロードモーダルの復旧</strong>:
+                                            構文エラーにより機能していなかったメディアアップロードモーダルのプレビュー表示とプレースホルダーを完全に修正し、復旧させました。</li>
+                                        <li><strong>メンション・ハイライトの修正</strong>:
+                                            メッセージ表示時のメンションハイライト機能において、テンプレートリテラルの壊れによる表示不具合を修正しました。</li>
+                                    </ul>
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
         <!-- ===== v1.1.1 ===== -->
         <article class="release">
             <div class="release-header">

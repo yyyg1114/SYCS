@@ -325,6 +325,20 @@ if ($res->num_rows === 0) {
 }
 
 // Features Migration: Pinning and Reactions
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'notification_keywords'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN notification_keywords TEXT DEFAULT NULL AFTER theme_preference");
+}
+
+$mysqli->query("CREATE TABLE IF NOT EXISTS user_notification_settings (
+    user_id INT NOT NULL,
+    target_type ENUM('thread', 'group', 'dm') NOT NULL,
+    target_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, target_type, target_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)");
+
 $res = $mysqli->query("SHOW COLUMNS FROM messages LIKE 'is_pinned'");
 if ($res->num_rows === 0) {
     $mysqli->query("ALTER TABLE messages ADD COLUMN is_pinned TINYINT(1) DEFAULT 0 AFTER attachment_path");
@@ -3847,79 +3861,29 @@ if ($isLoggedIn) {
 
         function openMediaUploadModal() {
             modalFileToUpload = null;
-            document.getElementById('modal-file-input').value = '';
-            document.getElementById('modal-content-input').value = '';
+            const fileInput = document.getElementById('modal-file-input');
+            const contentInput = document.getElementById('modal-content-input');
+            if (fileInput) fileInput.value = '';
+            if (contentInput) contentInput.value = '';
+
             const previewContainer = document.getElementById('media-upload-preview-container');
-            previewContainer.textContent = '';
-
-            const previewWrapper = document.createElement('div');
-            previewWrapper.className = 'upload-preview-item';
-            previewWrapper.style.position = 'relative';
-            previewWrapper.style.width = '100px';
-            previewWrapper.style.height = '100px';
-            previewWrapper.style.borderRadius = '8px';
-            previewWrapper.style.overflow = 'hidden';
-            previewWrapper.style.background = 'var(--bg-secondary)';
-            previewWrapper.style.display = 'flex';
-            previewWrapper.style.alignItems = 'center';
-            previewWrapper.style.justifyContent = 'center';
-
-            if (isImage) {
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.style.width = '100%';
-                img.style.height = '100%';
-                img.style.objectFit = 'cover';
-                previewWrapper.appendChild(img);
-            } else if (isVideo) {
-                const video = document.createElement('video');
-                video.src = e.target.result;
-                video.style.width = '100%';
-                video.style.height = '100%';
-                video.style.objectFit = 'cover';
-                previewWrapper.appendChild(video);
-            } else {
-                const icon = document.createElement('span');
-                icon.style.fontSize = '2rem';
-                icon.textContent = isAudio ? '🎵' : '📄';
-                previewWrapper.appendChild(icon);
+            if (previewContainer) {
+                previewContainer.textContent = '';
+                const placeholder = document.createElement('div');
+                placeholder.className = 'upload-placeholder';
+                placeholder.innerHTML = `
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 15px;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p style="margin:0; color:var(--text-secondary);">クリックまたはドラッグ＆ドロップで選択</p>
+                `;
+                previewContainer.appendChild(placeholder);
             }
 
-            const fileNameLabel = document.createElement('p');
-            fileNameLabel.style.fontSize = '0.7rem';
-            fileNameLabel.style.marginTop = '8px';
-            fileNameLabel.style.textAlign = 'center';
-            fileNameLabel.style.color = 'var(--text-secondary)';
-            fileNameLabel.textContent = file.name;
-
-            previewContainer.appendChild(previewWrapper);
-            previewContainer.appendChild(fileNameLabel);
-
-            // Note: Removed direct innerHTML assignment
-            <
-            div class = "upload-placeholder" >
-            <
-            svg width = "48"
-            height = "48"
-            viewBox = "0 0 24 24"
-            fill = "none"
-            stroke = "currentColor"
-            stroke - width = "2"
-            stroke - linecap = "round"
-            stroke - linejoin = "round"
-            style = "color: var(--text-secondary); margin-bottom: 15px;" >
-                <
-                path d = "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" > < /path> <
-            polyline points = "17 8 12 3 7 8" > < /polyline> <
-            line x1 = "12"
-            y1 = "3"
-            x2 = "12"
-            y2 = "15" > < /line> < /
-            svg > <
-                p style = "margin:0; color:var(--text-secondary);" > クリックまたはドラッグ＆ ドロップで選択 < /p> < /
-            div >
-                `;
-            document.getElementById('media-upload-modal').showModal();
+            const modal = document.getElementById('media-upload-modal');
+            if (modal) modal.showModal();
         }
 
         function closeMediaUploadModal() {
@@ -3948,7 +3912,19 @@ if ($isLoggedIn) {
             } else if (modalFileToUpload.type.startsWith('audio/')) {
                 const div = document.createElement('div');
                 div.className = 'media-file-info';
-                div.innerHTML = ` < span style = "font-size:3rem;" > 🎵 < /span><p style="margin-top:10px;">${escapeHTML(modalFileToUpload.name)}</p > `;
+                div.style.textAlign = 'center';
+                div.style.padding = '20px';
+
+                const icon = document.createElement('span');
+                icon.style.fontSize = '3rem';
+                icon.textContent = '🎵';
+                div.appendChild(icon);
+
+                const name = document.createElement('p');
+                name.style.marginTop = '10px';
+                name.textContent = modalFileToUpload.name;
+                div.appendChild(name);
+
                 container.appendChild(div);
             } else if (modalFileToUpload.type.startsWith('video/')) {
                 const video = document.createElement('video');
@@ -3963,7 +3939,19 @@ if ($isLoggedIn) {
             } else {
                 const div = document.createElement('div');
                 div.className = 'media-file-info';
-                div.innerHTML = ` < span style = "font-size:3rem;" > 📄 < /span><p style="margin-top:10px;">${escapeHTML(modalFileToUpload.name)}</p > `;
+                div.style.textAlign = 'center';
+                div.style.padding = '20px';
+
+                const icon = document.createElement('span');
+                icon.style.fontSize = '3rem';
+                icon.textContent = '📄';
+                div.appendChild(icon);
+
+                const name = document.createElement('p');
+                name.style.marginTop = '10px';
+                name.textContent = modalFileToUpload.name;
+                div.appendChild(name);
+
                 container.appendChild(div);
             }
         }
@@ -4261,24 +4249,24 @@ if ($isLoggedIn) {
                 d.style.justifyContent = 'space-between';
                 d.style.alignItems = 'center';
                 d.style.cursor = 'pointer';
-                
+
                 const leftSide = document.createElement('div');
                 leftSide.style.display = 'flex';
                 leftSide.style.alignItems = 'center';
                 leftSide.style.gap = '10px';
                 leftSide.appendChild(getAvatarElement(f.username, f.status || 'offline', f.avatar_url));
-                
+
                 const nameSpan = document.createElement('span');
                 nameSpan.textContent = f.username;
                 leftSide.appendChild(nameSpan);
                 d.appendChild(leftSide);
-                
+
                 const timeSpan = document.createElement('span');
                 timeSpan.style.fontSize = '0.8rem';
                 timeSpan.style.color = 'var(--text-secondary)';
                 timeSpan.textContent = f.last_msg_at ? new Date(f.last_msg_at).toLocaleString() : '会話なし';
                 d.appendChild(timeSpan);
-                
+
                 d.onclick = () => switchToDmChat(f.id, f.username, f.avatar_url, f.status);
                 list.appendChild(d);
             });
@@ -4372,19 +4360,19 @@ if ($isLoggedIn) {
                 const nameSpan = document.createElement('span');
                 nameSpan.textContent = r.username;
                 d.appendChild(nameSpan);
-            const btn = document.createElement('button');
-            btn.innerText = '承認';
-            btn.className = 'btn-primary';
-            btn.onclick = async () => {
-                const body = new FormData();
-                body.append('request_id', r.id);
-                await api('accept_friend', 'POST', body);
-                loadPendingRequests();
-                loadHubFriends();
-            };
-            d.appendChild(btn);
-            list.appendChild(d);
-        });
+                const btn = document.createElement('button');
+                btn.innerText = '承認';
+                btn.className = 'btn-primary';
+                btn.onclick = async () => {
+                    const body = new FormData();
+                    body.append('request_id', r.id);
+                    await api('accept_friend', 'POST', body);
+                    loadPendingRequests();
+                    loadHubFriends();
+                };
+                d.appendChild(btn);
+                list.appendChild(d);
+            });
         }
 
 
@@ -4505,100 +4493,98 @@ if ($isLoggedIn) {
                 const mentionRegex = /@([a-zA-Z0-9_]+)/g;
                 const highlightedText = escapedText.replace(mentionRegex, (match, username) => {
                     if (username === currentUserName) {
-                        return ` < span class = "mention mention-me" > $ {
-                match
-            } < /span>`;
-        }
-        return `<span class="mention">${match}</span>`;
-        });
-        contentDiv.innerHTML = highlightedText;
+                        return `<span class="mention mention-me">${match}</span>`;
+                    }
+                    return `<span class="mention">${match}</span>`;
+                });
+                contentDiv.innerHTML = highlightedText;
 
-        if (m.attachment_path) {
-            const ext = m.attachment_path.split('.').pop().toLowerCase();
-            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
-            const isAudio = ['mp3', 'wav', 'ogg'].includes(ext);
-            const isVideo = ['mp4', 'webm', 'ogv', 'mov', 'avi'].includes(ext);
+                if (m.attachment_path) {
+                    const ext = m.attachment_path.split('.').pop().toLowerCase();
+                    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+                    const isAudio = ['mp3', 'wav', 'ogg'].includes(ext);
+                    const isVideo = ['mp4', 'webm', 'ogv', 'mov', 'avi'].includes(ext);
 
-            if (isImage) {
-                const img = document.createElement('img');
-                img.src = m.attachment_path;
-                img.className = 'preview-img';
-                img.style.display = 'block';
-                img.style.marginTop = '10px';
-                img.onclick = () => window.open(m.attachment_path, '_blank');
-                contentDiv.appendChild(img);
-            } else if (isAudio) {
-                const audio = document.createElement('audio');
-                audio.src = m.attachment_path;
-                audio.controls = true;
-                audio.style.display = 'block';
-                audio.style.marginTop = '10px';
-                audio.style.maxWidth = '100%';
-                contentDiv.appendChild(audio);
-            } else if (isVideo) {
-                const video = document.createElement('video');
-                video.src = m.attachment_path;
-                video.controls = true;
-                video.style.display = 'block';
-                video.style.marginTop = '10px';
-                video.style.maxWidth = '100%';
-                contentDiv.appendChild(video);
+                    if (isImage) {
+                        const img = document.createElement('img');
+                        img.src = m.attachment_path;
+                        img.className = 'preview-img';
+                        img.style.display = 'block';
+                        img.style.marginTop = '10px';
+                        img.onclick = () => window.open(m.attachment_path, '_blank');
+                        contentDiv.appendChild(img);
+                    } else if (isAudio) {
+                        const audio = document.createElement('audio');
+                        audio.src = m.attachment_path;
+                        audio.controls = true;
+                        audio.style.display = 'block';
+                        audio.style.marginTop = '10px';
+                        audio.style.maxWidth = '100%';
+                        contentDiv.appendChild(audio);
+                    } else if (isVideo) {
+                        const video = document.createElement('video');
+                        video.src = m.attachment_path;
+                        video.controls = true;
+                        video.style.display = 'block';
+                        video.style.marginTop = '10px';
+                        video.style.maxWidth = '100%';
+                        contentDiv.appendChild(video);
+                    }
+
+                    const dlLink = document.createElement('a');
+                    const fileName = m.attachment_path.split('/').pop();
+                    dlLink.href = 'download.php?file=' + fileName;
+                    dlLink.target = '_blank';
+                    dlLink.innerText = '⬇️ ダウンロード';
+                    dlLink.style.display = 'inline-block';
+                    dlLink.style.fontSize = '0.75rem';
+                    dlLink.style.marginTop = '5px';
+                    dlLink.style.color = 'var(--accent-color)';
+                    contentDiv.appendChild(dlLink);
+                }
+
+                info.appendChild(header);
+                info.appendChild(contentDiv);
+
+                if (m.is_edited == 1) {
+                    const editedLabel = document.createElement('span');
+                    editedLabel.style.fontSize = '0.7rem';
+                    editedLabel.style.opacity = '0.5';
+                    editedLabel.style.marginLeft = '5px';
+                    editedLabel.innerText = '(編集済み)';
+                    contentDiv.appendChild(editedLabel);
+                }
+
+                if (m.sender_id == currentUserId) {
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'msg-action-btn';
+                    editBtn.style.position = 'absolute';
+                    editBtn.style.right = '10px';
+                    editBtn.style.top = '10px';
+                    editBtn.textContent = '';
+                    const editImg = document.createElement('img');
+                    editImg.src = 'assets/img/edit.svg';
+                    editImg.alt = '編集';
+                    editImg.style.width = '16px';
+                    editImg.style.height = '16px';
+                    editBtn.appendChild(editImg);
+                    editBtn.onclick = () => startEditMessage(m, true);
+                    group.appendChild(editBtn);
+                }
+
+                group.appendChild(info);
+                container.appendChild(group);
+            });
+
+            if (dms.length > 0) {
+                const latest = dms[dms.length - 1];
+                if (lastDmId !== 0 && latest.id > lastDmId && latest.sender_id != currentUserId) {
+                    sendNotification(`新着DM: ${latest.username}`, latest.content, 'dm', currentPartnerId);
+                }
+                lastDmId = latest.id;
             }
 
-            const dlLink = document.createElement('a');
-            const fileName = m.attachment_path.split('/').pop();
-            dlLink.href = 'download.php?file=' + fileName;
-            dlLink.target = '_blank';
-            dlLink.innerText = '⬇️ ダウンロード';
-            dlLink.style.display = 'inline-block';
-            dlLink.style.fontSize = '0.75rem';
-            dlLink.style.marginTop = '5px';
-            dlLink.style.color = 'var(--accent-color)';
-            contentDiv.appendChild(dlLink);
-        }
-
-        info.appendChild(header);
-        info.appendChild(contentDiv);
-
-        if (m.is_edited == 1) {
-            const editedLabel = document.createElement('span');
-            editedLabel.style.fontSize = '0.7rem';
-            editedLabel.style.opacity = '0.5';
-            editedLabel.style.marginLeft = '5px';
-            editedLabel.innerText = '(編集済み)';
-            contentDiv.appendChild(editedLabel);
-        }
-
-        if (m.sender_id == currentUserId) {
-            const editBtn = document.createElement('button');
-            editBtn.className = 'msg-action-btn';
-            editBtn.style.position = 'absolute';
-            editBtn.style.right = '10px';
-            editBtn.style.top = '10px';
-            editBtn.textContent = '';
-            const editImg = document.createElement('img');
-            editImg.src = 'assets/img/edit.svg';
-            editImg.alt = '編集';
-            editImg.style.width = '16px';
-            editImg.style.height = '16px';
-            editBtn.appendChild(editImg);
-            editBtn.onclick = () => startEditMessage(m, true);
-            group.appendChild(editBtn);
-        }
-
-        group.appendChild(info);
-        container.appendChild(group);
-        });
-
-        if (dms.length > 0) {
-            const latest = dms[dms.length - 1];
-            if (lastDmId !== 0 && latest.id > lastDmId && latest.sender_id != currentUserId) {
-                sendNotification(`新着DM: ${latest.username}`, latest.content, 'dm', currentPartnerId);
-            }
-            lastDmId = latest.id;
-        }
-
-        if (isAtBottom) container.scrollTop = container.scrollHeight;
+            if (isAtBottom) container.scrollTop = container.scrollHeight;
         }
 
         async function showUserPicker() {
