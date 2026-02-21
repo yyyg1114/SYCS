@@ -324,6 +324,33 @@
 
     <main>
 
+        <!-- ===== v1.1.1 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.1.1</span>
+                <span class="release-title">セキュリティ強化（XSS脆弱性の修正）</span>
+                <span class="release-date">2026-02-21</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-red"></span> セキュリティ修正 (Security Fixes)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🛡️</span>
+                            <div>
+                                <strong>XSS脆弱性の修正</strong>
+                                <span class="detail"><code>innerHTML</code>
+                                    の不適切な使用箇所を修正し、ユーザー名やメッセージ内容を安全にエスケープするように改善。<code>escapeHTML</code>
+                                    ヘルパー関数を導入しました。</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
         <!-- ===== v1.1.0 ===== -->
         <article class="release">
             <div class="release-header">

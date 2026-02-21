@@ -2115,7 +2115,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.1.0</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.1.1</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
@@ -2873,6 +2873,14 @@ if ($isLoggedIn) {
         const uploadPreview = document.getElementById('upload-preview');
         const previewContent = document.getElementById('preview-content');
 
+        // Helper to escape HTML to prevent XSS
+        function escapeHTML(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
         // --- Markdown logic removed for strict security via innerText ---
 
         function getAvatarElement(name, status = 'none', avatarUrl = null) {
@@ -2887,7 +2895,7 @@ if ($isLoggedIn) {
             div.className = 'avatar';
 
             if (avatarUrl) {
-                div.innerHTML = `<img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+                div.innerHTML = `<img src="${escapeHTML(avatarUrl)}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
             } else {
                 div.style.background = colors[colorIdx];
                 div.innerText = initial;
@@ -3078,7 +3086,7 @@ if ($isLoggedIn) {
                 label.style.gap = '10px';
                 label.style.padding = '5px';
                 label.style.cursor = 'pointer';
-                label.innerHTML = `<input type="checkbox" name="group_members" value="${u.id}"> ${u.username}`;
+                label.innerHTML = `<input type="checkbox" name="group_members" value="${escapeHTML(u.id)}"> ${escapeHTML(u.username)}`;
                 picker.appendChild(label);
             });
             document.getElementById('group-creation-modal').showModal();
@@ -3276,7 +3284,7 @@ if ($isLoggedIn) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const container = document.getElementById('preview-avatar-container');
-                    container.innerHTML = `<img src="${e.target.result}" class="discord-avatar" id="preview-avatar-img">`;
+                    container.innerHTML = `<img src="${escapeHTML(e.target.result)}" class="discord-avatar" id="preview-avatar-img">`;
                     container.innerText = '';
                     document.getElementById('btn-remove-avatar').style.display = 'inline-block';
                 }
@@ -3288,7 +3296,7 @@ if ($isLoggedIn) {
             shouldRemoveAvatar = true;
             document.getElementById('edit-avatar-input').value = '';
             const container = document.getElementById('preview-avatar-container');
-            container.innerHTML = currentUserName ? currentUserName.charAt(0).toUpperCase() : '?';
+            container.textContent = currentUserName ? currentUserName.charAt(0).toUpperCase() : '?';
             container.style.background = '#6366f1';
             document.getElementById('btn-remove-avatar').style.display = 'none';
         }
@@ -3356,10 +3364,10 @@ if ($isLoggedIn) {
             // アバター
             const avatarContainer = document.getElementById('user-profile-avatar-container');
             if (res.avatar_url) {
-                avatarContainer.innerHTML = `<img src="${res.avatar_url}" class="discord-avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                avatarContainer.innerHTML = `<img src="${escapeHTML(res.avatar_url)}" class="discord-avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
             } else {
                 const initial = res.username ? res.username.charAt(0).toUpperCase() : '?';
-                avatarContainer.innerHTML = initial;
+                avatarContainer.textContent = initial;
                 avatarContainer.style.background = '#6366f1';
             }
 
@@ -3558,7 +3566,7 @@ if ($isLoggedIn) {
                 const quote = document.createElement('div');
                 quote.className = 'reply-quote';
                 quote.style.cursor = 'pointer';
-                quote.innerHTML = `<span style="opacity:0.6; font-size:0.8rem;">↩️ 返信先: </span><strong>${m.reply_username}</strong>`;
+                quote.innerHTML = `<span style="opacity:0.6; font-size:0.8rem;">↩️ 返信先: </span><strong>${escapeHTML(m.reply_username)}</strong>`;
                 quote.onclick = () => {
                     const target = document.getElementById('message-' + m.reply_to_id);
                     if (target) {
@@ -3579,8 +3587,9 @@ if ($isLoggedIn) {
 
             // Highlight Mentions (@username)
             let text = m.content || '';
+            const escapedText = escapeHTML(text);
             const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-            const highlightedText = text.replace(mentionRegex, (match, username) => {
+            const highlightedText = escapedText.replace(mentionRegex, (match, username) => {
                 if (username === currentUserName) {
                     return `<span class="mention mention-me">${match}</span>`;
                 }
@@ -3670,7 +3679,7 @@ if ($isLoggedIn) {
                     const badge = document.createElement('div');
                     const isMyReaction = grouped[emoji].includes(currentUserId);
                     badge.className = `reaction-badge ${isMyReaction ? 'active' : ''}`;
-                    badge.innerHTML = `<span>${emoji}</span><span class="reaction-count">${grouped[emoji].length}</span>`;
+                    badge.innerHTML = `<span>${escapeHTML(emoji)}</span><span class="reaction-count">${grouped[emoji].length}</span>`;
                     badge.onclick = () => toggleReaction(m.id, emoji);
                     reactContainer.appendChild(badge);
                 });
@@ -3844,7 +3853,7 @@ if ($isLoggedIn) {
             } else if (modalFileToUpload.type.startsWith('audio/')) {
                 const div = document.createElement('div');
                 div.className = 'media-file-info';
-                div.innerHTML = `<span style="font-size:3rem;">🎵</span><p style="margin-top:10px;">${modalFileToUpload.name}</p>`;
+                div.innerHTML = `<span style="font-size:3rem;">🎵</span><p style="margin-top:10px;">${escapeHTML(modalFileToUpload.name)}</p>`;
                 container.appendChild(div);
             } else if (modalFileToUpload.type.startsWith('video/')) {
                 const video = document.createElement('video');
@@ -3859,7 +3868,7 @@ if ($isLoggedIn) {
             } else {
                 const div = document.createElement('div');
                 div.className = 'media-file-info';
-                div.innerHTML = `<span style="font-size:3rem;">📄</span><p style="margin-top:10px;">${modalFileToUpload.name}</p>`;
+                div.innerHTML = `<span style="font-size:3rem;">📄</span><p style="margin-top:10px;">${escapeHTML(modalFileToUpload.name)}</p>`;
                 container.appendChild(div);
             }
         }
@@ -4141,7 +4150,7 @@ if ($isLoggedIn) {
                 d.innerHTML = `
                     <div style="display:flex; align-items:center; gap:10px;">
                         ${getAvatarElement(f.username, f.status || 'offline', f.avatar_url).outerHTML}
-                        <span>${f.username}</span>
+                        <span>${escapeHTML(f.username)}</span>
                     </div>
                     <span style="font-size:0.8rem; color:var(--text-secondary);">
                         ${f.last_msg_at ? new Date(f.last_msg_at).toLocaleString() : '会話なし'}
@@ -4221,7 +4230,7 @@ if ($isLoggedIn) {
                 d.className = 'thread-item';
                 d.style.display = 'flex';
                 d.style.justifyContent = 'space-between';
-                d.innerHTML = `<span>${r.username}</span>`;
+                d.innerHTML = `<span>${escapeHTML(r.username)}</span>`;
                 const btn = document.createElement('button');
                 btn.innerText = '承認';
                 btn.className = 'btn-primary';
@@ -4254,7 +4263,7 @@ if ($isLoggedIn) {
                 d.className = 'thread-item';
                 d.style.display = 'flex';
                 d.style.justifyContent = 'space-between';
-                d.innerHTML = `<span>${u.username}</span>`;
+                d.innerHTML = `<span>${escapeHTML(u.username)}</span>`;
                 const btn = document.createElement('button');
                 btn.innerText = '解除';
                 btn.className = 'btn-secondary';
@@ -4345,8 +4354,9 @@ if ($isLoggedIn) {
                 contentDiv.className = 'message-content';
 
                 let text = m.content || '';
+                const escapedText = escapeHTML(text);
                 const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-                const highlightedText = text.replace(mentionRegex, (match, username) => {
+                const highlightedText = escapedText.replace(mentionRegex, (match, username) => {
                     if (username === currentUserName) {
                         return `<span class="mention mention-me">${match}</span>`;
                     }
@@ -4857,9 +4867,9 @@ if ($isLoggedIn) {
                 const div = document.createElement('div');
                 div.className = 'search-result-item';
                 div.innerHTML = `
-                <div style="font-size:0.75rem; color:var(--accent-color); font-weight:700;">${m.username}</div>
-                <div style="font-size:0.85rem; margin:4px 0;">${m.content || (m.attachment_path ? '[添付ファイル]' : '')}</div>
-                <div style="font-size:0.65rem; opacity:0.6;">${m.created_at}</div>
+                <div style="font-size:0.75rem; color:var(--accent-color); font-weight:700;">${escapeHTML(m.username)}</div>
+                <div style="font-size:0.85rem; margin:4px 0;">${escapeHTML(m.content || (m.attachment_path ? '[添付ファイル]' : ''))}</div>
+                <div style="font-size:0.65rem; opacity:0.6;">${escapeHTML(m.created_at)}</div>
             `;
                 div.onclick = () => {
                     const target = document.getElementById('message-' + m.id);
@@ -4917,8 +4927,8 @@ if ($isLoggedIn) {
                 header.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:6px;';
                 header.innerHTML = `
                     ${getAvatarElement(m.username, 'online', m.avatar_url).outerHTML}
-                    <span style="font-weight:600; font-size:0.9rem;">${m.username}</span>
-                    <span style="font-size:0.75rem; color:var(--text-secondary);">${m.created_at}</span>
+                    <span style="font-weight:600; font-size:0.9rem;">${escapeHTML(m.username)}</span>
+                    <span style="font-size:0.75rem; color:var(--text-secondary);">${escapeHTML(m.created_at)}</span>
                 `;
 
                 const content = document.createElement('div');
@@ -5013,8 +5023,8 @@ if ($isLoggedIn) {
                 const info = document.createElement('div');
                 info.style.cssText = 'flex:1; min-width:0;';
                 info.innerHTML = `
-                    <div style="font-size:0.8rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${u.username}</div>
-                    <div style="font-size:0.68rem; color:var(--text-secondary);">${statusLabels[u.status] || u.status}</div>
+                    <div style="font-size:0.8rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHTML(u.username)}</div>
+                    <div style="font-size:0.68rem; color:var(--text-secondary);">${escapeHTML(statusLabels[u.status] || u.status)}</div>
                 `;
 
                 item.appendChild(avatarEl);

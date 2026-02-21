@@ -16,6 +16,13 @@ class LocationManager {
         };
     }
 
+    escapeHTML(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
     /**
      * 初期化処理
      * @param {string} elementId - 位置情報を表示するHTML要素のID
@@ -132,7 +139,7 @@ class LocationManager {
                 </div>
                 <div class="gps-row">
                     <span class="gps-label">更新時刻:</span>
-                    <span class="gps-value">${timeStr}</span>
+                    <span class="gps-value">${this.escapeHTML(timeStr)}</span>
                 </div>
                 <div class="gps-status-indicator">
                     <span class="status-dot active"></span>
@@ -152,7 +159,7 @@ class LocationManager {
         this.statusElement.innerHTML = `
             <div class="gps-error">
                 <span class="status-dot error"></span>
-                ${message}
+                ${this.escapeHTML(message)}
             </div>
         `;
     }
