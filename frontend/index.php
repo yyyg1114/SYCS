@@ -2889,10 +2889,37 @@ if ($isLoggedIn) {
 
         // Helper to escape HTML to prevent XSS
         function escapeHTML(str) {
-            if (!str) return '';
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function appendMentionHighlightedText(element, text) {
+            const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+            const raw = String(text || '');
+            let lastIndex = 0;
+            let match;
+
+            while ((match = mentionRegex.exec(raw)) !== null) {
+                if (match.index > lastIndex) {
+                    element.appendChild(document.createTextNode(raw.slice(lastIndex, match.index)));
+                }
+
+                const mentionSpan = document.createElement('span');
+                mentionSpan.className = `mention${match[1] === currentUserName ? ' mention-me' : ''}`;
+                mentionSpan.textContent = match[0];
+                element.appendChild(mentionSpan);
+
+                lastIndex = mentionRegex.lastIndex;
+            }
+
+            if (lastIndex < raw.length) {
+                element.appendChild(document.createTextNode(raw.slice(lastIndex)));
+            }
         }
 
         // --- Markdown logic removed for strict security via innerText ---
@@ -3106,7 +3133,12 @@ if ($isLoggedIn) {
                 label.style.gap = '10px';
                 label.style.padding = '5px';
                 label.style.cursor = 'pointer';
-                label.innerHTML = `<input type="checkbox" name="group_members" value="${escapeHTML(u.id)}"> ${escapeHTML(u.username)}`;
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'group_members';
+                checkbox.value = String(u.id);
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(` ${u.username || ''}`));
                 picker.appendChild(label);
             });
             document.getElementById('group-creation-modal').showModal();
@@ -3161,7 +3193,11 @@ if ($isLoggedIn) {
             if (msgs.length === 0) {
                 const div = document.createElement('div');
                 div.className = 'empty-state';
-                div.innerHTML = '<p>グループメッセージはありません。<br>新しく会話を始めましょう！</p>';
+                const p = document.createElement('p');
+                p.textContent = 'グループメッセージはありません。';
+                p.appendChild(document.createElement('br'));
+                p.appendChild(document.createTextNode('新しく会話を始めましょう！'));
+                div.appendChild(p);
                 container.appendChild(div);
                 return;
             }
@@ -3304,8 +3340,12 @@ if ($isLoggedIn) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const container = document.getElementById('preview-avatar-container');
-                    container.innerHTML = `<img src="${escapeHTML(e.target.result)}" class="discord-avatar" id="preview-avatar-img">`;
-                    container.innerText = '';
+                    container.textContent = '';
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'discord-avatar';
+                    img.id = 'preview-avatar-img';
+                    container.appendChild(img);
                     document.getElementById('btn-remove-avatar').style.display = 'inline-block';
                 }
                 reader.readAsDataURL(input.files[0]);
@@ -3545,7 +3585,12 @@ if ($isLoggedIn) {
             // Always allow reply
             const replyBtn = document.createElement('button');
             replyBtn.className = 'msg-action-btn';
-            replyBtn.innerHTML = '<img src="assets/img/reply.svg" alt="返信" style="width:16px; height:16px;">';
+            const replyImg = document.createElement('img');
+            replyImg.src = 'assets/img/reply.svg';
+            replyImg.alt = '返信';
+            replyImg.style.width = '16px';
+            replyImg.style.height = '16px';
+            replyBtn.appendChild(replyImg);
             replyBtn.title = '返信';
             replyBtn.onclick = () => startReply(m.id, m.username, m.content);
             actions.appendChild(replyBtn);
@@ -3554,7 +3599,17 @@ if ($isLoggedIn) {
             const isPinned = !!+m.is_pinned;
             const pinBtn = document.createElement('button');
             pinBtn.className = 'msg-action-btn';
-            pinBtn.innerHTML = isPinned ? '📍' : '<img src="assets/img/pin.svg" alt="ピン" style="width:16px; height:16px; opacity:0.6;">';
+            if (isPinned) {
+                pinBtn.textContent = '📍';
+            } else {
+                const pinImg = document.createElement('img');
+                pinImg.src = 'assets/img/pin.svg';
+                pinImg.alt = 'ピン';
+                pinImg.style.width = '16px';
+                pinImg.style.height = '16px';
+                pinImg.style.opacity = '0.6';
+                pinBtn.appendChild(pinImg);
+            }
             pinBtn.title = isPinned ? 'ピン解除' : 'ピン留め';
             pinBtn.onclick = () => togglePin(m.id);
             actions.appendChild(pinBtn);
@@ -3562,7 +3617,13 @@ if ($isLoggedIn) {
             // Reaction Button
             const reactBtn = document.createElement('button');
             reactBtn.className = 'msg-action-btn';
-            reactBtn.innerHTML = '<img src="assets/img/emoji.svg" alt="リアクション" style="width:16px; height:16px; opacity:0.6;">';
+            const reactImg = document.createElement('img');
+            reactImg.src = 'assets/img/emoji.svg';
+            reactImg.alt = 'リアクション';
+            reactImg.style.width = '16px';
+            reactImg.style.height = '16px';
+            reactImg.style.opacity = '0.6';
+            reactBtn.appendChild(reactImg);
             reactBtn.title = 'リアクション';
             reactBtn.onclick = (e) => showEmojiPicker(e, m.id);
             actions.appendChild(reactBtn);
@@ -3571,7 +3632,12 @@ if ($isLoggedIn) {
             if (m.username === currentUserName) {
                 const editBtn = document.createElement('button');
                 editBtn.className = 'msg-action-btn';
-                editBtn.innerHTML = '<img src="assets/img/edit.svg" alt="編集" style="width:16px; height:16px;">';
+                const editImg = document.createElement('img');
+                editImg.src = 'assets/img/edit.svg';
+                editImg.alt = '編集';
+                editImg.style.width = '16px';
+                editImg.style.height = '16px';
+                editBtn.appendChild(editImg);
                 editBtn.title = '編集';
                 editBtn.onclick = () => startEditMessage(m, false);
                 actions.appendChild(editBtn);
@@ -3628,16 +3694,7 @@ if ($isLoggedIn) {
             contentDiv.className = 'message-content';
 
             // Highlight Mentions (@username)
-            let text = m.content || '';
-            const escapedText = escapeHTML(text);
-            const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-            const highlightedText = escapedText.replace(mentionRegex, (match, username) => {
-                if (username === currentUserName) {
-                    return `<span class="mention mention-me">${match}</span>`;
-                }
-                return `<span class="mention">${match}</span>`;
-            });
-            contentDiv.innerHTML = highlightedText;
+            appendMentionHighlightedText(contentDiv, m.content || '');
 
             if (m.is_edited == 1) {
                 const editedLabel = document.createElement('span');
@@ -3871,14 +3928,39 @@ if ($isLoggedIn) {
                 previewContainer.textContent = '';
                 const placeholder = document.createElement('div');
                 placeholder.className = 'upload-placeholder';
-                placeholder.innerHTML = `
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 15px;">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    <p style="margin:0; color:var(--text-secondary);">クリックまたはドラッグ＆ドロップで選択</p>
-                `;
+                const placeholderIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                placeholderIcon.setAttribute('width', '48');
+                placeholderIcon.setAttribute('height', '48');
+                placeholderIcon.setAttribute('viewBox', '0 0 24 24');
+                placeholderIcon.setAttribute('fill', 'none');
+                placeholderIcon.setAttribute('stroke', 'currentColor');
+                placeholderIcon.setAttribute('stroke-width', '2');
+                placeholderIcon.setAttribute('stroke-linecap', 'round');
+                placeholderIcon.setAttribute('stroke-linejoin', 'round');
+                placeholderIcon.style.color = 'var(--text-secondary)';
+                placeholderIcon.style.marginBottom = '15px';
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4');
+                const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+                polyline.setAttribute('points', '17 8 12 3 7 8');
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', '12');
+                line.setAttribute('y1', '3');
+                line.setAttribute('x2', '12');
+                line.setAttribute('y2', '15');
+
+                placeholderIcon.appendChild(path);
+                placeholderIcon.appendChild(polyline);
+                placeholderIcon.appendChild(line);
+
+                const placeholderText = document.createElement('p');
+                placeholderText.style.margin = '0';
+                placeholderText.style.color = 'var(--text-secondary)';
+                placeholderText.textContent = 'クリックまたはドラッグ＆ドロップで選択';
+
+                placeholder.appendChild(placeholderIcon);
+                placeholder.appendChild(placeholderText);
                 previewContainer.appendChild(placeholder);
             }
 
@@ -4233,7 +4315,7 @@ if ($isLoggedIn) {
         async function loadHubFriends() {
             const friends = await api('get_friends');
             const list = document.getElementById('hub-friend-list');
-            list.innerHTML = '';
+            list.textContent = '';
             if (friends.length === 0) {
                 const emptyMsg = document.createElement('div');
                 emptyMsg.style.padding = '10px';
@@ -4288,7 +4370,7 @@ if ($isLoggedIn) {
             }
             `);
             const list = document.getElementById('user-search-results');
-            list.innerHTML = '';
+            list.textContent = '';
             if (res.length === 0) {
                 list.innerText = '見つかりませんでした';
                 return;
@@ -4350,7 +4432,7 @@ if ($isLoggedIn) {
         async function loadPendingRequests() {
             const reqs = await api('get_friend_requests');
             const list = document.getElementById('pending-requests-list-modal');
-            list.innerHTML = '';
+            list.textContent = '';
             if (reqs.length === 0) list.innerText = '承認待ちのリクエストはありません';
             reqs.forEach(r => {
                 const d = document.createElement('div');
@@ -4385,7 +4467,7 @@ if ($isLoggedIn) {
         async function loadBlockedUsers() {
             const users = await api('get_blocked_users');
             const list = document.getElementById('blocked-users-list');
-            list.innerHTML = '';
+            list.textContent = '';
             if (users.length === 0) list.innerText = 'ブロックしているユーザーはいません';
             users.forEach(u => {
                 const d = document.createElement('div');
@@ -4488,16 +4570,7 @@ if ($isLoggedIn) {
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'message-content';
 
-                let text = m.content || '';
-                const escapedText = escapeHTML(text);
-                const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-                const highlightedText = escapedText.replace(mentionRegex, (match, username) => {
-                    if (username === currentUserName) {
-                        return `<span class="mention mention-me">${match}</span>`;
-                    }
-                    return `<span class="mention">${match}</span>`;
-                });
-                contentDiv.innerHTML = highlightedText;
+                appendMentionHighlightedText(contentDiv, m.content || '');
 
                 if (m.attachment_path) {
                     const ext = m.attachment_path.split('.').pop().toLowerCase();
@@ -4996,7 +5069,7 @@ if ($isLoggedIn) {
             const list = document.getElementById('search-results-list');
             const overlay = document.getElementById('search-results-overlay');
 
-            list.innerHTML = '';
+            list.textContent = '';
             overlay.style.display = 'flex';
 
             if (res.length === 0) {
@@ -5011,11 +5084,21 @@ if ($isLoggedIn) {
             res.forEach(m => {
                 const div = document.createElement('div');
                 div.className = 'search-result-item';
-                div.innerHTML = `
-                <div style="font-size:0.75rem; color:var(--accent-color); font-weight:700;">${escapeHTML(m.username)}</div>
-                <div style="font-size:0.85rem; margin:4px 0;">${escapeHTML(m.content || (m.attachment_path ? '[添付ファイル]' : ''))}</div>
-                <div style="font-size:0.65rem; opacity:0.6;">${escapeHTML(m.created_at)}</div>
-            `;
+                const userDiv = document.createElement('div');
+                userDiv.style.cssText = 'font-size:0.75rem; color:var(--accent-color); font-weight:700;';
+                userDiv.textContent = m.username || '';
+
+                const bodyDiv = document.createElement('div');
+                bodyDiv.style.cssText = 'font-size:0.85rem; margin:4px 0;';
+                bodyDiv.textContent = m.content || (m.attachment_path ? '[添付ファイル]' : '');
+
+                const timeDiv = document.createElement('div');
+                timeDiv.style.cssText = 'font-size:0.65rem; opacity:0.6;';
+                timeDiv.textContent = m.created_at || '';
+
+                div.appendChild(userDiv);
+                div.appendChild(bodyDiv);
+                div.appendChild(timeDiv);
                 div.onclick = () => {
                     const target = document.getElementById('message-' + m.id);
                     if (target) {
@@ -5068,7 +5151,7 @@ if ($isLoggedIn) {
             }
 
             const msgs = await api(url);
-            list.innerHTML = '';
+            list.textContent = '';
 
             if (!msgs || msgs.length === 0) {
                 const noMsg = document.createElement('div');
@@ -5088,11 +5171,18 @@ if ($isLoggedIn) {
 
                 const header = document.createElement('div');
                 header.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:6px;';
-                header.innerHTML = `
-                    ${getAvatarElement(m.username, 'online', m.avatar_url).outerHTML}
-                    <span style="font-weight:600; font-size:0.9rem;">${escapeHTML(m.username)}</span>
-                    <span style="font-size:0.75rem; color:var(--text-secondary);">${escapeHTML(m.created_at)}</span>
-                `;
+                header.appendChild(getAvatarElement(m.username, 'online', m.avatar_url));
+
+                const userSpan = document.createElement('span');
+                userSpan.style.cssText = 'font-weight:600; font-size:0.9rem;';
+                userSpan.textContent = m.username || '';
+
+                const dateSpan = document.createElement('span');
+                dateSpan.style.cssText = 'font-size:0.75rem; color:var(--text-secondary);';
+                dateSpan.textContent = m.created_at || '';
+
+                header.appendChild(userSpan);
+                header.appendChild(dateSpan);
 
                 const content = document.createElement('div');
                 content.style.cssText = 'font-size:0.9rem; color:var(--text-primary); padding-left:4px; white-space:pre-wrap; word-break:break-word;';
@@ -5157,7 +5247,7 @@ if ($isLoggedIn) {
             if (!list) return;
 
             const users = await api('get_online_users');
-            list.innerHTML = '';
+            list.textContent = '';
 
             if (!users || users.length === 0) {
                 const noOnline = document.createElement('div');
@@ -5190,10 +5280,16 @@ if ($isLoggedIn) {
 
                 const info = document.createElement('div');
                 info.style.cssText = 'flex:1; min-width:0;';
-                info.innerHTML = `
-                    <div style="font-size:0.8rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHTML(u.username)}</div>
-                    <div style="font-size:0.68rem; color:var(--text-secondary);">${escapeHTML(statusLabels[u.status] || u.status)}</div>
-                `;
+                const nameDiv = document.createElement('div');
+                nameDiv.style.cssText = 'font-size:0.8rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
+                nameDiv.textContent = u.username || '';
+
+                const statusDiv = document.createElement('div');
+                statusDiv.style.cssText = 'font-size:0.68rem; color:var(--text-secondary);';
+                statusDiv.textContent = statusLabels[u.status] || u.status || '';
+
+                info.appendChild(nameDiv);
+                info.appendChild(statusDiv);
 
                 item.appendChild(avatarEl);
                 item.appendChild(info);
