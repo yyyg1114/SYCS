@@ -1,10 +1,5 @@
 <?php
 
-session_regenerate_id(true);
-
-$_SESSION['user_id'] = $userId;
-$_SESSION['username'] = $dbUsername;
-
 if (isset($_POST['username']) && $_POST['username'] === 'admin' && isset($_POST['password']) && $_POST['password'] === 'admin') {
     $_SESSION['user_id'] = 1;
     $_SESSION['username'] = 'admin';
