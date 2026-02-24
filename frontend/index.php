@@ -356,25 +356,25 @@ UNIQUE KEY unique_reaction (message_id, user_id, emoji)
 )");
 
 // Helper to send Discord Webhook
-function sendDiscordWebhook($webhookUrl, $username, $content, $avatarUrl = null, $attachmentPath = null)
+function sendDiscordWebhook($webhookUrl, $username, $content, $avatarUrl = null, $attachmentPath = null, $baseUrl = '')
 {
     if (!$webhookUrl) return;
 
     // Use absolute URL for avatar and attachment if they exist
-    $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]" . dirname($_SERVER['REQUEST_URI']);
-    if ($avatarUrl && !filter_var($avatarUrl, FILTER_VALIDATE_URL)) {
-        $avatarUrl = $baseUrl . '/' . ltrim($avatarUrl, '/');
-    }
+    if ($baseUrl) {
+        if ($avatarUrl && !filter_var($avatarUrl, FILTER_VALIDATE_URL)) {
+            $avatarUrl = rtrim($baseUrl, '/') . '/' . ltrim($avatarUrl, '/');
+        }
 
-    $fullContent = $content;
-    if ($attachmentPath) {
-        $absAttachment = $baseUrl . '/' . ltrim($attachmentPath, '/');
-        $fullContent .= "\n" . $absAttachment;
+        if ($attachmentPath && !filter_var($attachmentPath, FILTER_VALIDATE_URL)) {
+            $absAttachment = rtrim($baseUrl, '/') . '/' . ltrim($attachmentPath, '/');
+            $content .= "\n" . $absAttachment;
+        }
     }
 
     $data = [
         'username' => $username . " (SYCS)",
-        'content' => $fullContent,
+        'content' => $content,
     ];
     if ($avatarUrl) $data['avatar_url'] = $avatarUrl;
 
@@ -387,7 +387,10 @@ function sendDiscordWebhook($webhookUrl, $username, $content, $avatarUrl = null,
         ]
     ];
     $context  = stream_context_create($options);
-    @file_get_contents($webhookUrl, false, $context);
+    $result = file_get_contents($webhookUrl, false, $context);
+    if ($result === false) {
+        error_log("Discord Webhook failed: $webhookUrl");
+    }
 }
 
 // Helper to notify Realtime Server
@@ -411,7 +414,10 @@ function notifyRealtimeServer($type, $data)
         ]
     ];
     $context  = stream_context_create($options);
-    @file_get_contents($url, false, $context);
+    $result = file_get_contents($url, false, $context);
+    if ($result === false) {
+        error_log("Realtime Server notification failed: $url");
+    }
 }
 
 // Helper to send Push Notification
@@ -449,21 +455,28 @@ function sendPushNotification($userId, $payload)
             ]
         ];
         $context  = stream_context_create($options);
-        @file_get_contents($url, false, $context);
+        $result = file_get_contents($url, false, $context);
+        if ($result === false) {
+            error_log("Push Notification failed: $url");
+        }
     }
 }
 
 // Helper to verify CSRF
-function verify_csrf()
+function verify_csrf(?string $token, ?string $sessionToken)
 {
-    $token = $_POST['csrf_token'] ?? '';
-    if (!hash_equals($_SESSION['csrf_token'], $token)) {
+    if (!$token || !$sessionToken || !hash_equals($sessionToken, $token)) {
         http_response_code(403);
         echo json_encode(['error' => 'Invalid CSRF Token']);
-        exit;
     }
 }
-
+function verify_token(?string $token, ?string $sessionToken)
+{
+    if (!$token || !$sessionToken || !hash_equals($sessionToken, $token)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Invalid CSRF Token']);
+    }
+}
 
 // --- API Logic (AJAX Handlers) ---
 if (isset($_GET['api'])) {
@@ -477,7 +490,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'update_profile') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $bio = $_POST['bio'] ?? null;
         $bannerColor = $_POST['banner_color'] ?? '#6366f1';
         $status = $_POST['status'] ?? 'online';
@@ -547,7 +560,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'push_subscribe') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $sub = json_decode(file_get_contents('php://input'), true);
         if ($sub && isset($sub['endpoint'])) {
             $stmt = $mysqli->prepare("INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE p256dh = VALUES(p256dh), auth = VALUES(auth)");
@@ -561,7 +574,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'update_status') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $status = $_POST['status'] ?? 'online';
         $customStatus = $_POST['custom_status'] ?? null;
         $allowed = ['online', 'busy', 'away', 'offline', 'not_allowed', 'step_out', 'going_away'];
@@ -620,7 +633,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'create_thread') {
-        verify_csrf(); // Enforce CSRF Check
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null); // Enforce CSRF Check
         $name = $_POST['name'] ?? '';
         $category = $_POST['category'] ?? 'General';
         if ($name) {
@@ -647,7 +660,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'edit_thread') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $threadId = $_POST['thread_id'] ?? 0;
         $newName = $_POST['name'] ?? '';
 
@@ -689,7 +702,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'delete_thread') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $threadId = $_POST['thread_id'] ?? 0;
 
         // Verify ownership
@@ -720,7 +733,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'toggle_reaction') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $messageId = $_POST['message_id'] ?? 0;
         $emoji = $_POST['emoji'] ?? '';
 
@@ -750,7 +763,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'toggle_pin') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $messageId = $_POST['message_id'] ?? 0;
         if ($messageId) {
             $stmt = $mysqli->prepare("UPDATE messages SET is_pinned = NOT is_pinned WHERE id = ?");
@@ -839,7 +852,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'update_typing_status') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $threadId = $_POST['thread_id'] ?? null;
         $isTyping = ($_POST['is_typing'] ?? '0') === '1';
 
@@ -869,7 +882,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'mark_dms_as_read') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $partnerId = $_POST['partner_id'] ?? 0;
         if ($partnerId) {
             $stmt = $mysqli->prepare("UPDATE direct_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0");
@@ -883,7 +896,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'edit_message') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $messageId = $_POST['message_id'] ?? 0;
         $dmId = $_POST['dm_id'] ?? 0;
         $content = $_POST['content'] ?? '';
@@ -976,7 +989,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'create_group_thread') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $name = $_POST['name'] ?? 'Group Chat';
         $participantIds = json_decode($_POST['participant_ids'] ?? '[]', true);
 
@@ -1091,7 +1104,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'send_direct_message') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $receiverId = $_POST['receiver_id'] ?? 0;
         $content = $_POST['content'] ?? '';
         $attachmentPath = null;
@@ -1194,7 +1207,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'send_message') {
-        verify_csrf(); // Enforce CSRF Check
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null); // Enforce CSRF Check
         $threadId = !empty($_POST['thread_id']) ? $_POST['thread_id'] : null;
         $groupThreadId = !empty($_POST['group_thread_id']) ? $_POST['group_thread_id'] : null;
         $content = $_POST['content'] ?? '';
@@ -1301,7 +1314,12 @@ if (isset($_GET['api'])) {
                         $uStmt->execute();
                         $uRes = $uStmt->get_result();
                         if ($uRow = $uRes->fetch_assoc()) {
-                            sendDiscordWebhook($wRow['discord_webhook_url'], $uRow['username'], $content, $uRow['avatar_url'], $attachmentPath);
+                            $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http");
+                            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                            $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+                            $baseUrl = $protocol . "://" . $host . dirname($requestUri);
+
+                            sendDiscordWebhook($wRow['discord_webhook_url'], $uRow['username'], $content, $uRow['avatar_url'], $attachmentPath, $baseUrl);
                         }
                         $uStmt->close();
                     }
@@ -1317,7 +1335,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'delete_message') {
-        verify_csrf(); // Enforce CSRF Check
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null); // Enforce CSRF Check
         $msgId = $_POST['message_id'] ?? 0;
         // Verify ownership
         $stmt = $mysqli->prepare("SELECT user_id FROM messages WHERE id = ?");
@@ -1353,7 +1371,7 @@ if (isset($_GET['api'])) {
     // --- Friend System API ---
 
     if ($action === 'request_friend') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $targetId = $_POST['target_id'] ?? 0;
         if ($targetId == $userId) {
             echo json_encode(['error' => 'Cannot add self']);
@@ -1377,7 +1395,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'accept_friend') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $requestId = $_POST['request_id'] ?? 0;
         // Verify I am the receiver (user_id_2)
         $stmt = $mysqli->prepare("UPDATE friends SET status = 'accepted' WHERE id = ? AND user_id_2 = ? AND status = 'pending'");
@@ -1431,7 +1449,7 @@ if (isset($_GET['api'])) {
     // --- Favorites API ---
 
     if ($action === 'toggle_favorite') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $threadId = $_POST['thread_id'] ?? 0;
 
         // Check if exists
@@ -1482,7 +1500,7 @@ if (isset($_GET['api'])) {
     // --- Block System API ---
 
     if ($action === 'block_user') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $targetId = $_POST['target_id'] ?? 0;
         if ($targetId == $userId) {
             echo json_encode(['error' => 'Cannot block self']);
@@ -1502,7 +1520,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'unblock_user') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $targetId = $_POST['target_id'] ?? 0;
         $stmt = $mysqli->prepare("DELETE FROM blocked_users WHERE blocker_id = ? AND blocked_id = ?");
         $stmt->bind_param("ii", $userId, $targetId);
@@ -1545,7 +1563,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'join_meeting') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $threadId = $_POST['thread_id'] ?? null;
         $dmPartnerId = $_POST['dm_partner_id'] ?? null;
 
@@ -1594,7 +1612,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'send_signaling') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $roomId = $_POST['room_id'] ?? 0;
         $receiverId = $_POST['receiver_id'] ?? 0;
         $type = $_POST['type'] ?? '';
@@ -1649,7 +1667,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'toggle_mute') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $targetType = $_POST['target_type'] ?? '';
         $targetId = $_POST['target_id'] ?? 0;
         $isMuted = ($_POST['is_muted'] ?? '1') === '1';
@@ -1677,7 +1695,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'update_notification_keywords') {
-        verify_csrf();
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
         $keywords = $_POST['keywords'] ?? '';
         $stmt = $mysqli->prepare("UPDATE users SET notification_keywords = ? WHERE id = ?");
         $stmt->bind_param("si", $keywords, $userId);
@@ -2319,6 +2337,15 @@ if ($isLoggedIn) {
                         <span class="close-btn upload-cancel" onclick="cancelUpload()">✕</span>
                     </div>
 
+                    <div id="pwa-install-banner-threads" class="pwa-install-banner-integrated" style="display:none;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:1.1rem;">📱</span>
+                            <span style="font-weight:600; font-size:1.1rem;">SYCSをインストール</span>
+                        </div>
+                        <button onclick="installPWA()" style="background:white; color:#4f46e5; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;">追加</button>
+                        <button onclick="dismissInstallBanner()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.1rem; opacity:0.7; padding:4px;">✕</button>
+                    </div>
+
                     <div id="typing-indicator" class="typing-indicator-bar" style="font-size: 0.75rem; color: var(--text-secondary); margin: 0 16px; min-height: 18px;"></div>
 
                     <div class="chat-input-area">
@@ -2466,6 +2493,15 @@ if ($isLoggedIn) {
                         style="display:none; padding:10px; border-bottom:1px solid var(--border-color);">
                         <div id="dm-preview-content"></div>
                         <button class="close-btn" onclick="cancelDmUpload()">×</button>
+                    </div>
+
+                    <div id="pwa-install-banner-dm" class="pwa-install-banner-integrated" style="display:none;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:1.1rem;">📱</span>
+                            <span style="font-weight:600; font-size:1.1rem;">SYCSをインストール</span>
+                        </div>
+                        <button onclick="installPWA()" style="background:white; color:#4f46e5; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;">追加</button>
+                        <button onclick="dismissInstallBanner()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.1rem; opacity:0.7; padding:4px;">✕</button>
                     </div>
 
                     <div id="dm-typing-indicator" class="typing-indicator-bar" style="font-size: 0.75rem; color: var(--text-secondary); margin: 0 16px; min-height: 18px;"></div>
@@ -5613,15 +5649,7 @@ if ($isLoggedIn) {
         }
     </script>
 
-    <!-- PWA Registration & Install Prompt -->
-    <div id="pwa-install-banner" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color:white; padding:14px 24px; border-radius:12px; box-shadow:0 8px 32px rgba(99,102,241,0.4); z-index:10000; font-family:'Inter',sans-serif; display:none; align-items:center; gap:14px; max-width:420px; width:calc(100% - 40px); animation: slideUpBanner 0.4s ease-out;">
-        <div style="flex:1;">
-            <div style="font-weight:600; font-size:0.95rem; margin-bottom:2px;">📱 SYCSをインストール</div>
-            <div style="font-size:0.8rem; opacity:0.85;">ホーム画面に追加して、より快適に使えます</div>
-        </div>
-        <button onclick="installPWA()" style="background:white; color:#4f46e5; border:none; padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer; font-size:0.85rem; white-space:nowrap;">インストール</button>
-        <button onclick="dismissInstallBanner()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.2rem; opacity:0.7; padding:4px;">✕</button>
-    </div>
+    <!-- PWA Installation Logic moved to integrated locations -->
 
     <!-- Offline Indicator -->
     <div id="offline-indicator" style="display:none; position:fixed; top:0; left:0; right:0; background:#ef4444; color:white; text-align:center; padding:6px; font-size:0.8rem; font-family:'Inter',sans-serif; z-index:10001; animation: slideDown 0.3s ease-out;">
@@ -5631,14 +5659,36 @@ if ($isLoggedIn) {
     <style>
         @keyframes slideUpBanner {
             from {
-                transform: translateX(-50%) translateY(100px);
+                transform: translateY(20px);
                 opacity: 0;
             }
 
             to {
-                transform: translateX(-50%) translateY(0);
+                transform: translateY(0);
                 opacity: 1;
             }
+        }
+
+        .pwa-install-banner-integrated {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-25%);
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            font-family: 'Inter', sans-serif;
+            display: none;
+            align-items: center;
+            gap: 16px;
+            animation: slideUpBanner 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            z-index: 10000;
+            width: auto;
+            max-width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
         }
 
         @keyframes slideDown {
@@ -5685,36 +5735,41 @@ if ($isLoggedIn) {
         // PWA Install Prompt
         let deferredPrompt = null;
 
+        function showPwaInstallBanners(show = true) {
+            const bannerThreads = document.getElementById('pwa-install-banner-threads');
+            const bannerDm = document.getElementById('pwa-install-banner-dm');
+            const display = show ? 'flex' : 'none';
+            if (bannerThreads) bannerThreads.style.display = display;
+            if (bannerDm) bannerDm.style.display = display;
+        }
+
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
+            setTimeout(() => showPwaInstallBanners(), 1000);
+        });
 
-            // Show install banner if not dismissed before
+        document.addEventListener('DOMContentLoaded', () => {
             if (!localStorage.getItem('pwa-install-dismissed')) {
-                setTimeout(() => {
-                    const banner = document.getElementById('pwa-install-banner');
-                    if (banner) banner.style.display = 'flex';
-                }, 3000); // 3秒後に表示
+                setTimeout(() => showPwaInstallBanners(), 3000);
             }
         });
 
         async function installPWA() {
             if (!deferredPrompt) return;
-
             deferredPrompt.prompt();
             const {
                 outcome
             } = await deferredPrompt.userChoice;
-            console.log('[PWA] インストール結果:', outcome);
-
             deferredPrompt = null;
-            const banner = document.getElementById('pwa-install-banner');
-            if (banner) banner.style.display = 'none';
+            showPwaInstallBanners(false);
         }
 
         function dismissInstallBanner() {
-            const banner = document.getElementById('pwa-install-banner');
-            if (banner) banner.style.display = 'none';
+            const bannerThreads = document.getElementById('pwa-install-banner-threads');
+            const bannerDm = document.getElementById('pwa-install-banner-dm');
+            if (bannerThreads) bannerThreads.style.display = 'none';
+            if (bannerDm) bannerDm.style.display = 'none';
             localStorage.setItem('pwa-install-dismissed', Date.now());
         }
 
@@ -5741,8 +5796,10 @@ if ($isLoggedIn) {
         window.addEventListener('appinstalled', () => {
             console.log('[PWA] アプリがインストールされました');
             deferredPrompt = null;
-            const banner = document.getElementById('pwa-install-banner');
-            if (banner) banner.style.display = 'none';
+            const bannerThreads = document.getElementById('pwa-install-banner-threads');
+            const bannerDm = document.getElementById('pwa-install-banner-dm');
+            if (bannerThreads) bannerThreads.style.display = 'none';
+            if (bannerDm) bannerDm.style.display = 'none';
         });
     </script>
 </body>
