@@ -9,6 +9,7 @@
   --border-color: #2d2e32;
   --card-bg: #1e1f23;
   --input-bg: #2a2b2f;
+  --input-text: white;
   --header-bg: #0f0f10cc;
   --sidebar-width: 240px;
   --panel-width: 300px;
@@ -23,6 +24,7 @@
   /*--border-color: #e5e7eb98;*/
   --card-bg: #ffffff;
   --input-bg: #f9fafb;
+  --input-text: #111827;
   --header-bg: #dfdfdf;
 }
 
@@ -125,7 +127,7 @@ a:hover {
   background-color: var(--input-bg);
   border: 1px solid var(--border-color);
   border-radius: 10px;
-  color: white;
+  color: var(--input-text);
   outline: none;
   transition: 0.2s;
 }
@@ -442,7 +444,7 @@ a:hover {
   padding: 10px 12px;
   background: transparent;
   border: none;
-  color: white;
+  color: var(--input-text);
   outline: none;
   font-size: 0.95rem;
   resize: none;
@@ -656,7 +658,7 @@ a:hover {
   background-color: var(--input-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  color: white;
+  color: var(--input-text);
   margin-bottom: 12px;
   outline: none;
 }

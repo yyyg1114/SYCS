@@ -480,6 +480,7 @@ function verify_token(?string $token, ?string $sessionToken)
 
 // --- API Logic (AJAX Handlers) ---
 if (isset($_GET['api'])) {
+    ini_set('display_errors', 0);
     header('Content-Type: application/json');
     $action = $_GET['api'];
     $userId = $_SESSION['user_id'] ?? null;
