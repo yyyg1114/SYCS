@@ -2148,7 +2148,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.1.12</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.0</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
@@ -2182,6 +2182,13 @@ if ($isLoggedIn) {
                                     points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                             </svg>
                             <span>お気に入り</span>
+                        </li>
+                        <li class="nav-item" onclick="window.location.href='meetings.php'" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                            </svg>
+                            <span style="font-weight: 600; color: #818cf8;">Meeting (ID連携)</span>
                         </li>
                     </ul>
                 </nav>
@@ -4401,11 +4408,7 @@ if ($isLoggedIn) {
         async function searchUsers() {
             const q = document.getElementById('user-search-input').value;
             if (!q) return;
-            const res = await api(`
-            search_users & q = $ {
-                encodeURIComponent(q)
-            }
-            `);
+            const res = await api(`search_users&q=${encodeURIComponent(q)}`);
             const list = document.getElementById('user-search-results');
             list.textContent = '';
             if (res.length === 0) {
@@ -4426,12 +4429,7 @@ if ($isLoggedIn) {
                 userPart.style.gap = '10px';
                 userPart.appendChild(getAvatarElement(u.username, u.status, u.avatar_url));
                 const nameSpan = document.createElement('span');
-                nameSpan.textContent = `
-            $ {
-                u.username
-            }(ID: $ {
-                u.id
-            })`;
+                nameSpan.textContent = `${u.username}(ID: ${u.id})`;
                 userPart.appendChild(nameSpan);
                 d.appendChild(userPart);
 
@@ -4441,14 +4439,7 @@ if ($isLoggedIn) {
                 btn.style.padding = '10px 15px';
                 btn.style.fontSize = '1.0rem';
                 btn.onclick = async () => {
-                    if (confirm(`
-            ID: $ {
-                u.id
-            }
-            $ {
-                u.username
-            }
-            に申請を送りますか`)) {
+                    if (confirm(`ID: ${u.id} ${u.username} に申請を送りますか`)) {
                         const body = new FormData();
                         body.append('target_id', u.id);
                         const r = await api('request_friend', 'POST', body);

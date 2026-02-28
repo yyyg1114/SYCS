@@ -989,14 +989,6 @@ header.chat-header div.thread-info {
   background: #dc2626;
 }
 
-.hangup-btn {
-  background: #ef4444;
-}
-
-.hangup-btn:hover {
-  background: #dc2626;
-}
-
 @media (max-width: 640px) {
   .video-grid-container {
     grid-template-columns: 1fr;
