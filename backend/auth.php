@@ -64,3 +64,34 @@ function logout()
     header('Location: ../frontend/login.php');
     exit();
 }
+
+/**
+ * パスワードをハッシュ化する
+ * @param string $password
+ * @return string
+ */
+function hashPassword($password)
+{
+    return password_hash($password, PASSWORD_DEFAULT);
+}
+
+/**
+ * パスワードを検証する
+ * @param string $password
+ * @param string $hash
+ * @return bool
+ */
+function verifyPassword($password, $hash)
+{
+    return password_verify($password, $hash);
+}
+
+/**
+ * ハッシュの再計算が必要かチェックする
+ * @param string $hash
+ * @return bool
+ */
+function needsRehash($hash)
+{
+    return password_needs_rehash($hash, PASSWORD_DEFAULT);
+}

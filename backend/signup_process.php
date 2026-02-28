@@ -11,9 +11,11 @@ if (!$username || !$email || !$password) {
     die("入力項目が足りません");
 }
 
+require_once 'auth.php';
+
 $encryptedEmail = SecurityUtil::encrypt($email);
 $emailHash = hash('sha256', $email);
-$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+$hashedPassword = hashPassword($password);
 $token = SecurityUtil::generateToken();
 
 // Note: Using $mysqli for consistency with index.php if possible, but the original used $pdo.

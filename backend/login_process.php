@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/session_config.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/auth.php';
 
 $username = $_POST['username'] ?? '';
 $password = $_POST['password'] ?? '';
@@ -62,9 +63,20 @@ $stmt->bind_result($userId, $dbUsername, $dbPassword, $isVerified, $lastThreadId
 $stmt->fetch();
 $stmt->close();
 
-if ($userId && $dbPassword !== null && password_verify($password, $dbPassword)) {
+if ($userId && $dbPassword !== null && verifyPassword($password, $dbPassword)) {
     if ($isVerified == 0) {
         die("メールアドレスの本登録が完了していません。メールを確認してください。");
+    }
+
+    // パスワードハッシュの更新が必要かチェック
+    if (needsRehash($dbPassword)) {
+        $newHash = hashPassword($password);
+        $updateStmt = $mysqli->prepare("UPDATE users SET password = ? WHERE id = ?");
+        if ($updateStmt) {
+            $updateStmt->bind_param("si", $newHash, $userId);
+            $updateStmt->execute();
+            $updateStmt->close();
+        }
     }
 
     // ログイン成功: セッションIDを再生成してセッション固定攻撃を防ぐ
