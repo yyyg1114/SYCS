@@ -324,6 +324,84 @@
 
     <main>
 
+        <!-- ===== v1.1.12 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.1.12</span>
+                <span class="release-title">認証システムのモダン化とセキュリティ強化</span>
+                <span class="release-date">2026-02-28</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-red"></span> セキュリティ強化 (Security Enhancements)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🔐</span>
+                            <div>
+                                <strong>パスワードハッシュアルゴリズムの更新</strong>
+                                <span class="detail">
+                                    セキュリティ向上のため、パスワードのハッシュ化に <code>password_hash()</code> (BCRYPT) を導入しました。
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🔄</span>
+                            <div>
+                                <strong>ハッシュ構成の自動移行機能</strong>
+                                <span class="detail">
+                                    古い形式で保存されているパスワードを、次回のログイン時に自動的に最新のセキュアなハッシュ形式へ更新する仕組みを実装しました。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.1.9 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.1.9</span>
+                <span class="release-title">iOS対応とUI/UXのブラッシュアップ</span>
+                <span class="release-date">2026-02-26</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能 & 改善 (New Features & Improvements)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">📱</span>
+                            <div>
+                                <strong>PWA インストールバナーの改善</strong>
+                                <span class="detail">
+                                    インストールバナーを浮遊感のあるモダンなデザインへとブラッシュアップしました。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-yellow"></span> 修正 (Fixes)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🐛</span>
+                            <div>
+                                <strong>コードの品質向上とバグ修正</strong>
+                                <span class="detail">
+                                    PHPのエラー抑制演算子（@）を適切に除去し、エラーログの精度を向上させました。また、APIレスポンスの安定化を図り、JSONパースエラーを修正しました。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
         <article class="release">
             <div class="release-header">
                 <span class="version-badge">v1.1.5 - v1.1.8</span>
