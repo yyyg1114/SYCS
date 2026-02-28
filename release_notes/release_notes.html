@@ -326,6 +326,107 @@
 
     <main>
 
+        <!-- ===== v1.2.0 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.2.0</span>
+                <span class="release-title">ミーティング機能の大幅強化・メールログ・バグ修正</span>
+                <span class="release-date">2026-03-01</span>
+            </div>
+            <div class="release-body">
+
+                <!-- 新機能 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能 (New Features)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">📹</span>
+                            <div>
+                                <strong>ミーティング機能の新設（<code>meetings.php</code>）</strong>
+                                <span class="detail">
+                                    Zoom ライクなミーティング ID（9桁）とパスワード（6文字）を発行・共有して参加できる独立したミーティングページを新設。
+                                    WebRTC による P2P ビデオ通話・画面共有・マイク／カメラ切り替えに完全対応。
+                                    <code>index.php</code> のサイドバーに「Meeting (ID連携)」リンクを追加。
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">ℹ️</span>
+                            <div>
+                                <strong>ミーティング中の情報表示</strong>
+                                <span class="detail">
+                                    通話中、コントロールバーの「i」ボタンをクリックすることで現在のミーティング ID とパスワードをオーバーレイで確認できる機能を追加。
+                                </span>
+                            </div>
+                        </li>
+                        <!--<li>
+                            <span class="icon">📧</span>
+                            <div>
+                                <strong>メール送信ログの実装（<code>logs/mail.log</code>）</strong>
+                                <span class="detail">
+                                    <code>Mailer.php</code> を強化し、全てのメール送信試行（認証メール・パスワードリセット等）の結果（<code>ATTEMPT</code> /
+                                    <code>SUCCESS</code> / <code>RETRY</code> / <code>FAILURE</code> /
+                                    <code>ERROR</code>）を
+                                    日時・送信元・宛先・件名・エラー詳細とともに <code>logs/mail.log</code> へ自動記録。
+                                </span>
+                            </div>
+                        </li>-->
+                    </ul>
+                </div>
+
+                <!-- 改善 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-yellow"></span> 改善 (Improvements)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🎛️</span>
+                            <div>
+                                <strong>ミーティングコントロールの UI 統一</strong>
+                                <span class="detail">
+                                    <code>meetings.php</code> のミーティング操作パネルのデザイン・動作（マイク／カメラ OFF 時の赤色表示、アイコン切り替え等）を
+                                    <code>index.php</code> および <code>style.css</code> の共通スタイルと完全に同期。
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🗑️</span>
+                            <div>
+                                <strong>ミーティング退出時の自動クリーンアップ</strong>
+                                <span class="detail">
+                                    退席ボタン押下時に <code>delete_meeting</code> API を呼び出し、データベース上のミーティング ID とパスワードハッシュを自動削除。
+                                    使い捨てのインスタントミーティングとして安全に運用可能。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- バグ修正 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-blue"></span> バグ修正 (Bug Fixes)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🐛</span>
+                            <div>
+                                <strong>フレンド検索が動作しない問題の修正</strong>
+                                <span class="detail">
+                                    <code>searchUsers()</code> 関数内の JavaScript テンプレートリテラルが誤って複数行に分割されており、
+                                    API の URL・表示名・確認ダイアログの文字列がすべて壊れていた問題を修正。
+                                    フレンド申請・ユーザー検索が正常に動作するようになりました。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </article>
         <!-- ===== v1.1.12 ===== -->
         <article class="release">
             <div class="release-header">
