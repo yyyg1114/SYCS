@@ -354,6 +354,16 @@ FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 UNIQUE KEY unique_reaction (message_id, user_id, emoji)
 )");
+$mysqli->query("CREATE TABLE IF NOT EXISTS notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    type ENUM('mention', 'dm', 'friend_request', 'system') NOT NULL,
+    content TEXT,
+    link VARCHAR(255),
+    is_read TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)");
 
 // Helper to send Discord Webhook
 function sendDiscordWebhook($webhookUrl, $username, $content, $avatarUrl = null, $attachmentPath = null, $baseUrl = '')
@@ -468,14 +478,18 @@ function verify_csrf(?string $token, ?string $sessionToken)
     if (!$token || !$sessionToken || !hash_equals($sessionToken, $token)) {
         http_response_code(403);
         echo json_encode(['error' => 'Invalid CSRF Token']);
+        return false;
     }
+    return true;
 }
 function verify_token(?string $token, ?string $sessionToken)
 {
     if (!$token || !$sessionToken || !hash_equals($sessionToken, $token)) {
         http_response_code(403);
         echo json_encode(['error' => 'Invalid CSRF Token']);
+        return false;
     }
+    return true;
 }
 
 // --- API Logic (AJAX Handlers) ---
@@ -491,7 +505,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'update_profile') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $bio = $_POST['bio'] ?? null;
         $bannerColor = $_POST['banner_color'] ?? '#6366f1';
         $status = $_POST['status'] ?? 'online';
@@ -561,7 +575,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'push_subscribe') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $sub = json_decode(file_get_contents('php://input'), true);
         if ($sub && isset($sub['endpoint'])) {
             $stmt = $mysqli->prepare("INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE p256dh = VALUES(p256dh), auth = VALUES(auth)");
@@ -575,7 +589,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'update_status') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $status = $_POST['status'] ?? 'online';
         $customStatus = $_POST['custom_status'] ?? null;
         $allowed = ['online', 'busy', 'away', 'offline', 'not_allowed', 'step_out', 'going_away'];
@@ -634,7 +648,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'create_thread') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null); // Enforce CSRF Check
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit; // Enforce CSRF Check
         $name = $_POST['name'] ?? '';
         $category = $_POST['category'] ?? 'General';
         if ($name) {
@@ -661,80 +675,50 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'edit_thread') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $threadId = $_POST['thread_id'] ?? 0;
         $newName = $_POST['name'] ?? '';
 
-        // Verify ownership
-        $stmt = $mysqli->prepare("SELECT creator_id FROM threads WHERE id = ?");
-        $stmt->bind_param("i", $threadId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($row = $res->fetch_assoc()) {
-            if ($row['creator_id'] == $userId) {
-                // Check for duplicate name (excluding current thread)
-                if ($newName) {
-                    $cStmt = $mysqli->prepare("SELECT id FROM threads WHERE name = ? AND id != ?");
-                    $cStmt->bind_param("si", $newName, $threadId);
-                    $cStmt->execute();
-                    if ($cStmt->get_result()->num_rows > 0) {
-                        echo json_encode(['error' => 'その名前のスレッドは既に存在します']);
-                        $cStmt->close();
-                        exit;
-                    }
-                    $cStmt->close();
-                }
-
-                $webhook = $_POST['discord_webhook_url'] ?? null;
-                $category = $_POST['category'] ?? 'General';
-                $upd = $mysqli->prepare("UPDATE threads SET name = ?, discord_webhook_url = ?, category = ? WHERE id = ?");
-                $upd->bind_param("sssi", $newName, $webhook, $category, $threadId);
-                $upd->execute();
-                echo json_encode(['success' => true]);
-            } else {
-                http_response_code(403);
-                echo json_encode(['error' => 'Forbidden']);
+        // Check for duplicate name (excluding current thread)
+        if ($newName) {
+            $cStmt = $mysqli->prepare("SELECT id FROM threads WHERE name = ? AND id != ?");
+            $cStmt->bind_param("si", $newName, $threadId);
+            $cStmt->execute();
+            if ($cStmt->get_result()->num_rows > 0) {
+                echo json_encode(['error' => 'その名前のスレッドは既に存在します']);
+                $cStmt->close();
+                exit;
             }
-        } else {
-            http_response_code(404);
-            echo json_encode(['error' => 'Not found']);
+            $cStmt->close();
         }
+
+        $webhook = $_POST['discord_webhook_url'] ?? null;
+        $category = $_POST['category'] ?? 'General';
+        $upd = $mysqli->prepare("UPDATE threads SET name = ?, discord_webhook_url = ?, category = ? WHERE id = ?");
+        $upd->bind_param("sssi", $newName, $webhook, $category, $threadId);
+        $upd->execute();
+        echo json_encode(['success' => true]);
         exit;
     }
 
     if ($action === 'delete_thread') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $threadId = $_POST['thread_id'] ?? 0;
 
-        // Verify ownership
-        $stmt = $mysqli->prepare("SELECT creator_id FROM threads WHERE id = ?");
-        $stmt->bind_param("i", $threadId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($row = $res->fetch_assoc()) {
-            if ($row['creator_id'] == $userId) {
-                // Delete messages first
-                $delMsgs = $mysqli->prepare("DELETE FROM messages WHERE thread_id = ?");
-                $delMsgs->bind_param("i", $threadId);
-                $delMsgs->execute();
+        // Delete messages first
+        $delMsgs = $mysqli->prepare("DELETE FROM messages WHERE thread_id = ?");
+        $delMsgs->bind_param("i", $threadId);
+        $delMsgs->execute();
 
-                $del = $mysqli->prepare("DELETE FROM threads WHERE id = ?");
-                $del->bind_param("i", $threadId);
-                $del->execute();
-                echo json_encode(['success' => true]);
-            } else {
-                http_response_code(403);
-                echo json_encode(['error' => 'Forbidden']);
-            }
-        } else {
-            http_response_code(404);
-            echo json_encode(['error' => 'Not found']);
-        }
+        $del = $mysqli->prepare("DELETE FROM threads WHERE id = ?");
+        $del->bind_param("i", $threadId);
+        $del->execute();
+        echo json_encode(['success' => true]);
         exit;
     }
 
     if ($action === 'toggle_reaction') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $messageId = $_POST['message_id'] ?? 0;
         $emoji = $_POST['emoji'] ?? '';
 
@@ -764,7 +748,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'toggle_pin') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $messageId = $_POST['message_id'] ?? 0;
         if ($messageId) {
             $stmt = $mysqli->prepare("UPDATE messages SET is_pinned = NOT is_pinned WHERE id = ?");
@@ -853,7 +837,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'update_typing_status') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $threadId = $_POST['thread_id'] ?? null;
         $isTyping = ($_POST['is_typing'] ?? '0') === '1';
 
@@ -883,7 +867,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'mark_dms_as_read') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $partnerId = $_POST['partner_id'] ?? 0;
         if ($partnerId) {
             $stmt = $mysqli->prepare("UPDATE direct_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0");
@@ -897,7 +881,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'edit_message') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $messageId = $_POST['message_id'] ?? 0;
         $dmId = $_POST['dm_id'] ?? 0;
         $content = $_POST['content'] ?? '';
@@ -990,7 +974,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'create_group_thread') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $name = $_POST['name'] ?? 'Group Chat';
         $participantIds = json_decode($_POST['participant_ids'] ?? '[]', true);
 
@@ -1025,6 +1009,41 @@ if (isset($_GET['api'])) {
         $stmt->bind_param("i", $userId);
         $stmt->execute();
         echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    if ($action === 'edit_group_thread') {
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
+        $threadId = $_POST['thread_id'] ?? 0;
+        $newName = $_POST['name'] ?? '';
+
+        if (!$threadId || !$newName) {
+            echo json_encode(['error' => 'ID and Name required']);
+            exit;
+        }
+
+        $stmt = $mysqli->prepare("UPDATE group_threads SET name = ? WHERE id = ?");
+        $stmt->bind_param("si", $newName, $threadId);
+        $stmt->execute();
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    if ($action === 'delete_group_thread') {
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
+        $threadId = $_POST['thread_id'] ?? 0;
+
+        if (!$threadId) {
+            echo json_encode(['error' => 'ID required']);
+            exit;
+        }
+
+        // Transactions would be better but keeping it simple as per current style
+        $mysqli->query("DELETE FROM messages WHERE group_thread_id = $threadId");
+        $mysqli->query("DELETE FROM group_thread_participants WHERE thread_id = $threadId");
+        $mysqli->query("DELETE FROM group_threads WHERE id = $threadId");
+
+        echo json_encode(['success' => true]);
         exit;
     }
 
@@ -1105,7 +1124,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'send_direct_message') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $receiverId = $_POST['receiver_id'] ?? 0;
         $content = $_POST['content'] ?? '';
         $attachmentPath = null;
@@ -1192,7 +1211,14 @@ if (isset($_GET['api'])) {
             ];
             notifyRealtimeServer('new_dm', ['receiverId' => $receiverId, 'message' => $newDm]);
 
-            // Push Notification
+            // Notification for DM
+            $notifContent = ($_SESSION['username'] ?? 'User') . "さんからDMが届きました: " . mb_strimwidth($content, 0, 50, "...");
+            $link = "index.php?dm=" . $userId;
+            $nStmt = $mysqli->prepare("INSERT INTO notifications (user_id, type, content, link) VALUES (?, 'dm', ?, ?)");
+            $nStmt->bind_param("iss", $receiverId, $notifContent, $link);
+            $nStmt->execute();
+            $nStmt->close();
+            notifyRealtimeServer('new_notification', ['userId' => $receiverId]);
             sendPushNotification($receiverId, [
                 'title' => '新着DM: ' . ($_SESSION['username'] ?? 'User'),
                 'body' => $content,
@@ -1208,7 +1234,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'send_message') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null); // Enforce CSRF Check
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit; // Enforce CSRF Check
         $threadId = !empty($_POST['thread_id']) ? $_POST['thread_id'] : null;
         $groupThreadId = !empty($_POST['group_thread_id']) ? $_POST['group_thread_id'] : null;
         $content = $_POST['content'] ?? '';
@@ -1301,13 +1327,92 @@ if (isset($_GET['api'])) {
                 notifyRealtimeServer('new_message', ['threadId' => $threadId, 'message' => $newMsg]);
             }
 
-            if ($threadId) {
+            if ($groupThreadId) {
+                // Group Push Notification: Notify all participants except sender
+                $pStmt = $mysqli->prepare("SELECT user_id FROM group_thread_participants WHERE thread_id = ? AND user_id != ?");
+                $pStmt->bind_param("ii", $groupThreadId, $userId);
+                $pStmt->execute();
+                $pRes = $pStmt->get_result();
+                while ($pRow = $pRes->fetch_assoc()) {
+                    sendPushNotification($pRow['user_id'], [
+                        'title' => '新着グループメッセージ: ' . ($_SESSION['username'] ?? 'User'),
+                        'body' => $content ?: ($attachmentPath ? '[添付ファイル]' : ''),
+                        'icon' => 'assets/img/SYCS_favicon.svg',
+                        'data' => ['url' => 'index.php?group=' . $groupThreadId]
+                    ]);
+                }
+                $pStmt->close();
+            } elseif ($threadId) {
+                // Thread Push Notification: Notify all push-subscribed users (except sender)
+                // In a large app, we'd filter by thread-specific subs, but here we notify all subscribers for simplicity
+                $pStmt = $mysqli->prepare("SELECT DISTINCT user_id FROM push_subscriptions WHERE user_id != ?");
+                $pStmt->bind_param("i", $userId);
+                $pStmt->execute();
+                $pRes = $pStmt->get_result();
+                while ($pRow = $pRes->fetch_assoc()) {
+                    sendPushNotification($pRow['user_id'], [
+                        'title' => '新着メッセージ: #' . ($threadName ?? 'Thread'),
+                        'body' => ($_SESSION['username'] ?? 'User') . ': ' . ($content ?: ($attachmentPath ? '[添付ファイル]' : '')),
+                        'icon' => 'assets/img/SYCS_favicon.svg',
+                        'data' => ['url' => 'index.php?thread=' . $threadId]
+                    ]);
+                }
+                $pStmt->close();
+
+                // Thread-wide Notification: Notify all previous participants except sender (if not already handled by mention or push)
+                // First, get those who have spoken in this thread
+                $partStmt = $mysqli->prepare("SELECT DISTINCT user_id FROM messages WHERE thread_id = ? AND user_id != ?");
+                $partStmt->bind_param("ii", $threadId, $userId);
+                $partStmt->execute();
+                $partRes = $partStmt->get_result();
+                $participants = [];
+                while ($pRow = $partRes->fetch_assoc()) {
+                    $participants[] = $pRow['user_id'];
+                }
+                $partStmt->close();
+
+                // Get mentioned users to avoid duplicate notifications
+                $mentionedUserIds = [];
+                if (preg_match_all('/@([a-zA-Z0-9_]+)/', $content, $matches)) {
+                    $mentionedNames = array_unique($matches[1]);
+                    foreach ($mentionedNames as $mName) {
+                        $mStmt = $mysqli->prepare("SELECT id FROM users WHERE username = ? AND id != ?");
+                        $mStmt->bind_param("si", $mName, $userId);
+                        $mStmt->execute();
+                        if ($mRow = $mStmt->get_result()->fetch_assoc()) {
+                            $mentionedUserIds[] = $mRow['id'];
+                            $notifContent = ($_SESSION['username'] ?? 'User') . "さんがあなたをメンションしました: " . mb_strimwidth($content, 0, 50, "...");
+                            $link = "index.php?thread=" . $threadId;
+                            $nStmt = $mysqli->prepare("INSERT INTO notifications (user_id, type, content, link) VALUES (?, 'mention', ?, ?)");
+                            $nStmt->bind_param("iss", $mRow['id'], $notifContent, $link);
+                            $nStmt->execute();
+                            $nStmt->close();
+                            notifyRealtimeServer('new_notification', ['userId' => $mRow['id']]);
+                        }
+                    }
+                }
+
+                // Notify other participants who were NOT mentioned
+                foreach ($participants as $pUserId) {
+                    if (!in_array($pUserId, $mentionedUserIds)) {
+                        $threadTitle = $threadName ?? 'スレッド';
+                        $notifContent = "#{$threadTitle} に新しいメッセージがあります: " . mb_strimwidth($content, 0, 50, "...");
+                        $link = "index.php?thread=" . $threadId;
+                        $nStmt = $mysqli->prepare("INSERT INTO notifications (user_id, type, content, link) VALUES (?, 'thread_message', ?, ?)");
+                        $nStmt->bind_param("iss", $pUserId, $notifContent, $link);
+                        $nStmt->execute();
+                        $nStmt->close();
+                        notifyRealtimeServer('new_notification', ['userId' => $pUserId]);
+                    }
+                }
+
                 // Discord Webhook Integration
-                $wStmt = $mysqli->prepare("SELECT discord_webhook_url FROM threads WHERE id = ?");
+                $wStmt = $mysqli->prepare("SELECT name, discord_webhook_url FROM threads WHERE id = ?");
                 $wStmt->bind_param("i", $threadId);
                 $wStmt->execute();
                 $wRes = $wStmt->get_result();
                 if ($wRow = $wRes->fetch_assoc()) {
+                    $threadName = $wRow['name'];
                     if ($wRow['discord_webhook_url']) {
                         // Get user info for webhook
                         $uStmt = $mysqli->prepare("SELECT username, avatar_url FROM users WHERE id = ?");
@@ -1336,7 +1441,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'delete_message') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null); // Enforce CSRF Check
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit; // Enforce CSRF Check
         $msgId = $_POST['message_id'] ?? 0;
         // Verify ownership
         $stmt = $mysqli->prepare("SELECT user_id FROM messages WHERE id = ?");
@@ -1372,7 +1477,7 @@ if (isset($_GET['api'])) {
     // --- Friend System API ---
 
     if ($action === 'request_friend') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $targetId = $_POST['target_id'] ?? 0;
         if ($targetId == $userId) {
             echo json_encode(['error' => 'Cannot add self']);
@@ -1390,13 +1495,23 @@ if (isset($_GET['api'])) {
             $stmt = $mysqli->prepare("INSERT INTO friends (user_id_1, user_id_2, status) VALUES (?, ?, 'pending')");
             $stmt->bind_param("ii", $userId, $targetId);
             $stmt->execute();
+
+            // Notification for Friend Request
+            $notifContent = ($_SESSION['username'] ?? 'User') . "さんからフレンド申請が届きました。";
+            $link = "index.php?tab=dm"; // Friend Hub
+            $nStmt = $mysqli->prepare("INSERT INTO notifications (user_id, type, content, link) VALUES (?, 'friend_request', ?, ?)");
+            $nStmt->bind_param("iss", $targetId, $notifContent, $link);
+            $nStmt->execute();
+            $nStmt->close();
+            notifyRealtimeServer('new_notification', ['userId' => $targetId]);
+
             echo json_encode(['success' => true]);
         }
         exit;
     }
 
     if ($action === 'accept_friend') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $requestId = $_POST['request_id'] ?? 0;
         // Verify I am the receiver (user_id_2)
         $stmt = $mysqli->prepare("UPDATE friends SET status = 'accepted' WHERE id = ? AND user_id_2 = ? AND status = 'pending'");
@@ -1450,7 +1565,7 @@ if (isset($_GET['api'])) {
     // --- Favorites API ---
 
     if ($action === 'toggle_favorite') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $threadId = $_POST['thread_id'] ?? 0;
 
         // Check if exists
@@ -1501,7 +1616,7 @@ if (isset($_GET['api'])) {
     // --- Block System API ---
 
     if ($action === 'block_user') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $targetId = $_POST['target_id'] ?? 0;
         if ($targetId == $userId) {
             echo json_encode(['error' => 'Cannot block self']);
@@ -1521,7 +1636,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'unblock_user') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $targetId = $_POST['target_id'] ?? 0;
         $stmt = $mysqli->prepare("DELETE FROM blocked_users WHERE blocker_id = ? AND blocked_id = ?");
         $stmt->bind_param("ii", $userId, $targetId);
@@ -1564,7 +1679,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'join_meeting') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $threadId = $_POST['thread_id'] ?? null;
         $dmPartnerId = $_POST['dm_partner_id'] ?? null;
 
@@ -1613,7 +1728,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'send_signaling') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $roomId = $_POST['room_id'] ?? 0;
         $receiverId = $_POST['receiver_id'] ?? 0;
         $type = $_POST['type'] ?? '';
@@ -1668,7 +1783,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'toggle_mute') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $targetType = $_POST['target_type'] ?? '';
         $targetId = $_POST['target_id'] ?? 0;
         $isMuted = ($_POST['is_muted'] ?? '1') === '1';
@@ -1696,10 +1811,37 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'update_notification_keywords') {
-        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
-        $keywords = $_POST['keywords'] ?? '';
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
+        $keywords = $_POST['keywords'] ?? null;
         $stmt = $mysqli->prepare("UPDATE users SET notification_keywords = ? WHERE id = ?");
         $stmt->bind_param("si", $keywords, $userId);
+        $stmt->execute();
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    if ($action === 'get_notifications') {
+        $stmt = $mysqli->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    if ($action === 'mark_notification_read') {
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
+        $notifId = $_POST['notification_id'] ?? 0;
+        $stmt = $mysqli->prepare("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?");
+        $stmt->bind_param("ii", $notifId, $userId);
+        $stmt->execute();
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    if ($action === 'mark_all_notifications_read') {
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
+        $stmt = $mysqli->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ?");
+        $stmt->bind_param("i", $userId);
         $stmt->execute();
         echo json_encode(['success' => true]);
         exit;
@@ -2148,7 +2290,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.0</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.3</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
@@ -2157,7 +2299,7 @@ if ($isLoggedIn) {
                 </div>
                 <nav>
                     <ul class="nav-list">
-                        <li class="nav-item active" data-tab="threads">
+                        <li class="nav-item active" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;" data-tab="threads">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="4" y1="9" x2="20" y2="9" />
@@ -2167,7 +2309,7 @@ if ($isLoggedIn) {
                             </svg>
                             <span>スレッド</span>
                         </li>
-                        <li class="nav-item" data-tab="dm">
+                        <li class="nav-item" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;" data-tab="dm">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -2175,7 +2317,7 @@ if ($isLoggedIn) {
                             <span>DM</span>
                             <span id="dm-unread-badge" style="display:none; background:#ef4444; color:white; border-radius:9999px; font-size:0.65rem; font-weight:700; padding:1px 6px; margin-left:6px; min-width:18px; text-align:center;"></span>
                         </li>
-                        <li class="nav-item" data-tab="favorites">
+                        <li class="nav-item" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;" data-tab="favorites">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polygon
@@ -2228,6 +2370,21 @@ if ($isLoggedIn) {
         </aside>
 
         <main class="main-content">
+            <!-- Notifications Modal (Centered in Main Content Area) -->
+            <div id="notification-overlay" class="modal-backdrop" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:2000;" onclick="toggleNotificationDropdown()"></div>
+            <div id="notification-dropdown" class="modal" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:400px; max-width:90vw; max-height:80vh; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:12px; box-shadow:0 20px 50px rgba(0,0,0,0.5); z-index:2001; flex-direction:column; padding:0; overflow:hidden;">
+                <div style="padding:16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03);">
+                    <h4 style="margin:0; font-size:1.1rem; font-weight:600;">通知センター</h4>
+                    <div style="display:flex; gap:12px; align-items:center;">
+                        <button class="action-link" onclick="markAllNotificationsRead()" style="font-size:0.8rem; color:var(--accent-color); padding:0; background:none; border:none; cursor:pointer;">全て既読にする</button>
+                        <button class="icon-btn" onclick="toggleNotificationDropdown()" style="padding:4px; opacity:0.7;">✕</button>
+                    </div>
+                </div>
+                <div id="notification-list" class="scroller" style="flex:1; overflow-y:auto; min-height:200px; padding:8px 0;">
+                    <div class="empty-state" style="padding:60px 20px; text-align:center; color:var(--text-secondary);">通知はありません</div>
+                </div>
+            </div>
+
             <section id="threads-pane" class="content-pane active">
                 <div class="chat-area">
                     <header class="chat-header">
@@ -2261,20 +2418,12 @@ if ($isLoggedIn) {
                             <div class="search-input-wrapper" style="position:relative; display:flex; align-items:center; background:rgba(0,0,0,0.2); border-radius:4px; padding:2px 8px; margin-right:8px;">
                                 <input type="text" id="search-input" placeholder="検索..." style="background:transparent; border:none; color:white; font-size:0.85rem; outline:none; width:120px;" onkeydown="if(event.key==='Enter') searchMessages()">
                                 <button class="icon-btn" onclick="toggleAdvancedSearch()" style="padding:2px; height:auto; background:transparent;" title="検索フィルター">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="4" y1="21" x2="4" y2="14"></line>
-                                        <line x1="4" y1="10" x2="4" y2="3"></line>
-                                        <line x1="12" y1="21" x2="12" y2="12"></line>
-                                        <line x1="12" y1="8" x2="12" y2="3"></line>
-                                        <line x1="20" y1="21" x2="20" y2="16"></line>
-                                        <line x1="20" y1="12" x2="20" y2="3"></line>
-                                        <line x1="1" y1="14" x2="7" y2="14"></line>
-                                        <line x1="9" y1="8" x2="15" y2="8"></line>
-                                        <line x1="17" y1="16" x2="23" y2="16"></line>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;">
+                                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                                     </svg>
                                 </button>
-                                <button class="icon-btn" onclick="searchMessages()" style="padding:2px; height:auto; background:transparent;">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <button class="icon-btn" onclick="searchMessages()" style="padding:2px; height:auto; background:transparent;" title="検索">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;">
                                         <circle cx="11" cy="11" r="8"></circle>
                                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                                     </svg>
@@ -2297,10 +2446,18 @@ if ($isLoggedIn) {
                                     <button class="btn-primary" onclick="searchMessages(); toggleAdvancedSearch();" style="width:100%; padding:6px; font-size:0.8rem;">検索</button>
                                 </div>
                             </div>
+                            <button id="notif-btn" class="icon-btn" onclick="toggleNotificationDropdown(event)" title="通知センター" style="position:relative;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                                </svg>
+                                <span id="notif-badge" style="display:none; position:absolute; top:-2px; right:-2px; background:#ef4444; color:white; border-radius:50%; width:14px; height:14px; font-size:9px; font-weight:bold; align-items:center; justify-content:center; border:1.5px solid var(--bg-primary);">0</span>
+                            </button>
                             <button id="mute-btn" class="icon-btn" onclick="toggleMute()" title="通知をミュート" style="color: var(--text-secondary);">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
                                 </svg>
                             </button>
                             <button class="icon-btn" onclick="startMeeting()" title="ビデオ会議">
@@ -2315,10 +2472,10 @@ if ($isLoggedIn) {
                             <button class="icon-btn" onclick="showPinnedMessages()" title="ピン留めメッセージ一覧">
                                 <span style="font-size:14px;">📌</span>
                             </button>
-                            <button class="icon-btn" onclick="editCurrentThread()" title="編集">
+                            <button id="thread-edit-btn" class="icon-btn" onclick="editCurrentThread()" title="編集">
                                 <img src="assets/img/edit.svg" alt="編集" style="width:16px; height:16px;">
                             </button>
-                            <button class="icon-btn" onclick="deleteCurrentThread()" title="削除"
+                            <button id="thread-delete-btn" class="icon-btn" onclick="deleteCurrentThread()" title="削除"
                                 style="color:red;"><img src="assets/img/trash.svg" alt="削除" style="width:16px; height:16px;"></button>
                         </div>
                     </header>
@@ -2911,6 +3068,7 @@ if ($isLoggedIn) {
         let currentGroupThreadId = null;
         let isDmMode = false;
         let isGroupMode = false;
+        let dmFileToUpload = null;
         const csrfToken = "<?= htmlspecialchars($_SESSION['csrf_token']) ?>";
         let replyToId = null;
         let fileToUpload = null;
@@ -3062,9 +3220,18 @@ if ($isLoggedIn) {
                 method
             };
             if (body) {
-                // Auto-append CSRF token if body is FormData
-                if (body instanceof FormData) {
-                    body.append('csrf_token', csrfToken);
+                if (method === 'POST') {
+                    if (!(body instanceof FormData)) {
+                        const formData = new FormData();
+                        for (const key in body) {
+                            formData.append(key, body[key]);
+                        }
+                        body = formData;
+                    }
+                    // Auto-append CSRF token
+                    if (!body.has('csrf_token')) {
+                        body.append('csrf_token', csrfToken);
+                    }
                 }
                 opts.body = body;
             }
@@ -3226,6 +3393,7 @@ if ($isLoggedIn) {
             }
             loadGroupMessages();
             updateMuteIcon();
+            updateThreadActions(); // Refresh actions block
         }
 
         async function loadGroupMessages() {
@@ -3234,6 +3402,10 @@ if ($isLoggedIn) {
             const container = document.getElementById('message-container');
             container.innerText = '';
 
+            if (msgs.error) {
+                alert('グループメッセージの読み込みに失敗しました: ' + msgs.error);
+                return;
+            }
             if (msgs.length === 0) {
                 const div = document.createElement('div');
                 div.className = 'empty-state';
@@ -3265,10 +3437,11 @@ if ($isLoggedIn) {
             roots.forEach(root => renderMessageNode(root, container));
 
             // Notification Trigger for Groups
+            // Notification Trigger for Groups: Now handled via Socket.io
             const latest = msgs[msgs.length - 1];
-            if (lastMessageId !== 0 && latest.id > lastMessageId && latest.user_id != currentUserId) {
-                sendNotification(`新着グループメッセージ (👥 ${document.getElementById('current-thread-name').innerText})`, `${latest.username}: ${latest.content}`, 'group', currentGroupThreadId);
-            }
+            // if (lastMessageId !== 0 && latest.id > lastMessageId && latest.user_id != currentUserId) {
+            //     sendNotification(`新着グループメッセージ (👥 ${document.getElementById('current-thread-name').innerText})`, `${latest.username}: ${latest.content}`, 'group', currentGroupThreadId);
+            // }
             lastMessageId = latest.id;
 
             container.scrollTop = container.scrollHeight;
@@ -3304,22 +3477,47 @@ if ($isLoggedIn) {
 
         function updateThreadActions() {
             const block = document.getElementById('thread-actions-block');
-            if (parseInt(currentThreadId) === 1) {
-                // Prevent editing/deleting General thread
-                if (block) block.style.display = 'none';
+            if (!block) return;
+
+            const editBtn = document.getElementById('thread-edit-btn');
+            const deleteBtn = document.getElementById('thread-delete-btn');
+
+            if (isGroupMode) {
+                // Group management is allowed for all members
+                block.style.display = 'flex';
+                if (editBtn) editBtn.style.display = 'inline-flex';
+                if (deleteBtn) deleteBtn.style.display = 'inline-flex';
                 return;
             }
-            if (parseInt(currentThreadCreatorId) === parseInt(currentUserId)) {
-                if (block) block.style.display = 'flex';
+
+            // Always show the block (for search, mute, etc.)
+            block.style.display = 'flex';
+
+            if (parseInt(currentThreadId) === 1) {
+                // Hide edit/delete for General thread
+                if (editBtn) editBtn.style.display = 'none';
+                if (deleteBtn) deleteBtn.style.display = 'none';
             } else {
-                if (block) block.style.display = 'none';
+                // Show edit/delete for other threads
+                if (editBtn) editBtn.style.display = 'inline-flex';
+                if (deleteBtn) deleteBtn.style.display = 'inline-flex';
             }
         }
 
         async function editCurrentThread() {
             document.getElementById('settings-thread-name').value = document.getElementById('current-thread-name').innerText;
-            document.getElementById('settings-thread-webhook').value = currentThreadWebhookUrl || '';
-            document.getElementById('settings-thread-category').value = currentThreadCategory || 'General';
+
+            if (isGroupMode) {
+                // For groups, we only allow renaming in this simplified UI
+                document.getElementById('settings-thread-webhook').parentElement.style.display = 'none';
+                document.getElementById('settings-thread-category').parentElement.style.display = 'none';
+            } else {
+                document.getElementById('settings-thread-webhook').parentElement.style.display = 'block';
+                document.getElementById('settings-thread-category').parentElement.style.display = 'block';
+                document.getElementById('settings-thread-webhook').value = currentThreadWebhookUrl || '';
+                document.getElementById('settings-thread-category').value = currentThreadCategory || 'General';
+            }
+
             document.getElementById('thread-settings-modal').showModal();
         }
 
@@ -3330,30 +3528,53 @@ if ($isLoggedIn) {
 
             if (newName && newName.trim() !== "") {
                 const body = new FormData();
-                body.append('thread_id', currentThreadId);
-                body.append('name', newName.trim());
-                body.append('discord_webhook_url', webhook.trim());
-                body.append('category', category.trim());
-                const res = await api('edit_thread', 'POST', body);
-                if (res.success) {
-                    document.getElementById('thread-settings-modal').close();
-                    await loadThreads();
-                    switchThread(currentThreadId, newName.trim(), currentThreadCreatorId, webhook.trim(), category.trim());
+                if (isGroupMode) {
+                    body.append('thread_id', currentGroupThreadId);
+                    body.append('name', newName.trim());
+                    const res = await api('edit_group_thread', 'POST', body);
+                    if (res.success) {
+                        document.getElementById('thread-settings-modal').close();
+                        await loadGroupThreads();
+                        document.getElementById('current-thread-name').innerText = newName.trim();
+                    } else {
+                        alert("保存に失敗しました: " + (res.error || 'Unknown'));
+                    }
                 } else {
-                    alert("保存に失敗しました: " + (res.error || 'Unknown'));
+                    body.append('thread_id', currentThreadId);
+                    body.append('name', newName.trim());
+                    body.append('discord_webhook_url', webhook.trim());
+                    body.append('category', category.trim());
+                    const res = await api('edit_thread', 'POST', body);
+                    if (res.success) {
+                        document.getElementById('thread-settings-modal').close();
+                        await loadThreads();
+                        switchThread(currentThreadId, newName.trim(), currentThreadCreatorId, webhook.trim(), category.trim());
+                    } else {
+                        alert("保存に失敗しました: " + (res.error || 'Unknown'));
+                    }
                 }
             }
         }
 
         async function deleteCurrentThread() {
-            if (confirm("本当にこのスレッドを削除しますか？")) {
+            if (confirm(isGroupMode ? "本当にこのグループを削除しますか？" : "本当にこのスレッドを削除しますか？")) {
                 const body = new FormData();
-                body.append('thread_id', currentThreadId);
-                const res = await api('delete_thread', 'POST', body);
-                if (res.success) {
-                    location.reload();
+                if (isGroupMode) {
+                    body.append('thread_id', currentGroupThreadId);
+                    const res = await api('delete_group_thread', 'POST', body);
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        alert("削除に失敗しました: " + (res.error || 'Unknown'));
+                    }
                 } else {
-                    alert("削除に失敗しました: " + (res.error || 'Unknown'));
+                    body.append('thread_id', currentThreadId);
+                    const res = await api('delete_thread', 'POST', body);
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        alert("削除に失敗しました: " + (res.error || 'Unknown'));
+                    }
                 }
             }
         }
@@ -3546,6 +3767,10 @@ if ($isLoggedIn) {
             const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
 
             container.innerText = ''; // Clear safely
+            if (messages.error) {
+                alert('メッセージの読み込みに失敗しました: ' + messages.error);
+                return;
+            }
             if (messages.length === 0) {
                 const p = document.createElement('p');
                 p.innerText = 'ｼｰﾝ...静かな場所ですね。\n少し世間話でもどうでしょうか?';
@@ -3577,10 +3802,11 @@ if ($isLoggedIn) {
                 roots.forEach(root => renderMessageNode(root, container));
 
                 // Notification Trigger
+                // Notification Trigger: Now handled via Socket.io
                 const latest = messages[messages.length - 1];
-                if (lastMessageId !== 0 && latest.id > lastMessageId && latest.user_id != currentUserId) {
-                    sendNotification(`新着メッセージ (#${document.getElementById('current-thread-name').innerText})`, `${latest.username}: ${latest.content}`, 'thread', currentThreadId);
-                }
+                // if (lastMessageId !== 0 && latest.id > lastMessageId && latest.user_id != currentUserId) {
+                //     sendNotification(`新着メッセージ (#${document.getElementById('current-thread-name').innerText})`, `${latest.username}: ${latest.content}`, 'thread', currentThreadId);
+                // }
                 lastMessageId = latest.id;
             }
 
@@ -4240,11 +4466,7 @@ if ($isLoggedIn) {
         }
 
         async function checkFavoriteStatus() {
-            const res = await api(`
-            check_favorite & thread_id = $ {
-                currentThreadId
-            }
-            `);
+            const res = await api(`check_favorite&thread_id=${currentThreadId}`);
             updateFavoriteIcon(res.is_favorite);
         }
 
@@ -4273,14 +4495,7 @@ if ($isLoggedIn) {
             const r = parseInt(color.slice(1, 3), 16);
             const g = parseInt(color.slice(3, 5), 16);
             const b = parseInt(color.slice(5, 7), 16);
-            const hoverColor = `
-            rgba($ {
-                r
-            }, $ {
-                g
-            }, $ {
-                b
-            }, 0.8)`;
+            const hoverColor = `rgba(${r}, ${g}, ${b}, 0.8)`;
             document.documentElement.style.setProperty('--accent-hover', hoverColor);
         }
 
@@ -4299,11 +4514,7 @@ if ($isLoggedIn) {
             }
             threads.forEach(t => {
                 const item = document.createElement('div');
-                item.className = `
-            thread - item $ {
-                t.id == currentThreadId ? 'active' : ''
-            }
-            `;
+                item.className = `thread-item ${t.id == currentThreadId ? 'active' : ''}`;
                 item.textContent = '# ' + t.name;
                 item.onclick = () => {
                     // Switch to Threads tab context implicitly but keep view? 
@@ -4329,6 +4540,7 @@ if ($isLoggedIn) {
         }
 
         function switchToDmChat(id, name, avatarUrl = null, status = 'online') {
+            console.log('[DM] Switching to DM chat with:', id, name);
             currentPartnerId = id;
             document.getElementById('dm-hub-view').style.display = 'none';
             document.getElementById('dm-chat-view').style.display = 'flex';
@@ -4538,11 +4750,7 @@ if ($isLoggedIn) {
         async function loadDms(minDelay = 0) {
             if (!currentPartnerId) return;
             const startTime = Date.now();
-            const dms = await api(`
-            get_direct_messages & partner_id = $ {
-                currentPartnerId
-            }
-            `);
+            const dms = await api(`get_direct_messages&partner_id=${currentPartnerId}`);
 
             if (minDelay > 0) {
                 const elapsed = Date.now() - startTime;
@@ -4559,7 +4767,11 @@ if ($isLoggedIn) {
             const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
             container.innerText = '';
 
-            dms.forEach(m => {
+            if (dms.error) {
+                alert('DMの読み込みに失敗しました: ' + dms.error);
+                return;
+            }
+            dms.forEach && dms.forEach(m => {
                 const group = document.createElement('div');
                 group.className = 'message-group';
                 group.appendChild(getAvatarElement(m.username, 'online', m.avatar_url));
@@ -4680,7 +4892,8 @@ if ($isLoggedIn) {
             if (dms.length > 0) {
                 const latest = dms[dms.length - 1];
                 if (lastDmId !== 0 && latest.id > lastDmId && latest.sender_id != currentUserId) {
-                    sendNotification(`新着DM: ${latest.username}`, latest.content, 'dm', currentPartnerId);
+                    // Browser notification is now handled via Socket.io for real-time response
+                    // sendNotification(`新着DM: ${latest.username}`, latest.content, 'dm', currentPartnerId);
                 }
                 lastDmId = latest.id;
             }
@@ -4729,7 +4942,12 @@ if ($isLoggedIn) {
         async function sendDm() {
             const input = document.getElementById('dm-msg-input');
             const content = input.value.trim();
-            if ((!content && !dmFileToUpload) || !currentPartnerId) return;
+            if (!currentPartnerId) {
+                alert('DMの送信先(パートナー)が選択されていません。');
+                return;
+            }
+            if (!content && !dmFileToUpload) return;
+            console.log('[DM] Sending DM to:', currentPartnerId, 'Content:', content);
 
             const timer = document.getElementById('dm-self-destruct-timer');
             const expiresSec = timer ? timer.value : 0;
@@ -4817,19 +5035,29 @@ if ($isLoggedIn) {
                 if (!isGroupMode && !isDmMode && currentThreadId == msg.thread_id) {
                     loadMessages();
                 }
+                if (msg.user_id != currentUserId) {
+                    // Trigger browser notification
+                    sendNotification(`新着メッセージ: ${msg.username}`, msg.content, 'thread', msg.thread_id);
+                }
             });
 
             socket.on('new_group_message', (msg) => {
                 if (isGroupMode && currentGroupThreadId == msg.group_thread_id) {
                     loadGroupMessages();
                 }
+                if (msg.user_id != currentUserId) {
+                    // Trigger browser notification
+                    sendNotification(`新着グループメッセージ: ${msg.username}`, msg.content, 'group', msg.group_thread_id);
+                }
             });
 
             socket.on('new_dm', (msg) => {
                 if (isDmMode && currentPartnerId == msg.sender_id) {
                     loadDms();
-                } else {
-                    // Refresh partner list for notification dot if needed
+                }
+                if (msg.sender_id != currentUserId) {
+                    // Trigger browser notification
+                    sendNotification(`新着DM: ${msg.username}`, msg.content, 'dm', msg.sender_id);
                     loadDmPartners();
                 }
             });
@@ -4845,6 +5073,10 @@ if ($isLoggedIn) {
                     }
                 }
             });
+
+            socket.on('new_notification', () => {
+                loadNotifications();
+            });
         }
 
         // Push Notifications
@@ -4855,7 +5087,7 @@ if ($isLoggedIn) {
             let subscription = await registration.pushManager.getSubscription();
 
             if (!subscription) {
-                const publicKey = 'BN1pSd_YbB6fni2gJ1jRDrPipOsYQlrSXXA6LusnqUuSIi9KRYOMAAHxR-xTKV-nNjybdxHwHoxn2HeDgN1guh8';
+                const publicKey = '<?= getenv('VAPID_PUBLIC_KEY') ?: 'BN1pSd_YbB6fni2gJ1jRDrPipOsYQlrSXXA6LusnqUuSIi9KRYOMAAHxR-xTKV-nNjybdxHwHoxn2HeDgN1guh8' ?>';
                 subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: publicKey
@@ -4900,6 +5132,7 @@ if ($isLoggedIn) {
             loadThreads();
             loadGroupThreads();
             loadMuteStatuses();
+            loadNotifications();
             initRealtime();
             initPush();
             // GPS 位置情報取得の初期化 (インターバルを10秒に広げて負荷軽減)
@@ -4971,6 +5204,68 @@ if ($isLoggedIn) {
             }
         }
 
+        let notificationDropdownOpen = false;
+        async function toggleNotificationDropdown(e) {
+            if (e) e.stopPropagation();
+            const dropdown = document.getElementById('notification-dropdown');
+            const overlay = document.getElementById('notification-overlay');
+            notificationDropdownOpen = !notificationDropdownOpen;
+
+            const displayMode = notificationDropdownOpen ? 'flex' : 'none';
+            dropdown.style.display = displayMode;
+            overlay.style.display = notificationDropdownOpen ? 'block' : 'none';
+
+            if (notificationDropdownOpen) {
+                loadNotifications();
+            }
+        }
+
+        // Removed old click listener since we use an overlay for closing
+
+        async function loadNotifications() {
+            const notifications = await api('get_notifications');
+            const list = document.getElementById('notification-list');
+            const badge = document.getElementById('notif-badge');
+
+            list.innerHTML = '';
+            let unreadCount = 0;
+
+            if (notifications.length === 0) {
+                list.innerHTML = '<div class="empty-state" style="padding:40px 20px;">通知はありません</div>';
+            } else {
+                notifications.forEach(n => {
+                    if (!n.is_read) unreadCount++;
+                    const item = document.createElement('div');
+                    item.className = 'notif-item';
+                    item.style.cssText = `padding:12px; border-bottom:1px solid var(--border-color); cursor:pointer; transition:background 0.2s; position:relative; ${n.is_read ? 'opacity:0.7;' : 'background:rgba(99, 102, 241, 0.05);'}`;
+
+                    item.innerHTML = `
+                        <div style="font-size:0.85rem; margin-bottom:4px; line-height:1.4;">${escapeHTML(n.content)}</div>
+                        <div style="font-size:0.7rem; color:var(--text-secondary);">${new Date(n.created_at).toLocaleString()}</div>
+                        ${!n.is_read ? '<div style="position:absolute; top:12px; right:12px; width:8px; height:8px; background:var(--accent-color); border-radius:50%;"></div>' : ''}
+                    `;
+
+                    item.onclick = async (e) => {
+                        e.stopPropagation();
+                        await api('mark_notification_read', 'POST', {
+                            notification_id: n.id
+                        });
+                        if (n.link) window.location.href = n.link;
+                        else loadNotifications();
+                    };
+                    list.appendChild(item);
+                });
+            }
+
+            badge.textContent = unreadCount;
+            badge.style.display = unreadCount > 0 ? 'flex' : 'none';
+        }
+
+        async function markAllNotificationsRead() {
+            await api('mark_all_notifications_read', 'POST');
+            loadNotifications();
+        }
+
         function updateMuteIcon() {
             const btn = document.getElementById('mute-btn');
             if (!btn) return;
@@ -4998,7 +5293,13 @@ if ($isLoggedIn) {
 
             if (mutedTargets.has(key) && !isKeywordMatch) return;
 
-            if (!isWindowFocused && Notification.permission === 'granted') {
+            // Determine if we should show the notification
+            const isDifferentThread = (targetType === 'thread' && targetId != currentThreadId) ||
+                (targetType === 'group' && targetId != currentGroupThreadId) ||
+                (targetType === 'dm' && targetId != currentPartnerId);
+
+            // Show if window is NOT focused OR if it's from a different thread (even if focused, to be helpful)
+            if ((!isWindowFocused || isDifferentThread) && Notification.permission === 'granted') {
                 new Notification(title, {
                     body,
                     icon: 'SYCS_favicon.svg'

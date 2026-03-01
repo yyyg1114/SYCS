@@ -326,6 +326,142 @@
 
     <main>
 
+        <!-- ===== v1.2.3 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.2.3</span>
+                <span class="release-title">バグ修正および安定性の向上</span>
+                <span class="release-date">2026-03-01</span>
+            </div>
+            <div class="release-body">
+
+                <!-- バグ修正 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-blue"></span> バグ修正 (Bug Fixes)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🐛</span>
+                            <div>
+                                <strong>DM送信の不具合修正</strong>
+                                <span class="detail">
+                                    バックエンドAPIおよびフロントエンドの<code>sendDm</code>関数の問題を解決し、ダイレクトメッセージが正常に送信・受信されるように修正しました。
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🛠️</span>
+                            <div>
+                                <strong>トークン検証エラーの解決</strong>
+                                <span class="detail">
+                                    <code>verify_token()</code>関数における意図しないプログラム終了（Exit
+                                    Expressionエラー）を修正し、安定した認証処理を実現しました。
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🎨</span>
+                            <div>
+                                <strong>CSS構文エラーの修正</strong>
+                                <span class="detail">
+                                    <code>index.php</code>内のスタイル定義におけるSyntaxエラーを解決し、正しくデザインが適用されるように修正しました。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </article>
+
+        <!-- ===== v1.2.2 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.2.2</span>
+                <span class="release-title">通知センター（通知履歴リスト）の実装</span>
+                <span class="release-date">2026-03-01</span>
+            </div>
+            <div class="release-body">
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能 (New Features)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🔔</span>
+                            <div>
+                                <strong>通知センターの導入</strong>
+                                <span class="detail">
+                                    ベルアイコンをクリックすることで、自分宛ての通知（メンション、DM、フレンド申請）を一覧で確認できるようになりました。
+                                    未読バッジの表示、通知からのクイックアクセス、リアルタイム更新に対応しています。
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🔕</span>
+                            <div>
+                                <strong>既存のミュート機能との分離</strong>
+                                <span class="detail">
+                                    通知の「表示（ベル）」と「ミュート（ベルに斜線）」を別のボタンとして独立させ、用途に合わせて使い分けられるように改善しました。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </article>
+
+        <!-- ===== v1.2.1 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.2.1</span>
+                <span class="release-title">通知機能の正常化・操作権限の拡張・利便性の向上</span>
+                <span class="release-date">2026-03-01</span>
+            </div>
+            <div class="release-body">
+
+                <!-- 新機能 & 改善 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能 & 改善 (New Features & Improvements)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🔔</span>
+                            <div>
+                                <strong>通知機能の完全な正常化</strong>
+                                <span class="detail">
+                                    ブラウザ通知が Socket.io のイベントと連動し、別のスレッドを開いている際やウィンドウが非フォーカス時でも確実に届くよう改善。
+                                    プッシュ通知 (Web Push) の不具合（環境変数の欠落等）を解消し、バックエンドからの送信処理を全メッセージタイプに拡張。
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🔓</span>
+                            <div>
+                                <strong>スレッド・グループの操作権限を全ユーザーへ拡張</strong>
+                                <span class="detail">
+                                    作成者以外のユーザーでもスレッドやグループの名前変更（編集）および削除が可能になりました。
+                                    チーム内での機動的なスレッド管理をサポートします。
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🏠</span>
+                            <div>
+                                <strong>Generalスレッドの機能制限緩和</strong>
+                                <span class="detail">
+                                    誤消去防止のため編集・削除は制限しつつも、メッセージ検索やビデオ通話、添付ファイルギャラリーなどの便利機能を有効化しました。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </article>
+
         <!-- ===== v1.2.0 ===== -->
         <article class="release">
             <div class="release-header">

@@ -70,7 +70,7 @@ app.post("/api/notify", (req, res) => {
     io.to(`thread_${threadId}`).emit("new_message", message);
   } else if (type === "new_group_message") {
     const { groupThreadId, message } = data;
-    io.to(`group_${groupThreadId}`).emit("new_message", message);
+    io.to(`group_${groupThreadId}`).emit("new_group_message", message);
   } else if (type === "new_dm") {
     const { receiverId, message } = data;
     const socketId = users.get(receiverId.toString());
@@ -79,9 +79,11 @@ app.post("/api/notify", (req, res) => {
     }
   } else if (type === "typing") {
     const { threadId, userId, username, isTyping } = data;
-    socket
-      .to(`thread_${threadId}`)
-      .emit("typing_status", { userId, username, isTyping });
+    io.to(`thread_${threadId}`).emit("typing_status", {
+      userId,
+      username,
+      isTyping,
+    });
   }
 
   res.json({ success: true });
