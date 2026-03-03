@@ -354,6 +354,15 @@ FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 UNIQUE KEY unique_reaction (message_id, user_id, emoji)
 )");
+$mysqli->query("CREATE TABLE IF NOT EXISTS user_locations (
+    user_id INT PRIMARY KEY,
+    lat DECIMAL(10, 8) NOT NULL,
+    lon DECIMAL(11, 8) NOT NULL,
+    accuracy DECIMAL(10, 2) DEFAULT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)");
+
 $mysqli->query("CREATE TABLE IF NOT EXISTS notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -1072,6 +1081,7 @@ if (isset($_GET['api'])) {
     }
 
     if ($action === 'update_location') {
+        if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
         $lat = $_POST['lat'] ?? null;
         $lon = $_POST['lon'] ?? null;
         $accuracy = $_POST['accuracy'] ?? null;
@@ -2290,7 +2300,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.3</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.4 </span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
@@ -3004,7 +3014,8 @@ if ($isLoggedIn) {
 
                                 <section class="section2" id="gps-section">
                                     <h3>GPS</h3>
-                                    <div id="gps-status">位置取得待機中…</div>
+                                    <div id="gps-status-display" style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 2px;"></div>
+
                                 </section>
                             </div>
                         </div>
@@ -5135,9 +5146,9 @@ if ($isLoggedIn) {
             loadNotifications();
             initRealtime();
             initPush();
-            // GPS 位置情報取得の初期化 (インターバルを10秒に広げて負荷軽減)
+            // GPS 位置情報取得の初期化
             if (typeof locationManager !== 'undefined') {
-                locationManager.init('gps-status-header', 10000);
+                locationManager.init('gps-status-display', 30000);
             }
 
             if (isDmMode && currentPartnerId) {

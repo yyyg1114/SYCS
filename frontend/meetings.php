@@ -255,7 +255,6 @@ if (isset($_GET['api'])) {
 
         .secondary-btn {
             background: rgba(255, 255, 255, 0.1);
-            margin-top: 2rem;
         }
 
         .divider {

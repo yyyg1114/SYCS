@@ -326,6 +326,81 @@
 
     <main>
 
+        <!-- ===== v1.2.4 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.2.4</span>
+                <span class="release-title">位置情報機能の強化とセキュリティ改善</span>
+                <span class="release-date">2026-03-03</span>
+            </div>
+            <div class="release-body">
+
+                <!-- 新機能 & 改善 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> 新機能 & 改善 (New Features & Improvements)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">📍</span>
+                            <div>
+                                <strong>GPSステータスの可視化</strong>
+                                <span class="detail">
+                                    UI上でGPSの取得状況（測位中、成功、エラー等）をリアルタイムで確認できるステータス表示機能を追加しました。
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">⚡</span>
+                            <div>
+                                <strong>位置情報スクリプトの最適化</strong>
+                                <span class="detail">
+                                    <code>js/locate.js</code> の読み込みタイミングと依存関係を整理し、ページ初期化時のパフォーマンスを向上させました。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- セキュリティ強化 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-red"></span> セキュリティ強化 (Security Enhancements)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🛡️</span>
+                            <div>
+                                <strong>Location API へのCSRF対策</strong>
+                                <span class="detail">
+                                    位置情報の更新を行う <code>update_location</code> APIにおいて、CSRFトークンの検証を必須化し、セキュリティを強化しました。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- バグ修正 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-blue"></span> バグ修正 (Bug Fixes)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🐛</span>
+                            <div>
+                                <strong>位置情報テーブルの不整合修正</strong>
+                                <span class="detail">
+                                    <code>user_locations</code> テーブルが存在しない、または不完全な場合にAPIがエラーを返す問題を修正しました。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </article>
+
         <!-- ===== v1.2.3 ===== -->
         <article class="release">
             <div class="release-header">
