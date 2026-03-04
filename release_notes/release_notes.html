@@ -326,6 +326,65 @@
 
     <main>
 
+        <!-- ===== v1.2.6 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.2.6</span>
+                <span class="release-title">プロフィールUIの刷新と堅牢性の向上</span>
+                <span class="release-date">2026-03-05</span>
+            </div>
+            <div class="release-body">
+
+                <!-- UI/UX 向上 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-green"></span> UI/UX 向上 (New Features & UI/UX)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🎨</span>
+                            <div>
+                                <strong>プロフィール画面のデザイン刷新</strong>
+                                <span class="detail">
+                                    プロフィール編集および閲覧用モーダルを大幅に改善しました。プレミアムボタン、グラスモーフィズムCSS、およびテーマ選択ボタンの新設により、よりモダンで洗練されたUXを提供します。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- セキュリティ & 堅牢性 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-blue"></span> 堅牢性の向上 (Robustness & Refactoring)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🛠️</span>
+                            <div>
+                                <strong>PHPテンプレートの安全性強化</strong>
+                                <span class="detail">
+                                    <code>index.php</code>
+                                    における変数出力部分を徹底的に見直し。Null合体演算子（??）を導入し、未定義・不完全なユーザーデータによるランタイムエラーや警告を根本から排除しました。
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🚀</span>
+                            <div>
+                                <strong>サインアッププロセスの改善</strong>
+                                <span class="detail">
+                                    <code>signup_process.php</code> において、環境変数ローダー <code>EnvLoader</code>
+                                    を統合。バックエンド設定の柔軟性と安全性を高めました。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </article>
+
         <!-- ===== v1.2.5 ===== -->
         <article class="release">
             <div class="release-header">

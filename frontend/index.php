@@ -2005,6 +2005,7 @@ if ($isLoggedIn) {
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style-index.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 </head>
 
@@ -2015,7 +2016,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.5 </span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.6 </span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
@@ -2065,12 +2066,13 @@ if ($isLoggedIn) {
                     <div class="avatar-container">
                         <div class="avatar" id="global-user-avatar">
                             <?php if ($currentUserAvatar): ?>
-                                <img src="<?= htmlspecialchars($currentUserAvatar) ?>" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                                <img src="<?= htmlspecialchars($currentUserAvatar ?? '') ?>" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
                             <?php else: ?>
-                                <?= htmlspecialchars(mb_substr($currentUser, 0, 1)) ?>
+                                <?= htmlspecialchars(mb_substr($currentUser ?? '', 0, 1)) ?>
                             <?php endif; ?>
                         </div>
-                        <div class="status-indicator status-<?= htmlspecialchars($currentUserStatus) ?>" id="global-status-indicator"></div>
+                        <div class="status-indicator status-<?= htmlspecialchars($currentUserStatus ?? 'online') ?>" id="global-status-indicator"></div>
+
                     </div>
                     <div class="user-info">
                         <span class="user-name"><?= htmlspecialchars($currentUser) ?></span>
@@ -2625,7 +2627,7 @@ if ($isLoggedIn) {
             <dialog id="profile-modal" class="profile-modal">
                 <div class="profile-content">
                     <div class="profile-edit-form">
-                        <h3 style="margin-bottom: 24px;">ユーザー設定</h3>
+                        <h3 class="settings-title">ユーザー設定</h3>
 
                         <div class="modal-form-group">
                             <label class="modal-label">アバター画像</label>
@@ -2639,8 +2641,9 @@ if ($isLoggedIn) {
                         <div class="modal-form-group">
                             <label class="modal-label">バナー色</label>
                             <input type="color" id="edit-banner-input" class="modal-input" style="height: 40px; padding: 5px;"
-                                oninput="updatePreviewBanner(this.value)" value="<?= htmlspecialchars($currentUserBanner) ?>">
+                                oninput="updatePreviewBanner(this.value)" value="<?= htmlspecialchars($currentUserBanner ?? '#6366f1') ?>">
                         </div>
+
 
                         <div class="modal-form-group">
                             <label class="modal-label">Twitter/X ID (@抜き)</label>
@@ -2650,9 +2653,9 @@ if ($isLoggedIn) {
 
                         <div class="modal-form-group">
                             <label class="modal-label">テーマ設定</label>
-                            <div style="display:flex; gap:10px;">
-                                <button class="btn-secondary" onclick="setTheme('dark')" style="flex:1;">ダーク</button>
-                                <button class="btn-secondary" onclick="setTheme('light')" style="flex:1;">ライト</button>
+                            <div class="theme-switch-group">
+                                <button class="btn-theme-selector" onclick="setTheme('dark')">ダーク</button>
+                                <button class="btn-theme-selector" onclick="setTheme('light')">ライト</button>
                             </div>
                         </div>
 
@@ -2671,7 +2674,7 @@ if ($isLoggedIn) {
                         <div class="modal-form-group">
                             <label class="modal-label">自己紹介</label>
                             <textarea id="edit-bio-input" class="modal-textarea" placeholder="自分について書こう"
-                                oninput="updatePreviewBio(this.value)"><?= htmlspecialchars($currentUserBio) ?></textarea>
+                                oninput="updatePreviewBio(this.value)"><?= htmlspecialchars($currentUserBio ?? '') ?></textarea>
                         </div>
 
                         <div class="modal-form-group">
@@ -2696,36 +2699,37 @@ if ($isLoggedIn) {
                             </select>
                         </div>
 
-                        <div style="margin-top:32px; display:flex; flex-direction:column; gap:12px;">
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <button class="btn-secondary" onclick="document.getElementById('profile-modal').close()" style="padding: 12px; flex: 1;">キャンセル</button>
-                                <button class="btn-primary" onclick="saveProfile()" style="padding: 12px; flex: 1; font-weight: 600;">保存</button>
+                        <div class="settings-actions">
+                            <div class="primary-actions">
+                                <button class="btn-glass-secondary" onclick="document.getElementById('profile-modal').close()">キャンセル</button>
+                                <button class="btn-premium-primary" onclick="saveProfile()">保存</button>
                             </div>
-                            <div style="display:flex; justify-content: flex-end;">
-                                <a href="delete_account.php" style="color:#f87171; font-size:0.8rem; text-decoration:none;">アカウント削除</a>
+                            <div class="danger-zone">
+                                <a href="delete_account.php" class="delete-account-link">アカウント削除</a>
                             </div>
                         </div>
                     </div>
 
                     <div class="profile-preview-pane">
                         <div class="discord-card">
-                            <div class="discord-banner" id="preview-banner" style="background: <?= htmlspecialchars($currentUserBanner) ?>"></div>
+                            <div class="discord-banner" id="preview-banner" style="background: <?= htmlspecialchars($currentUserBanner ?? '#6366f1') ?>"></div>
                             <div class="discord-avatar-wrapper">
                                 <div class="discord-avatar" id="preview-avatar-container">
                                     <?php if ($currentUserAvatar): ?>
-                                        <img src="<?= htmlspecialchars($currentUserAvatar) ?>" class="discord-avatar" id="preview-avatar-img">
+                                        <img src="<?= htmlspecialchars($currentUserAvatar ?? '') ?>" class="discord-avatar" id="preview-avatar-img">
                                     <?php else: ?>
-                                        <?= strtoupper(substr($currentUser, 0, 1)) ?>
+                                        <?= strtoupper(substr($currentUser ?? '', 0, 1)) ?>
                                     <?php endif; ?>
                                 </div>
-                                <div class="discord-status-indicator status-<?= htmlspecialchars($currentUserStatus) ?>" id="preview-status-indicator"></div>
+                                <div class="discord-status-indicator status-<?= htmlspecialchars($currentUserStatus ?? 'online') ?>" id="preview-status-indicator"></div>
                             </div>
                             <div class="discord-body">
-                                <div class="discord-username"><?= htmlspecialchars($currentUser) ?></div>
+                                <div class="discord-username"><?= htmlspecialchars($currentUser ?? '') ?></div>
                                 <div class="discord-custom-status" id="preview-custom-status-text"></div>
                                 <div class="discord-divider"></div>
                                 <div class="discord-section-title">自己紹介</div>
-                                <div class="discord-bio" id="preview-bio"><?= nl2br(htmlspecialchars($currentUserBio)) ?></div>
+                                <div class="discord-bio" id="preview-bio"><?= nl2br(htmlspecialchars($currentUserBio ?? '')) ?></div>
+
 
                                 <section class="section2" id="gps-section">
                                     <h3>GPS</h3>
@@ -2740,8 +2744,8 @@ if ($isLoggedIn) {
 
             <!-- User Profile View Modal -->
             <dialog id="user-profile-modal" class="profile-modal">
-                <div class="profile-content" style="max-width: 450px;">
-                    <div class="profile-preview-pane" style="width: 100%;">
+                <div class="profile-content user-view-content">
+                    <div class="profile-preview-pane" style="width: 100%; border-left: none;">
                         <div class="discord-card" id="user-profile-card">
                             <div class="discord-banner" id="user-profile-banner"></div>
                             <div class="discord-avatar-wrapper">
@@ -2756,12 +2760,13 @@ if ($isLoggedIn) {
                                 <div class="discord-bio" id="user-profile-bio"></div>
                                 <div class="discord-divider"></div>
                                 <div class="discord-section-title">SNS</div>
-                                <div id="user-profile-sns" style="display:flex; gap:10px; margin-top:8px;"></div>
+                                <div id="user-profile-sns" class="sns-links-container"></div>
+
+                                <div class="user-view-actions">
+                                    <button class="btn-premium-primary" id="user-profile-dm-btn">メッセージを送る</button>
+                                    <button class="btn-glass-secondary" onclick="document.getElementById('user-profile-modal').close()">閉じる</button>
+                                </div>
                             </div>
-                        </div>
-                        <div style="margin-top: 16px; display: flex; gap: 8px; margin-left: 15px;">
-                            <button class="btn-primary" onclick="document.getElementById('user-profile-modal').close()" style="flex: 1;">閉じる</button>
-                            <button class="btn-primary" id="user-profile-dm-btn" style="flex: 1;">DMを送る</button>
                         </div>
                     </div>
                 </div>

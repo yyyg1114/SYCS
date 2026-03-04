@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/session_config.php';
+require_once __DIR__ . '/EnvLoader.php';
 require_once 'SecurityUtil.php';
 require_once 'Mailer.php';
 
