@@ -213,3 +213,299 @@ font-size: 12px;
 color: #6b7280;
 padding: 40px 0;
 }   
+
+    /* Status Indicators */
+        .avatar-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .status-indicator {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid var(--sidebar-bg, #1e1e2e);
+            background-color: #94a3b8;
+            /* Default offline */
+        }
+
+        .status-online {
+            background-color: #6BB700;
+        }
+
+        .status-busy {
+            background-color: #C50F1F;
+        }
+
+        .status-away {
+            background-color: #FCD116;
+        }
+
+        .status-offline {
+            background-color: #747f8d;
+        }
+
+        .status-not_allowed {
+            background-color: #C50F1F;
+        }
+
+        .status-step_out {
+            background-color: #FCD116;
+        }
+
+        .status-going_away {
+            background-color: #e100ffff;
+        }
+
+        /* Status Dropdown */
+        .status-select-container {
+            position: relative;
+            margin-top: 4px;
+        }
+
+        .status-select {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .status-select:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .status-select option {
+            background: #1e1e2e;
+            color: white;
+        }
+
+        /* Discord-style Profile Modal */
+        .profile-modal {
+            background: #1e1e2e;
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            padding: 0;
+            width: 800px;
+            max-width: 90vw;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            top: auto;
+            bottom: 20px;
+        }
+
+        .profile-modal::backdrop {
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .profile-content {
+            display: flex;
+            height: 650px;
+            /* Increased from 500px to see more content */
+        }
+
+        .profile-edit-form {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        .profile-preview-pane {
+            width: 340px;
+            background: #2b2d31;
+            padding: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Discord Card Preview */
+        .discord-card {
+            width: 300px;
+            background: #111214;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .discord-banner {
+            height: 60px;
+            background: var(--accent-color, #6366f1);
+        }
+
+        .discord-avatar-wrapper {
+            margin-top: -30px;
+            margin-left: 16px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .discord-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 6px solid #111214;
+            background: #5865f2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            font-weight: bold;
+            object-fit: cover;
+        }
+
+        .discord-status-indicator {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 4px solid #111214;
+        }
+
+        .discord-body {
+            padding: 16px;
+        }
+
+        .discord-username {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .discord-custom-status {
+            font-size: 0.85rem;
+            color: #dbdee1;
+            margin-bottom: 12px;
+        }
+
+        .discord-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 12px 0;
+        }
+
+        .discord-section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #b5bac1;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .discord-bio {
+            font-size: 0.85rem;
+            color: #dbdee1;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        /* Form styling */
+        .modal-form-group {
+            margin-bottom: 20px;
+        }
+
+        .modal-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #b5bac1;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .modal-input,
+        .modal-textarea {
+            width: 100%;
+            background: #1e1f22;
+            border: none;
+            border-radius: 4px;
+            padding: 10px;
+            color: #dbdee1;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .modal-textarea {
+            resize: none;
+            height: 80px;
+        }
+
+        .modal-input:focus,
+        .modal-textarea:focus {
+            background: #000;
+        }
+
+        #tac-map-container {
+            border-top: 1px solid var(--border-color);
+        }
+
+        .leaflet-container {
+            background: #111 !important;
+        }
+
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-tip {
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-color) !important;
+        }
+
+        .custom-div-icon {
+            background: none !important;
+            border: none !important;
+        }
+
+        .marker-pin {
+            width: 30px;
+            height: 30px;
+            border-radius: 50% 50% 50% 0;
+            background: var(--accent-color);
+            position: absolute;
+            transform: rotate(-45deg);
+            left: 50%;
+            top: 50%;
+            margin: -21px 0 0 -15px;
+            border: 2px solid white;
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .marker-pin::after {
+            content: '';
+            width: 24px;
+            height: 24px;
+            margin: 1px 0 0 1px;
+            background: #fff;
+            position: absolute;
+            border-radius: 50%;
+            z-index: -1;
+        }
+
+        .marker-pin.me {
+            background-color: #10b981;
+            box-shadow: 0 0 15px #10b981;
+        }
+
+
+
+        /* Standalone mode adjustments */
+        @media all and (display-mode: standalone) {
+            body {
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
+            }
+        }

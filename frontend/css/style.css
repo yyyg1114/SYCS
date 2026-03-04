@@ -295,6 +295,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   background-color: var(--bg-color);
+  position: relative;
 }
 
 .chat-header {
@@ -1286,4 +1287,108 @@ header.chat-header div.thread-info {
 .mention-me {
   background: rgba(99, 102, 241, 0.3);
   border: 1px solid var(--accent-color);
+}
+
+/* PWA Install Banner */
+@keyframes slideUpBanner {
+    from {
+        transform: translate(-50%, 20px);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+}
+
+.pwa-install-banner-integrated {
+    position: absolute;
+    bottom: 80px; /* Adjust to be above the input area */
+    left: 50%;
+    transform: translateX(-50%);
+    background: #4f46e5d9; /* Indigo with transparency */
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    font-family: 'Inter', sans-serif;
+    display: none;
+    align-items: center;
+    gap: 20px;
+    animation: slideUpBanner 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 10000;
+    width: max-content;
+    max-width: calc(100% - 40px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.pwa-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pwa-banner-icon {
+    font-size: 1.25rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.pwa-banner-text {
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: -0.01em;
+}
+
+.pwa-install-btn {
+    background: #ffffff;
+    color: #4f46e5;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+    transition: all 0.2s ease;
+}
+
+.pwa-install-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.3);
+    background: #f8fafc;
+}
+
+.pwa-install-btn:active {
+    transform: translateY(0);
+}
+
+.pwa-close-btn {
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.pwa-close-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+    }
+    to {
+        transform: translateY(0);
+    }
 }
