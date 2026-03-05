@@ -326,6 +326,66 @@
 
     <main>
 
+        <!-- ===== v1.2.9 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.2.9</span>
+                <span class="release-title">外部サービス連携の安定性向上とロガーの強化</span>
+                <span class="release-date">2026-03-05</span>
+            </div>
+            <div class="release-body">
+
+                <!-- 安定性 & 信頼性 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-blue"></span> 安定性 & 信頼性 (Stability & Reliability)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🔄</span>
+                            <div>
+                                <strong>外部API通信のリトライ機構 (<code>RetryHandler.php</code>)</strong>
+                                <span class="detail">
+                                    Outlook、Discord、Google などの外部サービス連携において、一時的なネットワークエラーやサーバーエラーが発生した際に自動で再試行する機能を実装。
+                                    指数バックオフアルゴリズムを採用し、サーバー負荷を抑えつつ連携の成功率を高めました。
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">⚡</span>
+                            <div>
+                                <strong>ファイルベースのキャッシュシステム (<code>Cache.php</code>)</strong>
+                                <span class="detail">
+                                    外部APIから取得したユーザー情報などをキャッシュする仕組みを導入。
+                                    不要なAPIリクエストを削減し、ページ読み込み速度の向上とAPIレートリミット回避を実現しました。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 改善 & リファクタリング -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-yellow"></span> 改善 & リファクタリング (Improvements & Refactoring)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">📝</span>
+                            <div>
+                                <strong>ログの自動ローテーション機能</strong>
+                                <span class="detail">
+                                    <code>Logger.php</code> にファイルサイズベースのログローテーション機能を追加。
+                                    古いログを自動でバックアップ・クリーンアップし、ディスク容量の圧迫を防ぐことで長期運用時の安全性を向上させました。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </article>
+
         <!-- ===== v1.2.8 ===== -->
         <article class="release">
             <div class="release-header">

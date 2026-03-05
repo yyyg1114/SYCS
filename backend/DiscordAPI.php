@@ -1,6 +1,8 @@
 <?php
 // backend/DiscordAPI.php
 require_once __DIR__ . '/discord_config.php';
+require_once __DIR__ . '/RetryHandler.php';
+require_once __DIR__ . '/Cache.php';
 
 class DiscordAPI
 {
@@ -16,6 +18,12 @@ class DiscordAPI
         return "https://discord.com/api/oauth2/authorize?" . http_build_query($params);
     }
 
+    /**
+     * 認可コードをアクセストークンに交換する（リトライ付き）
+     *
+     * @param string $code 認可コード
+     * @return array|null トークン情報、失敗時は null
+     */
     public static function exchangeCode($code)
     {
         $postData = [
@@ -26,27 +34,74 @@ class DiscordAPI
             'redirect_uri' => getDiscordRedirectUri(),
         ];
 
-        $ch = curl_init("https://discord.com/api/oauth2/token");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+        try {
+            return RetryHandler::execute(function () use ($postData) {
+                $ch = curl_init("https://discord.com/api/oauth2/token");
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 
-        $response = curl_exec($ch);
-        curl_close($ch);
-        return json_decode($response, true);
+                $response = RetryHandler::curlExec($ch, 1);
+                curl_close($ch);
+
+                $decoded = json_decode($response, true);
+                if (empty($decoded) || isset($decoded['error'])) {
+                    throw new \RuntimeException("Discord token exchange failed: " . ($decoded['error'] ?? 'unknown'));
+                }
+                return $decoded;
+            }, 3, 500, ['provider' => 'discord', 'action' => 'exchangeCode']);
+        } catch (\Throwable $e) {
+            error_log("DiscordAPI::exchangeCode 失敗: " . $e->getMessage());
+            return null;
+        }
     }
 
+    /**
+     * アクセストークンでユーザー情報を取得する（リトライ + キャッシュ付き）
+     *
+     * @param string $accessToken アクセストークン
+     * @return array|null ユーザー情報、失敗時は null
+     */
     public static function getUserInfo($accessToken)
     {
-        $ch = curl_init("https://discord.com/api/users/@me");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Bearer ' . $accessToken
-        ]);
+        $cache = new Cache();
+        $cacheKey = 'discord_userinfo_' . hash('sha256', $accessToken);
 
-        $response = curl_exec($ch);
-        curl_close($ch);
-        return json_decode($response, true);
+        // キャッシュから取得を試みる
+        $cached = $cache->get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        try {
+            $result = RetryHandler::execute(function () use ($accessToken) {
+                $ch = curl_init("https://discord.com/api/users/@me");
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $accessToken]);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+
+                $response = RetryHandler::curlExec($ch, 1);
+                curl_close($ch);
+
+                $decoded = json_decode($response, true);
+                if (empty($decoded) || isset($decoded['code'])) {
+                    // Discord APIはエラー時 'code' フィールドを返す
+                    throw new \RuntimeException("Discord userinfo failed: " . json_encode($decoded));
+                }
+                return $decoded;
+            }, 3, 500, ['provider' => 'discord', 'action' => 'getUserInfo']);
+        } catch (\Throwable $e) {
+            error_log("DiscordAPI::getUserInfo 失敗: " . $e->getMessage());
+            return null;
+        }
+
+        // 5分間キャッシュ
+        if ($result !== null) {
+            $cache->set($cacheKey, $result, 300);
+        }
+
+        return $result;
     }
 }
