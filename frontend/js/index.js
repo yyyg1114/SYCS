@@ -169,7 +169,7 @@ async function updateMyStatus(status) {
   const body = new FormData();
   body.append("status", status);
   const res = await api("update_status", "POST", body);
-  if (res.success) {
+  if (res && res.success) {
     // Update Indicator
     const indicator = document.getElementById("global-status-indicator");
     if (indicator) indicator.className = `status-indicator status-${status}`;
@@ -184,13 +184,70 @@ async function updateMyStatus(status) {
   }
 }
 
+/**
+ * トースト通知を表示する
+ * @param {string} title タイトル
+ * @param {string} message メッセージ内容
+ * @param {string} type 'success', 'error', 'warning'
+ * @param {number} duration 表示時間（ミリ秒）
+ */
+function showToast(title, message, type = "success", duration = 5000) {
+  let container = document.getElementById("toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toast-container";
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+
+  const iconMap = {
+    success:
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+    error:
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
+    warning:
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+  };
+
+  toast.innerHTML = `
+        <div class="toast-icon">${iconMap[type] || ""}</div>
+        <div class="toast-content">
+            <div class="toast-title">${escapeHTML(title)}</div>
+            <div class="toast-message">${escapeHTML(message)}</div>
+        </div>
+        <div class="toast-close">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+    `;
+
+  container.appendChild(toast);
+
+  const removeToast = () => {
+    if (toast.classList.contains("removing")) return;
+    toast.classList.add("removing");
+    setTimeout(() => {
+      if (toast.parentNode === container) {
+        container.removeChild(toast);
+      }
+    }, 300);
+  };
+
+  toast.querySelector(".toast-close").onclick = removeToast;
+
+  if (duration > 0) {
+    setTimeout(removeToast, duration);
+  }
+}
+
 async function api(path, method = "GET", body = null) {
   const opts = {
     method,
   };
   if (method === "POST") {
     if (!body) body = new FormData();
-    
+
     if (!(body instanceof FormData)) {
       const formData = new FormData();
       for (const key in body) {
@@ -198,7 +255,7 @@ async function api(path, method = "GET", body = null) {
       }
       body = formData;
     }
-    
+
     // Auto-append CSRF token
     if (!body.has("csrf_token")) {
       body.append("csrf_token", csrfToken || window.SYCS_CONFIG.csrfToken);
@@ -217,18 +274,29 @@ async function api(path, method = "GET", body = null) {
     // Try to parse as JSON
     try {
       const json = JSON.parse(text);
+      if (json && json.success === false) {
+        showToast(
+          "エラー",
+          json.error || "不明なエラーが発生しました",
+          "error",
+        );
+      }
       return json;
     } catch (parseError) {
       console.error("JSON parse error:", parseError, text);
+      const errorMsg = "サーバーエラー: JSONパースに失敗しました";
+      showToast("システムエラー", errorMsg, "error");
       return {
-        error: "サーバーエラー: JSONパースに失敗しました",
+        error: errorMsg,
         details: text.substring(0, 500),
       };
     }
   } catch (fetchError) {
     console.error("Fetch error:", fetchError);
+    const errorMsg = "ネットワークエラー: " + fetchError.message;
+    showToast("通信エラー", "サーバーに接続できませんでした", "error");
     return {
-      error: "ネットワークエラー: " + fetchError.message,
+      error: errorMsg,
     };
   }
 }
