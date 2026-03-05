@@ -1954,7 +1954,7 @@ if (isset($_GET['logout'])) {
 }
 
 if ($isLoggedIn) {
-    $stmt = $mysqli->prepare("SELECT last_thread_id, status, custom_status, bio, avatar_url, banner_color, social_links, theme_preference FROM users WHERE id = ?");
+    $stmt = $mysqli->prepare("SELECT last_thread_id, status, custom_status, bio, avatar_url, banner_color, social_links, theme_preference, notification_keywords FROM users WHERE id = ?");
     $stmt->bind_param("i", $_SESSION['user_id']);
     $stmt->execute();
     if ($row = $stmt->get_result()->fetch_assoc()) {
@@ -1967,6 +1967,7 @@ if ($isLoggedIn) {
         $currentUserBanner = $row['banner_color'] ?: '#6366f1';
         $currentUserSocialLinks = json_decode($row['social_links'] ?: '{}', true);
         $currentUserThemePref = json_decode($row['theme_preference'] ?: '{}', true);
+        $currentUserKeywords = $row['notification_keywords'];
     }
     $stmt->close();
 
@@ -2016,7 +2017,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.6 </span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end; color: var(--text-secondary);">v1.2.7 </span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
@@ -2098,17 +2099,17 @@ if ($isLoggedIn) {
 
         <main class="main-content">
             <!-- Notifications Modal (Centered in Main Content Area) -->
-            <div id="notification-overlay" class="modal-backdrop" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:2000;" onclick="toggleNotificationDropdown()"></div>
-            <div id="notification-dropdown" class="modal" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:400px; max-width:90vw; max-height:80vh; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:12px; box-shadow:0 20px 50px rgba(0,0,0,0.5); z-index:2001; flex-direction:column; padding:0; overflow:hidden;">
-                <div style="padding:16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03);">
-                    <h4 style="margin:0; font-size:1.1rem; font-weight:600;">通知センター</h4>
+            <div id="notification-overlay" onclick="toggleNotificationDropdown()"></div>
+            <div id="notification-dropdown">
+                <div class="notif-header">
+                    <h4>通知センター</h4>
                     <div style="display:flex; gap:12px; align-items:center;">
-                        <button class="action-link" onclick="markAllNotificationsRead()" style="font-size:0.8rem; color:var(--accent-color); padding:0; background:none; border:none; cursor:pointer;">全て既読にする</button>
+                        <button id="mark-all-read-btn" onclick="markAllNotificationsRead()">全て既読にする</button>
                         <button class="icon-btn" onclick="toggleNotificationDropdown()" style="padding:4px; opacity:0.7;">✕</button>
                     </div>
                 </div>
-                <div id="notification-list" class="scroller" style="flex:1; overflow-y:auto; min-height:200px; padding:8px 0;">
-                    <div class="empty-state" style="padding:60px 20px; text-align:center; color:var(--text-secondary);">通知はありません</div>
+                <div id="notification-list" class="scroller">
+                    <div class="empty-state">通知はありません</div>
                 </div>
             </div>
 
@@ -2173,13 +2174,6 @@ if ($isLoggedIn) {
                                     <button class="btn-primary" onclick="searchMessages(); toggleAdvancedSearch();" style="width:100%; padding:6px; font-size:0.8rem;">検索</button>
                                 </div>
                             </div>
-                            <button id="notif-btn" class="icon-btn" onclick="toggleNotificationDropdown(event)" title="通知センター" style="position:relative;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                                </svg>
-                                <span id="notif-badge" style="display:none; position:absolute; top:-2px; right:-2px; background:#ef4444; color:white; border-radius:50%; width:14px; height:14px; font-size:9px; font-weight:bold; align-items:center; justify-content:center; border:1.5px solid var(--bg-primary);">0</span>
-                            </button>
                             <button id="mute-btn" class="icon-btn" onclick="toggleMute()" title="通知をミュート" style="color: var(--text-secondary);">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -2785,7 +2779,7 @@ if ($isLoggedIn) {
             currentUserId: <?= (int) $_SESSION['user_id'] ?>,
             currentUserName: <?= json_encode($currentUser) ?>,
             currentUserTheme: <?= json_encode($currentUserThemePref ?? (object) []) ?>,
-            userKeywords: <?= json_encode(array_values(array_filter(array_map('trim', explode(',', $currentUserData['notification_keywords'] ?? ''))))) ?>,
+            userKeywords: <?= json_encode(array_values(array_filter(array_map('trim', explode(',', $currentUserKeywords ?? ''))))) ?>,
             csrfToken: <?= json_encode($_SESSION['csrf_token']) ?>,
             vapidPublicKey: <?= json_encode(getenv('VAPID_PUBLIC_KEY') ?: 'BN1pSd_YbB6fni2gJ1jRDrPipOsYQlrSXXA6LusnqUuSIi9KRYOMAAHxR-xTKV-nNjybdxHwHoxn2HeDgN1guh8') ?>
         };
@@ -2798,6 +2792,14 @@ if ($isLoggedIn) {
     <div id="offline-indicator" style="display:none; position:fixed; top:0; left:0; right:0; background:#ef4444; color:white; text-align:center; padding:6px; font-size:0.8rem; font-family:'Inter',sans-serif; z-index:10001; animation: slideDown 0.3s ease-out;">
         ⚠️ オフラインです - 一部の機能が制限されます
     </div>
+    <!-- Floating Notification Button -->
+    <button id="notif-btn" onclick="toggleNotificationDropdown(event)" title="通知センター">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+        <span id="notif-badge" class="notif-badge">0</span>
+    </button>
 </body>
 
 </html>
