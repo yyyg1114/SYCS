@@ -491,6 +491,11 @@ a:hover {
   font-weight: 700;
 }
 
+.panel-header span{
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
 /* Reply & Upload UI */
 .reply-bar {
   background-color: var(--sidebar-bg);

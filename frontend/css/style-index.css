@@ -6,7 +6,7 @@
 body {
   font-family: "Segoe UI", Meiryo, "YuGothic", sans-serif;
   background-color: radial-gradient(circle at top right, #f0f4f8, #1e81f3);
-  color: #222;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
@@ -288,7 +288,7 @@ body footer {
             background: rgba(30, 31, 35, 0.7);
             backdrop-filter: blur(20px) saturate(180%);
             -webkit-backdrop-filter: blur(20px) saturate(180%);
-            color: var(--text-primary, #ffffff);
+            color: var(--text-primary);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 24px;
             padding: 0;
@@ -314,7 +314,7 @@ body footer {
         .light-theme .profile-modal {
             background: rgba(255, 255, 255, 0.75);
             border: 1px solid rgba(0, 0, 0, 0.1);
-            color: var(--text-primary, #111827);
+            color: var(--text-primary);
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
         }
 
@@ -418,13 +418,13 @@ body footer {
 .discord-username {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .discord-custom-status {
   font-size: 0.85rem;
-  color: #dbdee1;
+  color: var(--text-secondary);
   margin-bottom: 12px;
 }
 
@@ -437,14 +437,14 @@ body footer {
 .discord-section-title {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #b5bac1;
+  color: var(--text-secondary);
   text-transform: uppercase;
   margin-bottom: 8px;
 }
 
 .discord-bio {
   font-size: 0.85rem;
-  color: #dbdee1;
+  color: var(--text-secondary);
   line-height: 1.4;
   white-space: pre-wrap;
 }
@@ -458,7 +458,7 @@ body footer {
   display: block;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #b5bac1;
+  color:  var(--text-secondary);
   text-transform: uppercase;
   margin-bottom: 8px;
 }
