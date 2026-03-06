@@ -326,6 +326,36 @@
 
     <main>
 
+        <!-- ===== v1.2.12 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.2.12</span>
+                <span class="release-title">レート制限キャッシュの自動クリーンアップと容量制限</span>
+                <span class="release-date">2026-03-06</span>
+            </div>
+            <div class="release-body">
+
+                <!-- 改善 & リファクタリング -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-yellow"></span> 改善 & リファクタリング (Improvements)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🧹</span>
+                            <div>
+                                <strong>レート制限キャッシュの自動クリーンアップ</strong>
+                                <span class="detail">
+                                    <code>FileRateLimiter.php</code>
+                                    において、1時間ごとの自動クリーンアッププロセスを実装。期限切れのデータを定期的に削除し、さらにキャッシュディレクトリの合計サイズが100MBを超過した場合は古いファイルから順次削除して80MB程度まで縮小する仕組みを追加しました。これにより、ディスク容量の圧迫を防ぎます。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </article>
         <!-- ===== v1.2.11 ===== -->
         <article class="release">
             <div class="release-header">

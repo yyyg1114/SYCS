@@ -17,6 +17,9 @@ class FileRateLimiter
         if (!is_dir($this->cacheDir)) {
             mkdir($this->cacheDir, 0755, true);
         }
+
+        // 1時間に1回、自動的にクリーンアップを実行
+        $this->autoCleanup();
     }
 
     /**
@@ -103,21 +106,84 @@ class FileRateLimiter
     }
 
     /**
-     * 古いキャッシュファイルをクリーンアップ
+     * キャッシュの自動クリーンアップ（1時間ごとの間隔で実行）
+     */
+    private function autoCleanup()
+    {
+        $lastRunFile = $this->cacheDir . '/.last_cleanup';
+        $now = time();
+        $interval = 3600; // 1時間（3600秒）
+
+        // 最後のクリーンアップから1時間経過していない場合はスキップ
+        if (file_exists($lastRunFile)) {
+            $lastRun = (int)file_get_contents($lastRunFile);
+            if ($now - $lastRun < $interval) {
+                return;
+            }
+        }
+
+        // 次の並行処理を防ぐため、先に実行時間を更新
+        file_put_contents($lastRunFile, $now);
+
+        $this->cleanup();
+    }
+
+    /**
+     * 古いキャッシュファイルをクリーンアップ（日次ローテーションとファイルサイズ制限付き）
      */
     public function cleanup()
     {
         $now = time();
         $files = glob($this->cacheDir . '/' . $this->prefix . '*.json');
 
+        $totalSize = 0;
+        $maxSizeBytes = 100 * 1024 * 1024; // 100MBの最大ファイルサイズ（ディレクトリ全体）制限
+        $validFiles = [];
+
         if ($files) {
             foreach ($files as $file) {
+                $fileMTime = filemtime($file);
+
+                // 日次ローテーション：更新から24時間以上経過したファイルは無条件で削除
+                if ($now - $fileMTime > 86400) {
+                    @unlink($file);
+                    continue;
+                }
+
                 $content = @file_get_contents($file);
                 if ($content) {
                     $data = json_decode($content, true);
+                    // 期限切れファイルの削除
                     if ($data && isset($data['reset_at']) && $data['reset_at'] < $now) {
                         @unlink($file);
+                        continue;
                     }
+                }
+
+                // 削除されなかったファイルのサイズ計算
+                $size = filesize($file);
+                $totalSize += $size;
+                $validFiles[] = [
+                    'path' => $file,
+                    'mtime' => $fileMTime,
+                    'size' => $size
+                ];
+            }
+
+            // 最大ファイルサイズ制限（100MB）を超過している場合、古い順にファイルを削除して80MB程度まで減らす
+            if ($totalSize > $maxSizeBytes) {
+                // 更新日時が古い順にソート（mtimeが小さい順）
+                usort($validFiles, function ($a, $b) {
+                    return $a['mtime'] <=> $b['mtime'];
+                });
+
+                $targetSizeBytes = $maxSizeBytes * 0.8; // 目標サイズ：80MB
+                foreach ($validFiles as $info) {
+                    if ($totalSize <= $targetSizeBytes) {
+                        break;
+                    }
+                    @unlink($info['path']);
+                    $totalSize -= $info['size'];
                 }
             }
         }
