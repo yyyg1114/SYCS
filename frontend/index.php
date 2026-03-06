@@ -1087,18 +1087,76 @@ if (isset($_GET['api'])) {
         }
 
         if ($action === 'update_location') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
+            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) {
+                http_response_code(403);
+                echo json_encode(['error' => 'CSRF token validation failed']);
+                exit;
+            }
+
+            // Rate Limiter Init
+            $rateLimiter = null;
+            if (extension_loaded('redis') && class_exists('Redis')) {
+                try {
+                    $redis = new \Redis();
+                    $redis->connect('127.0.0.1', 6379);
+                    require_once __DIR__ . '/../backend/RateLimiter.php';
+                    $rateLimiter = new RateLimiter($redis);
+                } catch (\Exception $e) {
+                    error_log("Redis connection failed, falling back to file-based rate limiting: " . $e->getMessage());
+                }
+            }
+
+            if (!$rateLimiter) {
+                require_once __DIR__ . '/../backend/FileRateLimiter.php';
+                $rateLimiter = new FileRateLimiter(__DIR__ . '/../logs/rate_limit_cache');
+            }
+
+            // User rate limit
+            $userRateLimit = $rateLimiter->checkUserRateLimit($userId, 12, 60);
+
+            // IP rate limit
+            $clientIP = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+            $ipRateLimit = $rateLimiter->checkIPRateLimit($clientIP, 100, 60);
+
+            if (!$userRateLimit['allowed'] || !$ipRateLimit['allowed']) {
+                http_response_code(429); // Too Many Requests
+
+                $retryAfter = max($userRateLimit['retry_after'], $ipRateLimit['retry_after']);
+                header('Retry-After: ' . $retryAfter);
+
+                echo json_encode([
+                    'error' => 'rate_limit_exceeded',
+                    'message' => 'リクエストが多すぎます。しばらく待機してください。',
+                    'retry_after' => $retryAfter,
+                    'reset_at' => max($userRateLimit['reset_at'], $ipRateLimit['reset_at']),
+                ]);
+                exit;
+            }
+
             $lat = $_POST['lat'] ?? null;
             $lon = $_POST['lon'] ?? null;
             $accuracy = $_POST['accuracy'] ?? null;
 
-            if ($lat && $lon) {
+            if (!$lat || !$lon) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Invalid coordinates']);
+                exit;
+            }
+
+            try {
                 $stmt = $mysqli->prepare("INSERT INTO user_locations (user_id, lat, lon, accuracy) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE lat = VALUES(lat), lon = VALUES(lon), accuracy = VALUES(accuracy), updated_at = CURRENT_TIMESTAMP");
                 $stmt->bind_param("iddd", $userId, $lat, $lon, $accuracy);
                 $stmt->execute();
-                echo json_encode(['success' => true]);
-            } else {
-                echo json_encode(['error' => 'Invalid coordinates']);
+
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true,
+                    'message' => '位置情報を更新しました',
+                    'remaining_requests' => $userRateLimit['remaining'],
+                ]);
+            } catch (Exception $e) {
+                http_response_code(500);
+                echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
             }
             exit;
         }
@@ -2044,7 +2102,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end; color: var(--text-secondary);">v1.2.10 </span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end; color: var(--text-secondary);">v1.2.11 </span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">

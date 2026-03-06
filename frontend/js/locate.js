@@ -4,29 +4,40 @@
  */
 
 class LocationManager {
-  constructor() {
+  constructor(statusElementId = "gps-status-display") {
+    this.statusElement = document.getElementById(statusElementId);
+    this.gpsData = {};
     this.watchId = null;
-    this.statusElement = null;
-    this.gpsData = {
-      lat: null,
-      lon: null,
-      accuracy: null,
-      altitude: null,
-      timestamp: null,
-    };
+
+    // レート制限設定
+    this.lastUpdateTime = 0;
+    this.minUpdateInterval = 5000; // 5秒ごと
+    this.maxUpdateInterval = 30000; // 最大30秒
   }
 
   /**
-   * 初期化処理
-   * @param {string} elementId - 位置情報を表示するHTML要素のID
-   * @param {number} updateInterval - 位置情報更新間隔（ミリ秒）
+   * 位置情報監視を開始
+   * @param {number} updateInterval - 更新間隔（ミリ秒）
+   * @returns {boolean}
    */
-  init(elementId, updateInterval = 1000) {
-    this.statusElement = document.getElementById(elementId);
-
+  start(updateInterval = 5000) {
     if (!navigator.geolocation) {
       this.displayError("位置情報取得に未対応のブラウザです");
       return false;
+    }
+
+    // 更新間隔の検証
+    if (updateInterval < this.minUpdateInterval) {
+      console.warn(
+        `更新間隔が短すぎます。${this.minUpdateInterval}ms に設定します。`,
+      );
+      updateInterval = this.minUpdateInterval;
+    }
+    if (updateInterval > this.maxUpdateInterval) {
+      console.warn(
+        `更新間隔が長すぎます。${this.maxUpdateInterval}ms に設定します。`,
+      );
+      updateInterval = this.maxUpdateInterval;
     }
 
     // 初回位置取得
@@ -74,8 +85,8 @@ class LocationManager {
     // UI を更新
     this.updateDisplay();
 
-    // バックエンドに送信
-    this.sendToBackend();
+    // レート制限チェック後にバックエンドに送信
+    this.sendToBackendWithRateLimit();
   }
 
   /**
@@ -169,6 +180,25 @@ class LocationManager {
   }
 
   /**
+   * レート制限を考慮してバックエンドに送信
+   */
+  sendToBackendWithRateLimit() {
+    const now = Date.now();
+    const timeSinceLastUpdate = now - this.lastUpdateTime;
+
+    // 5秒以内の更新は送信しない
+    if (timeSinceLastUpdate < this.minUpdateInterval) {
+      console.log(
+        `[locate.js] レート制限中。次の送信まで ${this.minUpdateInterval - timeSinceLastUpdate}ms 待機`,
+      );
+      return;
+    }
+
+    this.lastUpdateTime = now;
+    this.sendToBackend();
+  }
+
+  /**
    * GPS データをバックエンドに送信
    */
   sendToBackend() {
@@ -197,10 +227,19 @@ class LocationManager {
       method: "POST",
       body: body,
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok && res.status !== 429) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         if (data.success) {
           console.log("[locate.js] 位置情報の更新に成功しました");
+        } else if (data.error === "rate_limit_exceeded") {
+          console.warn(
+            "[locate.js] レート制限に達しました。しばらく待機してください。",
+          );
         } else {
           console.error("[locate.js] 位置情報の更新に失敗:", data.error);
         }
