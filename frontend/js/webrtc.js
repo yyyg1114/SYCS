@@ -145,7 +145,8 @@ class MeetingManager {
     };
 
     pc.ontrack = (event) => {
-      this.addVideoTrack(targetUserId, event.streams[0], false);
+      const stream = event.streams[0] || new MediaStream([event.track]);
+      this.addVideoTrack(targetUserId, stream, false);
     };
 
     pc.onconnectionstatechange = () => {
@@ -182,8 +183,9 @@ class MeetingManager {
 
       const video = document.createElement("video");
       video.autoplay = true;
+      video.muted = isLocal;
+      video.setAttribute("playsinline", "");
       video.playsInline = true;
-      if (isLocal) video.muted = true;
 
       const label = document.createElement("div");
       label.className = "video-label";
@@ -195,7 +197,15 @@ class MeetingManager {
     }
 
     const video = wrapper.querySelector("video");
-    video.srcObject = stream;
+    if (video.srcObject !== stream) {
+      video.srcObject = stream;
+      video.play().catch((err) => {
+        console.warn(
+          "Video play failed,可能は自動再生ポリシーによる制限です:",
+          err,
+        );
+      });
+    }
   }
 
   removeVideoTrack(userId) {

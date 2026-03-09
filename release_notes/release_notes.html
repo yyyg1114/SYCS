@@ -326,6 +326,66 @@
 
     <main>
 
+        <!-- ===== v1.2.13 ===== -->
+        <article class="release">
+            <div class="release-header">
+                <span class="version-badge">v1.2.13</span>
+                <span class="release-title">ビデオ会議機能の安定性向上と UI 改善</span>
+                <span class="release-date">2026-03-09</span>
+            </div>
+            <div class="release-body">
+
+                <!-- 改善 & 修正 -->
+                <div class="section">
+                    <div class="section-title">
+                        <span class="dot dot-yellow"></span> 改善 & 修正 (Improvements & Fixes)
+                    </div>
+                    <ul>
+                        <li>
+                            <span class="icon">🎥</span>
+                            <div>
+                                <strong>WebRTC ビデオ会議の安定性向上</strong>
+                                <span class="detail">
+                                    <code>webrtc.js</code> および <code>meetings.php</code> において、ストリーム取得処理を堅牢化。トラック単体での
+                                    MediaStream 生成に対応し、接続確立時のビデオ表示の確実性を高めました。
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">📱</span>
+                            <div>
+                                <strong>モバイルブラウザでの再生互換性改善</strong>
+                                <span class="detail">
+                                    ビデオ要素に <code>playsinline</code> 属性を明示的に付与し、iOS
+                                    等のモバイルブラウザでビデオが強制全画面化されず、インラインで正常に再生されるように修正しました。
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">🧱</span>
+                            <div>
+                                <strong>ビデオグリッドのレイアウト一貫性向上</strong>
+                                <span class="detail">
+                                    <code>index.php</code> と <code>meetings.php</code> の間でビデオ表示用クラス名を
+                                    <code>video-grid</code> に統合し、どちらの画面でも一貫したグリッド表示が行われるように改善しました。
+                                </span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="icon">📡</span>
+                            <div>
+                                <strong>シグナリング同期の改善</strong>
+                                <span class="detail">
+                                    シグナリング処理に非同期制御を導入し、複数の同時参加者がいる環境下での接続確立フローをよりスムーズにしました。
+                                </span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </article>
+
         <!-- ===== v1.2.12 ===== -->
         <article class="release">
             <div class="release-header">

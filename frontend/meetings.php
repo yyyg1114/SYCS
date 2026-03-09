@@ -303,7 +303,7 @@ if (isset($_GET['api'])) {
             color: white;
         }
 
-        .video-grid {
+        .video-grid-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 1rem;
@@ -581,7 +581,7 @@ if (isset($_GET['api'])) {
                     if (msgs && msgs.length > 0) {
                         for (const msg of msgs) {
                             this.lastSignalingId = Math.max(this.lastSignalingId, msg.id);
-                            this.handleSignaling(msg);
+                            await this.handleSignaling(msg);
                         }
                     }
                 }, 2000);
@@ -624,7 +624,8 @@ if (isset($_GET['api'])) {
                     if (e.candidate) this.sendSignaling(targetId, 'candidate', e.candidate);
                 };
                 pc.ontrack = e => {
-                    this.addVideoTrack(targetId, e.streams[0], false);
+                    const stream = e.streams[0] || new MediaStream([e.track]);
+                    this.addVideoTrack(targetId, stream, false);
                 };
                 pc.onconnectionstatechange = () => {
                     if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
@@ -652,15 +653,21 @@ if (isset($_GET['api'])) {
                     wrap.id = `v-wrap-${userId}`;
                     wrap.className = 'video-wrapper';
                     const v = document.createElement('video');
-                    v.autoplay = v.playsInline = true;
-                    if (isLocal) v.muted = true;
+                    v.autoplay = true;
+                    v.muted = isLocal;
+                    v.setAttribute('playsinline', '');
+                    v.playsInline = true;
                     const l = document.createElement('div');
                     l.className = 'video-label';
                     l.innerText = isLocal ? '自分' : `参加者 ${userId}`;
                     wrap.append(v, l);
                     grid.append(wrap);
                 }
-                wrap.querySelector('video').srcObject = stream;
+                const video = wrap.querySelector('video');
+                if (video.srcObject !== stream) {
+                    video.srcObject = stream;
+                    video.play().catch(err => console.warn("Playback failed", err));
+                }
             }
 
             removeVideoTrack(userId) {

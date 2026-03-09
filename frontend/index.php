@@ -2102,7 +2102,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end; color: var(--text-secondary);">v1.2.12 </span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end; color: var(--text-secondary);">v1.2.13</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
@@ -2549,7 +2549,7 @@ if ($isLoggedIn) {
 
             <!-- WebRTC Meeting Modal -->
             <dialog id="meeting-modal" class="modal meeting-modal" style="border:none; border-radius:12px; padding:0; background:#000; width:100vw; height:100vh; max-width:100vw; max-height:100vh; margin:0; overflow:hidden;">
-                <div class="video-grid-container" id="video-grid">
+                <div class="video-grid" id="video-grid">
                     <!-- Local video and remote videos will be injected here -->
                 </div>
                 <div class="meeting-controls">
