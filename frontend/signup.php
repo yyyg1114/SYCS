@@ -5,6 +5,9 @@ require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
 SecurityUtil::sendSecurityHeaders();
 require_once __DIR__ . '/../backend/Mailer.php';
+require_once __DIR__ . '/../backend/I18n.php';
+
+I18n::getInstance();
 
 $msg = '';
 $err = '';
@@ -18,7 +21,7 @@ if (empty($_SESSION['csrf_token'])) {
 
 if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        $err = '不正なリクエストです (CSRF Token Mismatch)';
+        $err = __('invalid_request_csrf', '不正なリクエストです (CSRF Token Mismatch)');
     } else {
         $email = $_POST['email'];
         $username = $_POST['username'];
@@ -32,7 +35,7 @@ if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
         $check = $stmt->get_result();
 
         if ($check && $check->num_rows > 0) {
-            $err = 'このメールアドレスまたはユーザー名は既に使用されています';
+            $err = __('account_already_exists', 'このメールアドレスまたはユーザー名は既に使用されています');
         } else {
             $encryptedEmail = SecurityUtil::encrypt($email);
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
@@ -43,10 +46,10 @@ if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
 
             if ($stmt_insert->execute()) {
                 Mailer::sendVerification($email, $username, $token);
-                $msg = '仮登録が完了しました。届いたメール内のリンクをクリックして本登録を完了してください。';
+                $msg = __('signup_pending_msg', '仮登録が完了しました。届いたメール内のリンクをクリックして本登録を完了してください。');
                 $success = true;
             } else {
-                $err = '登録に失敗しました: ' . $mysqli->error;
+                $err = __('signup_failed', '登録に失敗しました') . ': ' . $mysqli->error;
             }
             $stmt_insert->close();
         }
@@ -193,29 +196,43 @@ if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
 <body>
     <main>
         <div class="card">
-            <h2>Create Account</h2>
+            <div style="text-align: right; margin-bottom: 1rem;">
+                <select onchange="changeLang(this.value)" style="background:transparent; color:var(--text-secondary); border:none; font-size:0.85rem; cursor:pointer;">
+                    <option value="ja" <?= I18n::getInstance()->getCurrentLang() === 'ja' ? 'selected' : '' ?>>日本語</option>
+                    <option value="en" <?= I18n::getInstance()->getCurrentLang() === 'en' ? 'selected' : '' ?>>English</option>
+                </select>
+            </div>
+            <h2><?= __('signup') ?></h2>
             <?php if ($msg): ?>
-                <div class="message success"><?= htmlspecialchars($msg) ?><br><small>3秒後に自動で移動します</small></div>
+                <div class="message success"><?= htmlspecialchars($msg) ?><br><small><?= __('redirect_msg', '3秒後に自動で移動します') ?></small></div>
             <?php endif; ?>
             <?php if ($err): ?>
                 <div class="message error"><?= htmlspecialchars($err) ?></div><?php endif; ?>
             <?php if (!$success): ?>
                 <form method="POST">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-                    <div class="form-group"><label>Email</label><input type="email" name="email" required
+                    <div class="form-group"><label><?= __('email') ?></label><input type="email" name="email" required
                             placeholder="admin@example.com"></div>
-                    <div class="form-group"><label>Username</label><input type="text" name="username" required
+                    <div class="form-group"><label><?= __('username') ?></label><input type="text" name="username" required
                             placeholder="Username"></div>
-                    <div class="form-group"><label>Password</label><input type="password" name="password" required
+                    <div class="form-group"><label><?= __('password') ?></label><input type="password" name="password" required
                             placeholder="••••••••"></div>
-                    <button type="submit">Sign up</button>
+                    <button type="submit"><?= __('signup') ?></button>
                 </form>
                 <div style="margin-top: 2rem; font-size: 0.9rem; color: var(--text-secondary);">
-                    既にアカウントをお持ちですか？ <a href="index.php">ログイン</a>
+                    <?= __('already_have_account') ?> <a href="index.php"><?= __('login') ?></a>
                 </div>
             <?php endif; ?>
         </div>
     </main>
+    <script>
+        async function changeLang(lang) {
+            const res = await fetch(`index.php?api=set_lang&lang=${lang}`);
+            if (res.ok) {
+                location.reload();
+            }
+        }
+    </script>
 </body>
 
 </html>

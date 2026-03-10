@@ -6,6 +6,17 @@ const currentUserId = window.SYCS_CONFIG.currentUserId;
 const currentUserName = window.SYCS_CONFIG.currentUserName;
 const currentUserTheme = window.SYCS_CONFIG.currentUserTheme;
 let userKeywords = window.SYCS_CONFIG.userKeywords;
+const translations = window.SYCS_CONFIG.translations || {};
+
+/**
+ * Translate a key
+ * @param {string} key
+ * @param {string} defaultText
+ * @returns {string}
+ */
+function t(key, defaultText = null) {
+  return translations[key] || defaultText || key;
+}
 
 // Apply theme on early load
 if (currentUserTheme.theme === "light")
@@ -276,16 +287,16 @@ async function api(path, method = "GET", body = null) {
       const json = JSON.parse(text);
       if (json && json.success === false) {
         showToast(
-          "エラー",
-          json.error || "不明なエラーが発生しました",
+          t("error", "エラー"),
+          json.error || t("unknown_error", "不明なエラーが発生しました"),
           "error",
         );
       }
       return json;
     } catch (parseError) {
       console.error("JSON parse error:", parseError, text);
-      const errorMsg = "サーバーエラー: JSONパースに失敗しました";
-      showToast("システムエラー", errorMsg, "error");
+      const errorMsg = t("server_error_json", "サーバーエラー: JSONパースに失敗しました");
+      showToast(t("system_error", "システムエラー"), errorMsg, "error");
       return {
         error: errorMsg,
         details: text.substring(0, 500),
@@ -293,8 +304,8 @@ async function api(path, method = "GET", body = null) {
     }
   } catch (fetchError) {
     console.error("Fetch error:", fetchError);
-    const errorMsg = "ネットワークエラー: " + fetchError.message;
-    showToast("通信エラー", "サーバーに接続できませんでした", "error");
+    const errorMsg = t("network_error", "ネットワークエラー") + ": " + fetchError.message;
+    showToast(t("network_error", "通信エラー"), t("connection_failed", "サーバーに接続できませんでした"), "error");
     return {
       error: errorMsg,
     };
@@ -409,8 +420,8 @@ async function submitGroupCreation() {
   );
   const ids = Array.from(checkboxes).map((cb) => parseInt(cb.value));
 
-  if (!name) return alert("グループ名を入力してください");
-  if (ids.length === 0) return alert("メンバーを1人以上選択してください");
+  if (!name) return alert(t("enter_group_name", "グループ名を入力してください"));
+  if (ids.length === 0) return alert(t("select_at_least_one_member", "メンバーを1人以上選択してください"));
 
   const body = new FormData();
   body.append("name", name);
@@ -463,9 +474,9 @@ async function loadGroupMessages() {
     const div = document.createElement("div");
     div.className = "empty-state";
     const p = document.createElement("p");
-    p.textContent = "グループメッセージはありません。";
+    p.textContent = t("no_group_messages", "グループメッセージはありません。");
     p.appendChild(document.createElement("br"));
-    p.appendChild(document.createTextNode("新しく会話を始めましょう！"));
+    p.appendChild(document.createTextNode(t("start_new_conversation", "新しく会話を始めましょう！")));
     div.appendChild(p);
     container.appendChild(div);
     return;
@@ -637,8 +648,8 @@ async function deleteCurrentThread() {
   if (
     confirm(
       isGroupMode
-        ? "本当にこのグループを削除しますか？"
-        : "本当にこのスレッドを削除しますか？",
+        ? t("confirm_delete_group", "本当にこのグループを削除しますか？")
+        : t("confirm_delete_thread", "本当にこのスレッドを削除しますか？"),
     )
   ) {
     const body = new FormData();
@@ -754,10 +765,10 @@ async function saveProfile() {
 
   const res = await api("update_profile", "POST", body);
   if (res.success) {
-    alert("プロフィールを更新しました");
+    alert(t("profile_updated", "プロフィールを更新しました"));
     location.reload(); // Simplest to reflect all changes
   } else {
-    alert("更新に失敗しました: " + (res.error || "不明なエラー"));
+    alert(t("update_failed", "更新に失敗しました") + ": " + (res.error || t("unknown_error", "不明なエラー")));
   }
 }
 

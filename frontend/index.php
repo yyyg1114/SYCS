@@ -11,6 +11,10 @@ require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
 require_once __DIR__ . '/../backend/Logger.php';
 require_once __DIR__ . '/../backend/ErrorHandler.php';
+require_once __DIR__ . '/../backend/I18n.php';
+
+// Initialize Internationalization
+I18n::getInstance();
 
 // 2. HTTP Security Headers
 SecurityUtil::sendSecurityHeaders();
@@ -501,6 +505,18 @@ function verify_token(?string $token, ?string $sessionToken)
         return false;
     }
     return true;
+}
+
+// --- New: Public API Logic (accessible without login) ---
+if (isset($_GET['api'])) {
+    $action = $_GET['api'];
+    if ($action === 'set_lang') {
+        header('Content-Type: application/json');
+        $lang = $_GET['lang'] ?? 'ja';
+        I18n::getInstance()->init($lang);
+        echo json_encode(['success' => true]);
+        exit;
+    }
 }
 
 // --- API Logic (AJAX Handlers) ---
@@ -2106,7 +2122,7 @@ if ($isLoggedIn) {
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
-                        <a href="../release_notes/release_notes.html" target="_blank" rel="noopener noreferrer" style="font-size: 0.8rem; margin-left: 120px; align-items: end; text-decoration: none; color: var(--text-primary); background-color: var(--accent-hover); border-radius: 4px; padding: 2px 4px;">リリースノート</a>
+                        <a href="../release_notes/release_notes.php" target="_blank" rel="noopener noreferrer" style="font-size: 0.8rem; margin-left: 120px; align-items: end; text-decoration: none; color: var(--text-primary); background-color: var(--accent-hover); border-radius: 4px; padding: 2px 4px;"><?= __('release_notes') ?></a>
                     </div>
                 </div>
                 <nav>
@@ -2119,14 +2135,14 @@ if ($isLoggedIn) {
                                 <line x1="10" y1="3" x2="8" y2="21" />
                                 <line x1="16" y1="3" x2="14" y2="21" />
                             </svg>
-                            <span>スレッド</span>
+                            <span><?= __('threads') ?></span>
                         </li>
                         <li class="nav-item" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;" data-tab="dm">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                             </svg>
-                            <span>DM</span>
+                            <span><?= __('dm') ?></span>
                             <span id="dm-unread-badge" style="display:none; background:#ef4444; color:white; border-radius:9999px; font-size:0.65rem; font-weight:700; padding:1px 6px; margin-left:6px; min-width:18px; text-align:center;"></span>
                         </li>
                         <li class="nav-item" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;" data-tab="favorites">
@@ -2135,7 +2151,7 @@ if ($isLoggedIn) {
                                 <polygon
                                     points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                             </svg>
-                            <span>お気に入り</span>
+                            <span><?= __('favorites') ?></span>
                         </li>
                         <li class="nav-item" onclick="window.location.href='meetings.php'" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -2164,20 +2180,24 @@ if ($isLoggedIn) {
                         <span class="user-name"><?= htmlspecialchars($currentUser) ?></span>
                         <div class="status-select-container">
                             <select id="sidebar-status-input" class="modal-input" style="padding: 2px 4px; font-size: 0.75rem; width: auto; background-color: #2a2b2f; border: 1px solid #444; color: #fff;" onchange="updateMyStatus(this.value)">
-                                <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>連絡可能</option>
-                                <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
-                                <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>>応答不可</option>
-                                <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>>一時退席中</option>
-                                <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>退席中</option>
-                                <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン表示</option>
-                                <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>>外出中</option>
+                                <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>><?= __('status_online', '連絡可能') ?></option>
+                                <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>><?= __('status_busy', '取り込み中') ?></option>
+                                <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>><?= __('status_not_allowed', '応答不可') ?></option>
+                                <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>><?= __('status_step_out', '一時退席中') ?></option>
+                                <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>><?= __('status_away', '退席中') ?></option>
+                                <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>><?= __('status_offline', 'オフライン表示') ?></option>
+                                <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>><?= __('status_going_away', '外出中') ?></option>
                             </select>
                         </div>
                     </div>
                 </div>
                 <div class="sidebar-actions">
-                    <a href="javascript:void(0)" onclick="showProfileModal()" class="action-link">設定</a>
-                    <a href="?logout=1" class="action-link" style="color:#f87171;">ログアウト</a>
+                    <a href="javascript:void(0)" onclick="showProfileModal()" class="action-link"><?= __('settings') ?></a>
+                    <select onchange="changeLang(this.value)" style="background:transparent; color:var(--text-secondary); border:none; font-size:0.75rem; cursor:pointer;">
+                        <option value="ja" <?= I18n::getInstance()->getCurrentLang() === 'ja' ? 'selected' : '' ?>>日本語</option>
+                        <option value="en" <?= I18n::getInstance()->getCurrentLang() === 'en' ? 'selected' : '' ?>>English</option>
+                    </select>
+                    <a href="?logout=1" class="action-link" style="color:#f87171;"><?= __('logout') ?></a>
                 </div>
             </div>
         </aside>
@@ -2187,14 +2207,14 @@ if ($isLoggedIn) {
             <div id="notification-overlay" onclick="toggleNotificationDropdown()"></div>
             <div id="notification-dropdown">
                 <div class="notif-header">
-                    <h4>通知センター</h4>
+                    <h4><?= __('notification_center') ?></h4>
                     <div style="display:flex; gap:12px; align-items:center;">
-                        <button id="mark-all-read-btn" onclick="markAllNotificationsRead()">全て既読にする</button>
+                        <button id="mark-all-read-btn" onclick="markAllNotificationsRead()"><?= __('mark_all_read') ?></button>
                         <button class="icon-btn" onclick="toggleNotificationDropdown()" style="padding:4px; opacity:0.7;">✕</button>
                     </div>
                 </div>
                 <div id="notification-list" class="scroller">
-                    <div class="empty-state">通知はありません</div>
+                    <div class="empty-state"><?= __('no_notifications') ?></div>
                 </div>
             </div>
 
@@ -2229,7 +2249,7 @@ if ($isLoggedIn) {
                         </div>
                         <div class="thread-actions" id="thread-actions-block" style="display:flex; margin-left: auto; align-items:center; gap:8px;">
                             <div class="search-input-wrapper" style="position:relative; display:flex; align-items:center; background:rgba(0,0,0,0.2); border-radius:4px; padding:2px 8px; margin-right:8px;">
-                                <input type="text" id="search-input" placeholder="検索..." style="background:transparent; border:none; color:white; font-size:0.85rem; outline:none; width:120px;" onkeydown="if(event.key==='Enter') searchMessages()">
+                                <input type="text" id="search-input" placeholder="<?= __('search') ?>" style="background:transparent; border:none; color:white; font-size:0.85rem; outline:none; width:120px;" onkeydown="if(event.key==='Enter') searchMessages()">
                                 <button class="icon-btn" onclick="toggleAdvancedSearch()" style="padding:2px; height:auto; background:transparent;" title="検索フィルター">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;">
                                         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
@@ -2768,13 +2788,13 @@ if ($isLoggedIn) {
                         <div class="modal-form-group">
                             <label class="modal-label">ステータス</label>
                             <select id="modal-status-input" class="modal-input" onchange="updatePreviewStatus(this.value)">
-                                <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>連絡可能</option>
-                                <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
-                                <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>>応答不可</option>
-                                <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>>一時退席中</option>
-                                <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>退席中</option>
-                                <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン表示</option>
-                                <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>>外出中</option>
+                                <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>><?= __('status_online') ?></option>
+                                <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>><?= __('status_busy') ?></option>
+                                <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>><?= __('status_not_allowed') ?></option>
+                                <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>><?= __('status_step_out') ?></option>
+                                <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>><?= __('status_away') ?></option>
+                                <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>><?= __('status_offline') ?></option>
+                                <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>><?= __('status_going_away') ?></option>
                             </select>
                         </div>
 
@@ -2866,8 +2886,16 @@ if ($isLoggedIn) {
             currentUserTheme: <?= json_encode($currentUserThemePref ?? (object) []) ?>,
             userKeywords: <?= json_encode(array_values(array_filter(array_map('trim', explode(',', $currentUserKeywords ?? ''))))) ?>,
             csrfToken: <?= json_encode($_SESSION['csrf_token']) ?>,
-            vapidPublicKey: <?= json_encode(getenv('VAPID_PUBLIC_KEY') ?: 'BN1pSd_YbB6fni2gJ1jRDrPipOsYQlrSXXA6LusnqUuSIi9KRYOMAAHxR-xTKV-nNjybdxHwHoxn2HeDgN1guh8') ?>
+            vapidPublicKey: <?= json_encode(getenv('VAPID_PUBLIC_KEY') ?: 'BN1pSd_YbB6fni2gJ1jRDrPipOsYQlrSXXA6LusnqUuSIi9KRYOMAAHxR-xTKV-nNjybdxHwHoxn2HeDgN1guh8') ?>,
+            lang: <?= json_encode(I18n::getInstance()->getCurrentLang()) ?>,
+            translations: <?= json_encode(I18n::getInstance()->getTranslations()) ?>
         };
+        async function changeLang(lang) {
+            const res = await fetch(`index.php?api=set_lang&lang=${lang}`);
+            if (res.ok) {
+                location.reload();
+            }
+        }
     </script>
     <script src="js/index.js"></script>
 
