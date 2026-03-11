@@ -1,3 +1,52 @@
+<!-- ===== v1.2.16 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.16</span>
+        <span class="release-title">Backend Hardening & Code Cleanup</span>
+        <span class="release-date">2026-03-11</span>
+    </div>
+    <div class="release-body">
+
+        <!-- Stability & Reliability -->
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> Stability & Reliability
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>Improved Realtime Server Auth Synchronization</strong>
+                        <span class="detail">
+                            Refined the <code>REALTIME_SECRET_KEY</code> loading flow in both <code>index.php</code> and <code>server.js</code>.
+                            Added fallback to <code>SECRET_KEY</code> and enhanced error logging for missing secrets, ensuring robust authentication between frontend and realtime services.
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Improvements -->
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Improvements & Refactoring
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>Frontend Entry Point Optimization</strong>
+                        <span class="detail">
+                            Cleaned up redundant <code>require_once</code> calls in <code>index.php</code> to improve code maintainability and structure.
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+    </div>
+</article>
+
 <!-- ===== v1.2.14 ===== -->
 <article class="release">
     <div class="release-header">

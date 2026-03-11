@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 /**
  * Release Notes - Japanese Content
@@ -6,6 +6,55 @@
  * This file is included by release_notes.php
  */
 ?>
+
+<!-- ===== v1.2.16 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.16</span>
+        <span class="release-title">サーバーサイドの堅牢化と冗長なコードの整理</span>
+        <span class="release-date">2026-03-11</span>
+    </div>
+    <div class="release-body">
+
+        <!-- 安定性 & 信頼性 -->
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 安定性 & 信頼性 (Stability & Reliability)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>リアルタイムサーバーの認証同期の改善</strong>
+                        <span class="detail">
+                            <code>index.php</code> および <code>server.js</code> において、<code>REALTIME_SECRET_KEY</code> の読み込みフローを改善。
+                            環境変数 <code>SECRET_KEY</code> へのフォールバック処理と、未設定時のエラーハンドリングを追加し、システム間の認証同期の確実性を高めました。
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 改善 & リファクタリング -->
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善 & リファクタリング (Improvements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>フロントエンドのエントリポイント最適化</strong>
+                        <span class="detail">
+                            <code>index.php</code> において、既に読み込み済みの冗長な <code>require_once</code> 命令を削除し、内部構造を整理しました。
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+    </div>
+</article>
 
 <!-- ===== v1.2.14 ===== -->
 <article class="release">

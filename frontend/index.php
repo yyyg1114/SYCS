@@ -1,4 +1,5 @@
 <?php
+// v1.2.16
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -18,9 +19,6 @@ I18n::getInstance();
 
 // 2. HTTP Security Headers
 SecurityUtil::sendSecurityHeaders();
-
-require_once __DIR__ . '/../backend/db.php';
-require_once __DIR__ . '/../backend/SecurityUtil.php';
 
 // 3. CSRF Token Generation
 if (empty($_SESSION['csrf_token'])) {
@@ -422,7 +420,11 @@ function sendDiscordWebhook($webhookUrl, $username, $content, $avatarUrl = null,
 function notifyRealtimeServer($type, $data)
 {
     require_once __DIR__ . '/../backend/EnvLoader.php';
-    $secret = getenv('REALTIME_SECRET_KEY') ?: 'SYCS_REALTIME_SECRET_TOKEN';
+    $secret = getenv('REALTIME_SECRET_KEY') ?: getenv('SECRET_KEY');
+    if ($secret === false || $secret === '') {
+        error_log('REALTIME_SECRET_KEY/SECRET_KEY is not set. Skipping realtime notify call.');
+        return;
+    }
     $url = 'http://localhost:3000/api/notify';
     $payload = [
         'secret' => $secret,
@@ -450,7 +452,11 @@ function sendPushNotification($userId, $payload)
 {
     global $mysqli;
     require_once __DIR__ . '/../backend/EnvLoader.php';
-    $secret = getenv('REALTIME_SECRET_KEY') ?: 'SYCS_REALTIME_SECRET_TOKEN';
+    $secret = getenv('REALTIME_SECRET_KEY') ?: getenv('SECRET_KEY');
+    if ($secret === false || $secret === '') {
+        error_log('REALTIME_SECRET_KEY/SECRET_KEY is not set. Skipping push notification call.');
+        return;
+    }
     $url = 'http://localhost:3000/api/push';
 
     $stmt = $mysqli->prepare("SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?");

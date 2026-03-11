@@ -26,6 +26,13 @@ webpush.setVapidDetails(
 
 const users = new Map(); // userId -> socketId
 
+const realtimeSecret =
+  process.env.REALTIME_SECRET_KEY || process.env.SECRET_KEY;
+
+if (!realtimeSecret) {
+  console.warn("WARNING: REALTIME_SECRET_KEY/SECRET_KEY is not set. Realtime auth routes will reject requests.");
+}
+
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 
@@ -61,7 +68,11 @@ io.on("connection", (socket) => {
 app.post("/api/notify", (req, res) => {
   const { secret, type, data } = req.body;
 
-  if (secret !== process.env.SECRET_KEY) {
+  if (!realtimeSecret) {
+    return res.status(500).json({ error: "Realtime secret is not configured" });
+  }
+
+  if (secret !== realtimeSecret) {
     return res.status(403).json({ error: "Forbidden" });
   }
 
@@ -93,7 +104,11 @@ app.post("/api/notify", (req, res) => {
 app.post("/api/push", async (req, res) => {
   const { secret, subscription, payload } = req.body;
 
-  if (secret !== process.env.SECRET_KEY) {
+  if (!realtimeSecret) {
+    return res.status(500).json({ error: "Realtime secret is not configured" });
+  }
+
+  if (secret !== realtimeSecret) {
     return res.status(403).json({ error: "Forbidden" });
   }
 
