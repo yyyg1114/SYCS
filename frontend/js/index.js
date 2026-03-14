@@ -222,16 +222,32 @@ function showToast(title, message, type = "success", duration = 5000) {
       '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
   };
 
-  toast.innerHTML = `
-        <div class="toast-icon">${iconMap[type] || ""}</div>
-        <div class="toast-content">
-            <div class="toast-title">${escapeHTML(title)}</div>
-            <div class="toast-message">${escapeHTML(message)}</div>
-        </div>
-        <div class="toast-close">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </div>
-    `;
+  const iconContainer = document.createElement("div");
+  iconContainer.className = "toast-icon";
+  iconContainer.innerHTML = iconMap[type] || ""; // iconMap contains static SVGs, so innerHTML is safe here
+
+  const contentContainer = document.createElement("div");
+  contentContainer.className = "toast-content";
+
+  const titleElement = document.createElement("div");
+  titleElement.className = "toast-title";
+  titleElement.textContent = title; // No need to escapeHTML when using textContent
+
+  const messageElement = document.createElement("div");
+  messageElement.className = "toast-message";
+  messageElement.textContent = message;
+
+  contentContainer.appendChild(titleElement);
+  contentContainer.appendChild(messageElement);
+
+  const closeContainer = document.createElement("div");
+  closeContainer.className = "toast-close";
+  closeContainer.innerHTML =
+    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
+  toast.appendChild(iconContainer);
+  toast.appendChild(contentContainer);
+  toast.appendChild(closeContainer);
 
   container.appendChild(toast);
 
@@ -2416,21 +2432,37 @@ async function loadNotifications() {
   const list = document.getElementById("notification-list");
   const badge = document.getElementById("notif-badge");
 
-  list.innerHTML = "";
+  list.textContent = "";
   let unreadCount = 0;
 
   if (notifications.length === 0) {
-    list.innerHTML =
-      '<div class="empty-state" style="padding:40px 20px;">通知はありません</div>';
+    const emptyState = document.createElement("div");
+    emptyState.className = "empty-state";
+    emptyState.style.padding = "40px 20px";
+    emptyState.textContent = "通知はありません";
+    list.appendChild(emptyState);
   } else {
     notifications.forEach((n) => {
       if (!n.is_read) unreadCount++;
+      const item = document.createElement("div");
       item.className = `notif-item ${n.is_read ? "read" : "unread"}`;
-      item.innerHTML = `
-          <div class="content">${escapeHTML(n.content)}</div>
-          <div class="time">${new Date(n.created_at).toLocaleString()}</div>
-          ${!n.is_read ? '<div class="notif-unread-dot"></div>' : ""}
-      `;
+
+      const contentDiv = document.createElement("div");
+      contentDiv.className = "content";
+      contentDiv.textContent = n.content;
+
+      const timeDiv = document.createElement("div");
+      timeDiv.className = "time";
+      timeDiv.textContent = new Date(n.created_at).toLocaleString();
+
+      item.appendChild(contentDiv);
+      item.appendChild(timeDiv);
+
+      if (!n.is_read) {
+        const dotDiv = document.createElement("div");
+        dotDiv.className = "notif-unread-dot";
+        item.appendChild(dotDiv);
+      }
 
       item.onclick = async (e) => {
         e.stopPropagation();

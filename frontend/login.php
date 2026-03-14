@@ -451,7 +451,6 @@ if (isset($_GET['api'])) {
             background: var(--input-bg);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
-            color: white;
             font-size: 1rem;
             transition: 0.3s;
             box-sizing: border-box;

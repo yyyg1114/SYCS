@@ -7,6 +7,47 @@
  */
 ?>
 
+<!-- ===== v1.2.17 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.17</span>
+        <span class="release-title">API連携の共通化とフロントエンドのセキュリティ強化</span>
+        <span class="release-date">2026-03-14</span>
+    </div>
+    <div class="release-body">
+
+        <!-- セキュリティ & 安定性 -->
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> セキュリティ & 安定性 (Security & Stability)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>フロントエンドの XSS 対策強化</strong>
+                        <span class="detail">
+                            トースト通知および通知センターの表示処理において、<code>innerHTML</code> を廃止し <code>textContent</code> による安全な DOM 操作へ移行。
+                            悪意のあるスクリプトの実行を防止し、セキュリティレベルを向上させました。
+                        </span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔗</span>
+                    <div>
+                        <strong>OAuth 連携処理の共通化と堅牢化</strong>
+                        <span class="detail">
+                            <code>RetryHandler::callJsonApi</code> を新設し、Google, Discord, Apple, Outlook 各 API 連携の通信・リトライ処理を統一。
+                            コードの重複を大幅に削減し、API エラー時の例外処理を強化しました。
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+    </div>
+</article>
+
 <!-- ===== v1.2.16 ===== -->
 <article class="release">
     <div class="release-header">
