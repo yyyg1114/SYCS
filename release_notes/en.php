@@ -1,7 +1,7 @@
-<!-- ===== v1.2.17 ===== -->
+<!-- ===== v1.2.18 ===== -->
 <article class="release">
     <div class="release-header">
-        <span class="version-badge">v1.2.17</span>
+        <span class="version-badge">v1.2.18</span>
         <span class="release-title">Mobile Optimization & UI Cleanup</span>
         <span class="release-date">2026-03-14</span>
     </div>
