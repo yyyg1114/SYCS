@@ -1,3 +1,42 @@
+<!-- ===== v1.2.17 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.17</span>
+        <span class="release-title">Mobile Optimization & UI Cleanup</span>
+        <span class="release-date">2026-03-14</span>
+    </div>
+    <div class="release-body">
+
+        <!-- UI/UX -->
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> UI/UX Enhancements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📱</span>
+                    <div>
+                        <strong>Mobile Responsiveness Hardening</strong>
+                        <span class="detail">
+                            Improved chat UI on mobile by hiding secondary icons and optimizing header space carefully.
+                        </span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>CSS Cleanup</strong>
+                        <span class="detail">
+                            Refined <code>flex-grow</code> properties and standardized login card layouts for better cross-device consistency.
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+    </div>
+</article>
+
 <!-- ===== v1.2.16 ===== -->
 <article class="release">
     <div class="release-header">

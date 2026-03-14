@@ -7,6 +7,45 @@
  */
 ?>
 
+<!-- ===== v1.2.17 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.17</span>
+        <span class="release-title">モバイル表示の最適化とUIのクリーンアップ</span>
+        <span class="release-date">2026-03-14</span>
+    </div>
+    <div class="release-body">
+
+        <!-- UI/UX 向上 -->
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> UI/UX 向上 (UI/UX)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📱</span>
+                    <div>
+                        <strong>モバイルレスポンシブの強化</strong>
+                        <span class="detail">
+                            スマートフォン表示において、ヘッダー要素の整理や不要なボタン（ビデオ、ピン留め等）の非表示化を行い、チャット画面の視認性を向上させました。
+                        </span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>レイアウトのクリーンアップ</strong>
+                        <span class="detail">
+                            CSSの整理（<code>flex-grow</code>の適正化等）およびログイン画面のレスポンシブ対応を強化し、各デバイスで一貫した操作感を実現しました。
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+    </div>
+</article>
+
 <!-- ===== v1.2.16 ===== -->
 <article class="release">
     <div class="release-header">

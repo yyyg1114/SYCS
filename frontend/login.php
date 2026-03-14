@@ -374,6 +374,10 @@ if (isset($_GET['api'])) {
     <title>Login | SYCS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         :root {
             --bg-color: #0f0f10;
             --accent-color: #6366f1;
@@ -409,6 +413,17 @@ if (isset($_GET['api'])) {
             max-width: 420px;
             text-align: center;
             animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 1.5rem;
+                width: 95%;
+                margin: 0 auto;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
         }
 
         @keyframes slideUp {

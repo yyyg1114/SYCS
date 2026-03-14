@@ -44,6 +44,7 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -162,6 +163,7 @@ a:hover {
 .app-container {
   display: flex;
   height: 100vh;
+  height: 100dvh;
 }
 
 /* Sidebar */
@@ -288,6 +290,8 @@ a:hover {
   display: flex;
   overflow: hidden;
   position: relative;
+  height: 100%;
+  min-height: 0;
 }
 
 /* Chat Area */
@@ -327,16 +331,16 @@ a:hover {
   background: rgba(255, 255, 255, 0.05);
 }
 
-.chat-messages {
+.chat-messages,
+.messages-container {
   flex-grow: 1;
   padding: 25px 25px 10px 25px;
-  height: calc(100% - 50px);
-  /* Bottom padding for scrollability */
+  height: auto;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  /* Reduced specific gap for compact look */
 }
 
 /* Message Layout */
@@ -802,7 +806,22 @@ header.chat-header div.thread-info {
 
   .thread-name-clickable {
     padding: 4px 8px;
-    font-size: 1rem;
+    font-size: 0.9rem;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .search-input-wrapper {
+    display: none !important;
+  }
+
+  #mute-btn,
+  .chat-header .icon-btn[title="ビデオ会議"],
+  .chat-header .icon-btn[title="ピン留めメッセージ一覧"],
+  .chat-header .icon-btn[title="添付ファイル一覧"] {
+    display: none !important;
   }
 
   .chat-messages {
@@ -815,6 +834,10 @@ header.chat-header div.thread-info {
 
   .message-group {
     gap: 10px;
+  }
+
+  .pwa-install-banner-integrated {
+    display: none !important;
   }
 
   .profile-modal {
