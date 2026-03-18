@@ -6,7 +6,6 @@
 body {
   font-family: "Segoe UI", Meiryo, "YuGothic", sans-serif;
   background-color: var(--bg-color);
-  background: radial-gradient(circle at top right, #f0f4f8, #1e81f3);
   color: var(--text-secondary);
   line-height: 1.5;
   min-height: 100vh;
