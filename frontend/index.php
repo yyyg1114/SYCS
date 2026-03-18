@@ -2202,6 +2202,7 @@ if ($isLoggedIn) {
                     <select onchange="changeLang(this.value)" style="background:transparent; color:var(--text-secondary); border:none; font-size:0.75rem; cursor:pointer; padding-top: 3px;">
                         <option value="ja" style="color:var(--text-secondary);" <?= I18n::getInstance()->getCurrentLang() === 'ja' ? 'selected' : '' ?>>日本語</option>
                         <option value="en" style="color:var(--text-secondary);" <?= I18n::getInstance()->getCurrentLang() === 'en' ? 'selected' : '' ?>>English</option>
+                        <option value="zh" style="color:var(--text-secondary);" <?= I18n::getInstance()->getCurrentLang() === 'zh' ? 'selected' : '' ?>>中文</option>
                     </select>
                     <a href="?logout=1" class="action-link" style="color:#f87171;"><?= __('logout') ?></a>
                 </div>
