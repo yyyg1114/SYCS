@@ -7,6 +7,33 @@
  */
 ?>
 
+<!-- ===== v1.2.20 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.20</span>
+        <span class="release-title">WebRTC シグナリングの Socket.IO 移行と高速化</span>
+        <span class="release-date">2026-03-18</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善 & 修正 (Improvements & Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>WebRTC シグナリングのリアルタイム化</strong>
+                        <span class="detail">
+                            ビデオ会議のシグナリングを従来の HTTP ポーリングから Socket.IO による双方向通信に移行しました。これにより、接続の遅延が大幅に短縮され、サーバー負荷も軽減されました。
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.19 ===== -->
 <article class="release">
     <div class="release-header">
@@ -438,7 +465,7 @@
                 <li>
                     <span class="icon">🏗️</span>
                     <div>
-                        <strong>バックエンドエラーハンドリング基盤ের整備 (<code>ErrorHandler.php</code>)</strong>
+                        <strong>バックエンドエラーハンドリング基盤の整備 (<code>ErrorHandler.php</code>)</strong>
                         <span class="detail">
                             <code>SecurityException</code>、<code>ValidationException</code>、<code>DatabaseException</code>
                             などの型付き例外クラスと、
