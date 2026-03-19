@@ -1,5 +1,5 @@
 <?php
-// v1.2.19
+// v1.2.23
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -10,15 +10,12 @@ require_once __DIR__ . '/../backend/session_config.php';
 
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
-require_once __DIR__ . '/../backend/Logger.php';
-require_once __DIR__ . '/../backend/ErrorHandler.php';
-require_once __DIR__ . '/../backend/I18n.php';
-
-// Initialize Internationalization
-I18n::getInstance();
 
 // 2. HTTP Security Headers
 SecurityUtil::sendSecurityHeaders();
+
+require_once __DIR__ . '/../backend/db.php';
+require_once __DIR__ . '/../backend/SecurityUtil.php';
 
 // 3. CSRF Token Generation
 if (empty($_SESSION['csrf_token'])) {
@@ -358,25 +355,6 @@ FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 UNIQUE KEY unique_reaction (message_id, user_id, emoji)
 )");
-$mysqli->query("CREATE TABLE IF NOT EXISTS user_locations (
-    user_id INT PRIMARY KEY,
-    lat DECIMAL(10, 8) NOT NULL,
-    lon DECIMAL(11, 8) NOT NULL,
-    accuracy DECIMAL(10, 2) DEFAULT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-)");
-
-$mysqli->query("CREATE TABLE IF NOT EXISTS notifications (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    type ENUM('mention', 'dm', 'friend_request', 'system') NOT NULL,
-    content TEXT,
-    link VARCHAR(255),
-    is_read TINYINT(1) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-)");
 
 // Helper to send Discord Webhook
 function sendDiscordWebhook($webhookUrl, $username, $content, $avatarUrl = null, $attachmentPath = null, $baseUrl = '')
@@ -420,11 +398,7 @@ function sendDiscordWebhook($webhookUrl, $username, $content, $avatarUrl = null,
 function notifyRealtimeServer($type, $data)
 {
     require_once __DIR__ . '/../backend/EnvLoader.php';
-    $secret = getenv('REALTIME_SECRET_KEY') ?: getenv('SECRET_KEY');
-    if ($secret === false || $secret === '') {
-        error_log('REALTIME_SECRET_KEY/SECRET_KEY is not set. Skipping realtime notify call.');
-        return;
-    }
+    $secret = getenv('REALTIME_SECRET_KEY') ?: 'SYCS_REALTIME_SECRET_TOKEN';
     $url = 'http://localhost:3000/api/notify';
     $payload = [
         'secret' => $secret,
@@ -452,11 +426,7 @@ function sendPushNotification($userId, $payload)
 {
     global $mysqli;
     require_once __DIR__ . '/../backend/EnvLoader.php';
-    $secret = getenv('REALTIME_SECRET_KEY') ?: getenv('SECRET_KEY');
-    if ($secret === false || $secret === '') {
-        error_log('REALTIME_SECRET_KEY/SECRET_KEY is not set. Skipping push notification call.');
-        return;
-    }
+    $secret = getenv('REALTIME_SECRET_KEY') ?: 'SYCS_REALTIME_SECRET_TOKEN';
     $url = 'http://localhost:3000/api/push';
 
     $stmt = $mysqli->prepare("SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?");
@@ -499,29 +469,13 @@ function verify_csrf(?string $token, ?string $sessionToken)
     if (!$token || !$sessionToken || !hash_equals($sessionToken, $token)) {
         http_response_code(403);
         echo json_encode(['error' => 'Invalid CSRF Token']);
-        return false;
     }
-    return true;
 }
 function verify_token(?string $token, ?string $sessionToken)
 {
     if (!$token || !$sessionToken || !hash_equals($sessionToken, $token)) {
         http_response_code(403);
         echo json_encode(['error' => 'Invalid CSRF Token']);
-        return false;
-    }
-    return true;
-}
-
-// --- New: Public API Logic (accessible without login) ---
-if (isset($_GET['api'])) {
-    $action = $_GET['api'];
-    if ($action === 'set_lang') {
-        header('Content-Type: application/json');
-        $lang = $_GET['lang'] ?? 'ja';
-        I18n::getInstance()->init($lang);
-        echo json_encode(['success' => true]);
-        exit;
     }
 }
 
@@ -531,140 +485,136 @@ if (isset($_GET['api'])) {
     header('Content-Type: application/json');
     $action = $_GET['api'];
     $userId = $_SESSION['user_id'] ?? null;
-    $logger = new Logger();
 
     if (!$userId) {
-        http_response_code(401);
-        echo (new ErrorResponse('UNAUTHORIZED', 'Not authenticated', 'ログインが必要です。'))->toJSON();
+        echo json_encode(['error' => 'Unauthorized']);
         exit;
     }
 
-    try {
+    if ($action === 'update_profile') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $bio = $_POST['bio'] ?? null;
+        $bannerColor = $_POST['banner_color'] ?? '#6366f1';
+        $status = $_POST['status'] ?? 'online';
+        $removeAvatar = ($_POST['remove_avatar'] ?? 'false') === 'true';
 
-        if ($action === 'update_profile') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $bio = $_POST['bio'] ?? null;
-            $bannerColor = $_POST['banner_color'] ?? '#6366f1';
-            $status = $_POST['status'] ?? 'online';
-            $removeAvatar = ($_POST['remove_avatar'] ?? 'false') === 'true';
-
-            // Handle Avatar Deletion / Cleanup
-            if ($removeAvatar || (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK)) {
-                // Get current avatar to delete old file
-                $pStmt = $mysqli->prepare("SELECT avatar_url FROM users WHERE id = ?");
-                $pStmt->bind_param("i", $userId);
-                $pStmt->execute();
-                if ($row = $pStmt->get_result()->fetch_assoc()) {
-                    $oldPath = $row['avatar_url'];
-                    if ($oldPath) {
-                        $fullOldPath = __DIR__ . '/' . $oldPath; // Paths are relative to frontend/
-                        if (file_exists($fullOldPath)) {
-                            unlink($fullOldPath);
-                        }
+        // Handle Avatar Deletion / Cleanup
+        if ($removeAvatar || (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK)) {
+            // Get current avatar to delete old file
+            $pStmt = $mysqli->prepare("SELECT avatar_url FROM users WHERE id = ?");
+            $pStmt->bind_param("i", $userId);
+            $pStmt->execute();
+            if ($row = $pStmt->get_result()->fetch_assoc()) {
+                $oldPath = $row['avatar_url'];
+                if ($oldPath) {
+                    $fullOldPath = __DIR__ . '/' . $oldPath; // Paths are relative to frontend/
+                    if (file_exists($fullOldPath)) {
+                        unlink($fullOldPath);
                     }
                 }
-                $pStmt->close();
+            }
+            $pStmt->close();
 
-                if ($removeAvatar) {
-                    $updAva = $mysqli->prepare("UPDATE users SET avatar_url = NULL WHERE id = ?");
-                    $updAva->bind_param("i", $userId);
-                    $updAva->execute();
-                    $updAva->close();
+            if ($removeAvatar) {
+                $updAva = $mysqli->prepare("UPDATE users SET avatar_url = NULL WHERE id = ?");
+                $updAva->bind_param("i", $userId);
+                $updAva->execute();
+                $updAva->close();
+            }
+        }
+
+        $social = $_POST['social_links'] ?? null;
+        $themePref = $_POST['theme_preference'] ?? null;
+        $keywords = $_POST['notification_keywords'] ?? null;
+        $stmt = $mysqli->prepare("UPDATE users SET bio = ?, banner_color = ?, status = ?, social_links = ?, theme_preference = ?, notification_keywords = ? WHERE id = ?");
+        $stmt->bind_param("ssssssi", $bio, $bannerColor, $status, $social, $themePref, $keywords, $userId);
+        $stmt->execute();
+        $stmt->close();
+
+        // Handle Avatar Upload
+        if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+            require_once __DIR__ . '/../backend/SecurityUtil.php';
+            $tmpName = $_FILES['avatar']['tmp_name'];
+            $fileName = $_FILES['avatar']['name'];
+            $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+            if (SecurityUtil::validateFile($tmpName, $ext)) {
+                $uuid = SecurityUtil::generateUuid();
+                $uploadDir = __DIR__ . '/uploads/avatars/';
+                if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+                $newFileName = $uuid . '.' . $ext;
+                if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
+                    // Store path relative to web root or current script?
+                    // Previous logic used 'frontend/uploads/'. If accessed from index.php in frontend/, 
+                    // it should be 'uploads/avatars/' if index.php is the entry point.
+                    // However, to keep consistency with existing attachment logic:
+                    $avatarPath = 'uploads/avatars/' . $newFileName;
+                    $upd = $mysqli->prepare("UPDATE users SET avatar_url = ? WHERE id = ?");
+                    $upd->bind_param("si", $avatarPath, $userId);
+                    $upd->execute();
                 }
             }
+        }
 
-            $social = $_POST['social_links'] ?? null;
-            $themePref = $_POST['theme_preference'] ?? null;
-            $keywords = $_POST['notification_keywords'] ?? null;
-            $stmt = $mysqli->prepare("UPDATE users SET bio = ?, banner_color = ?, status = ?, social_links = ?, theme_preference = ?, notification_keywords = ? WHERE id = ?");
-            $stmt->bind_param("ssssssi", $bio, $bannerColor, $status, $social, $themePref, $keywords, $userId);
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    if ($action === 'push_subscribe') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $sub = json_decode(file_get_contents('php://input'), true);
+        if ($sub && isset($sub['endpoint'])) {
+            $stmt = $mysqli->prepare("INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE p256dh = VALUES(p256dh), auth = VALUES(auth)");
+            $stmt->bind_param("isss", $userId, $sub['endpoint'], $sub['keys']['p256dh'], $sub['keys']['auth']);
             $stmt->execute();
-            $stmt->close();
-
-            // Handle Avatar Upload
-            if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
-                require_once __DIR__ . '/../backend/SecurityUtil.php';
-                $tmpName = $_FILES['avatar']['tmp_name'];
-                $fileName = $_FILES['avatar']['name'];
-                $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-
-                if (SecurityUtil::validateFile($tmpName, $ext)) {
-                    $uuid = SecurityUtil::generateUuid();
-                    $uploadDir = __DIR__ . '/uploads/avatars/';
-                    if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
-
-                    $newFileName = $uuid . '.' . $ext;
-                    if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
-                        // Store path relative to web root or current script?
-                        // Previous logic used 'frontend/uploads/'. If accessed from index.php in frontend/, 
-                        // it should be 'uploads/avatars/' if index.php is the entry point.
-                        // However, to keep consistency with existing attachment logic:
-                        $avatarPath = 'uploads/avatars/' . $newFileName;
-                        $upd = $mysqli->prepare("UPDATE users SET avatar_url = ? WHERE id = ?");
-                        $upd->bind_param("si", $avatarPath, $userId);
-                        $upd->execute();
-                    }
-                }
-            }
-
             echo json_encode(['success' => true]);
-            exit;
+        } else {
+            echo json_encode(['error' => 'Invalid subscription data']);
         }
+        exit;
+    }
 
-        if ($action === 'push_subscribe') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $sub = json_decode(file_get_contents('php://input'), true);
-            if ($sub && isset($sub['endpoint'])) {
-                $stmt = $mysqli->prepare("INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE p256dh = VALUES(p256dh), auth = VALUES(auth)");
-                $stmt->bind_param("isss", $userId, $sub['endpoint'], $sub['keys']['p256dh'], $sub['keys']['auth']);
-                $stmt->execute();
-                echo json_encode(['success' => true]);
-            } else {
-                echo json_encode(['error' => 'Invalid subscription data']);
-            }
-            exit;
-        }
+    if ($action === 'update_status') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $status = $_POST['status'] ?? 'online';
+        $customStatus = $_POST['custom_status'] ?? null;
+        $allowed = ['online', 'busy', 'away', 'offline', 'not_allowed', 'step_out', 'going_away'];
 
-        if ($action === 'update_status') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $status = $_POST['status'] ?? 'online';
-            $customStatus = $_POST['custom_status'] ?? null;
-            $allowed = ['online', 'busy', 'away', 'offline', 'not_allowed', 'step_out', 'going_away'];
-
-            if (in_array($status, $allowed)) {
-                $stmt = $mysqli->prepare("UPDATE users SET status = ?, custom_status = ? WHERE id = ?");
-                $stmt->bind_param("ssi", $status, $customStatus, $userId);
-                $stmt->execute();
-                echo json_encode(['success' => true]);
-            } else {
-                echo json_encode(['error' => 'Invalid status']);
-            }
-            exit;
-        }
-
-        if ($action === 'get_user_status') {
-            $targetId = $_GET['user_id'] ?? 0;
-            $stmt = $mysqli->prepare("SELECT status, custom_status FROM users WHERE id = ?");
-            $stmt->bind_param("i", $targetId);
+        if (in_array($status, $allowed)) {
+            $stmt = $mysqli->prepare("UPDATE users SET status = ?, custom_status = ? WHERE id = ?");
+            $stmt->bind_param("ssi", $status, $customStatus, $userId);
             $stmt->execute();
-            $res = $stmt->get_result()->fetch_assoc();
-            echo json_encode($res ?: ['status' => 'offline', 'custom_status' => null]);
-            exit;
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Invalid status']);
         }
+        exit;
+    }
 
-        if ($action === 'get_user_profile') {
-            $targetId = $_GET['user_id'] ?? 0;
-            $stmt = $mysqli->prepare("SELECT id, username, status, custom_status, bio, avatar_url, banner_color FROM users WHERE id = ?");
-            $stmt->bind_param("i", $targetId);
-            $stmt->execute();
-            $res = $stmt->get_result()->fetch_assoc();
-            echo json_encode($res ?: ['error' => 'User not found']);
-            exit;
-        }
+    if ($action === 'get_user_status') {
+        $targetId = $_GET['user_id'] ?? 0;
+        $stmt = $mysqli->prepare("SELECT status, custom_status FROM users WHERE id = ?");
+        $stmt->bind_param("i", $targetId);
+        $stmt->execute();
+        $res = $stmt->get_result()->fetch_assoc();
+        echo json_encode($res ?: ['status' => 'offline', 'custom_status' => null]);
+        exit;
+    }
 
-        if ($action === 'get_friends_statuses') {
-            // Get statuses of all friends
-            $stmt = $mysqli->prepare("
+    if ($action === 'get_user_profile') {
+        $targetId = $_GET['user_id'] ?? 0;
+        $stmt = $mysqli->prepare("SELECT id, username, status, custom_status, bio, avatar_url, banner_color FROM users WHERE id = ?");
+        $stmt->bind_param("i", $targetId);
+        $stmt->execute();
+        $res = $stmt->get_result()->fetch_assoc();
+        echo json_encode($res ?: ['error' => 'User not found']);
+        exit;
+    }
+
+    if ($action === 'get_friends_statuses') {
+        // Get statuses of all friends
+        $stmt = $mysqli->prepare("
         SELECT u.id, u.status, u.custom_status
         FROM friends f
         JOIN users u ON (f.user_id_1 = u.id OR f.user_id_2 = u.id)
@@ -672,296 +622,326 @@ if (isset($_GET['api'])) {
             AND f.status = 'accepted' 
             AND u.id != ?
     ");
-            $stmt->bind_param("iii", $userId, $userId, $userId);
+        $stmt->bind_param("iii", $userId, $userId, $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    if ($action === 'get_threads') {
+        $res = $mysqli->query("SELECT * FROM threads ORDER BY created_at ASC");
+        echo json_encode($res->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    if ($action === 'create_thread') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null); // Enforce CSRF Check
+        $name = $_POST['name'] ?? '';
+        $category = $_POST['category'] ?? 'General';
+        if ($name) {
+            // Check for duplicate name
+            $cStmt = $mysqli->prepare("SELECT id FROM threads WHERE name = ?");
+            $cStmt->bind_param("s", $name);
+            $cStmt->execute();
+            if ($cStmt->get_result()->num_rows > 0) {
+                echo json_encode(['error' => 'その名前のスレッドは既に存在します']);
+                $cStmt->close();
+                exit;
+            }
+            $cStmt->close();
+
+            $stmt = $mysqli->prepare("INSERT INTO threads (name, creator_id, category) VALUES (?, ?, ?)");
+            $stmt->bind_param("sis", $name, $userId, $category);
             $stmt->execute();
-            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
-            exit;
+            echo json_encode(['success' => true, 'id' => $stmt->insert_id]);
+            $stmt->close();
+        } else {
+            echo json_encode(['error' => 'Name required']);
         }
+        exit;
+    }
 
-        if ($action === 'get_threads') {
-            $res = $mysqli->query("SELECT * FROM threads ORDER BY created_at ASC");
-            echo json_encode($res->fetch_all(MYSQLI_ASSOC));
-            exit;
-        }
+    if ($action === 'edit_thread') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $threadId = $_POST['thread_id'] ?? 0;
+        $newName = $_POST['name'] ?? '';
 
-        if ($action === 'create_thread') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit; // Enforce CSRF Check
-            $name = $_POST['name'] ?? '';
-            $category = $_POST['category'] ?? 'General';
-            if ($name) {
-                // Check for duplicate name
-                $cStmt = $mysqli->prepare("SELECT id FROM threads WHERE name = ?");
-                $cStmt->bind_param("s", $name);
-                $cStmt->execute();
-                if ($cStmt->get_result()->num_rows > 0) {
-                    echo json_encode(['error' => 'その名前のスレッドは既に存在します']);
+        // Verify ownership
+        $stmt = $mysqli->prepare("SELECT creator_id FROM threads WHERE id = ?");
+        $stmt->bind_param("i", $threadId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($row = $res->fetch_assoc()) {
+            if ($row['creator_id'] == $userId) {
+                // Check for duplicate name (excluding current thread)
+                if ($newName) {
+                    $cStmt = $mysqli->prepare("SELECT id FROM threads WHERE name = ? AND id != ?");
+                    $cStmt->bind_param("si", $newName, $threadId);
+                    $cStmt->execute();
+                    if ($cStmt->get_result()->num_rows > 0) {
+                        echo json_encode(['error' => 'その名前のスレッドは既に存在します']);
+                        $cStmt->close();
+                        exit;
+                    }
                     $cStmt->close();
-                    exit;
                 }
-                $cStmt->close();
 
-                $stmt = $mysqli->prepare("INSERT INTO threads (name, creator_id, category) VALUES (?, ?, ?)");
-                $stmt->bind_param("sis", $name, $userId, $category);
-                $stmt->execute();
-                echo json_encode(['success' => true, 'id' => $stmt->insert_id]);
-                $stmt->close();
-            } else {
-                echo json_encode(['error' => 'Name required']);
-            }
-            exit;
-        }
-
-        if ($action === 'edit_thread') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $threadId = $_POST['thread_id'] ?? 0;
-            $newName = $_POST['name'] ?? '';
-
-            // Check for duplicate name (excluding current thread)
-            if ($newName) {
-                $cStmt = $mysqli->prepare("SELECT id FROM threads WHERE name = ? AND id != ?");
-                $cStmt->bind_param("si", $newName, $threadId);
-                $cStmt->execute();
-                if ($cStmt->get_result()->num_rows > 0) {
-                    echo json_encode(['error' => 'その名前のスレッドは既に存在します']);
-                    $cStmt->close();
-                    exit;
-                }
-                $cStmt->close();
-            }
-
-            $webhook = $_POST['discord_webhook_url'] ?? null;
-            $category = $_POST['category'] ?? 'General';
-            $upd = $mysqli->prepare("UPDATE threads SET name = ?, discord_webhook_url = ?, category = ? WHERE id = ?");
-            $upd->bind_param("sssi", $newName, $webhook, $category, $threadId);
-            $upd->execute();
-            echo json_encode(['success' => true]);
-            exit;
-        }
-
-        if ($action === 'delete_thread') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $threadId = $_POST['thread_id'] ?? 0;
-
-            // Delete messages first
-            $delMsgs = $mysqli->prepare("DELETE FROM messages WHERE thread_id = ?");
-            $delMsgs->bind_param("i", $threadId);
-            $delMsgs->execute();
-
-            $del = $mysqli->prepare("DELETE FROM threads WHERE id = ?");
-            $del->bind_param("i", $threadId);
-            $del->execute();
-            echo json_encode(['success' => true]);
-            exit;
-        }
-
-        if ($action === 'toggle_reaction') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $messageId = $_POST['message_id'] ?? 0;
-            $emoji = $_POST['emoji'] ?? '';
-
-            if ($messageId && $emoji) {
-                // Check if already reacted
-                $stmt = $mysqli->prepare("SELECT id FROM message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?");
-                $stmt->bind_param("iis", $messageId, $userId, $emoji);
-                $stmt->execute();
-                $res = $stmt->get_result();
-
-                if ($row = $res->fetch_assoc()) {
-                    // Remove
-                    $del = $mysqli->prepare("DELETE FROM message_reactions WHERE id = ?");
-                    $del->bind_param("i", $row['id']);
-                    $del->execute();
-                } else {
-                    // Add
-                    $ins = $mysqli->prepare("INSERT INTO message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)");
-                    $ins->bind_param("iis", $messageId, $userId, $emoji);
-                    $ins->execute();
-                }
+                $webhook = $_POST['discord_webhook_url'] ?? null;
+                $category = $_POST['category'] ?? 'General';
+                $upd = $mysqli->prepare("UPDATE threads SET name = ?, discord_webhook_url = ?, category = ? WHERE id = ?");
+                $upd->bind_param("sssi", $newName, $webhook, $category, $threadId);
+                $upd->execute();
                 echo json_encode(['success' => true]);
             } else {
-                echo json_encode(['error' => 'Invalid parameters']);
+                http_response_code(403);
+                echo json_encode(['error' => 'Forbidden']);
             }
-            exit;
+        } else {
+            http_response_code(404);
+            echo json_encode(['error' => 'Not found']);
         }
+        exit;
+    }
 
-        if ($action === 'toggle_pin') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $messageId = $_POST['message_id'] ?? 0;
-            if ($messageId) {
-                $stmt = $mysqli->prepare("UPDATE messages SET is_pinned = NOT is_pinned WHERE id = ?");
-                $stmt->bind_param("i", $messageId);
-                $stmt->execute();
+    if ($action === 'delete_thread') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $threadId = $_POST['thread_id'] ?? 0;
+
+        // Verify ownership
+        $stmt = $mysqli->prepare("SELECT creator_id FROM threads WHERE id = ?");
+        $stmt->bind_param("i", $threadId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($row = $res->fetch_assoc()) {
+            if ($row['creator_id'] == $userId) {
+                // Delete messages first
+                $delMsgs = $mysqli->prepare("DELETE FROM messages WHERE thread_id = ?");
+                $delMsgs->bind_param("i", $threadId);
+                $delMsgs->execute();
+
+                $del = $mysqli->prepare("DELETE FROM threads WHERE id = ?");
+                $del->bind_param("i", $threadId);
+                $del->execute();
                 echo json_encode(['success' => true]);
             } else {
-                echo json_encode(['error' => 'Message ID required']);
+                http_response_code(403);
+                echo json_encode(['error' => 'Forbidden']);
             }
-            exit;
+        } else {
+            http_response_code(404);
+            echo json_encode(['error' => 'Not found']);
         }
+        exit;
+    }
 
-        if ($action === 'search_messages') {
-            $threadId = $_GET['thread_id'] ?? null;
-            $groupThreadId = $_GET['group_thread_id'] ?? null;
-            $partnerId = $_GET['partner_id'] ?? null;
-            $keyword = $_GET['keyword'] ?? '';
-            $hasAttachment = isset($_GET['has_attachment']) && $_GET['has_attachment'] === '1';
-            $dateFrom = $_GET['date_from'] ?? null;
-            $dateTo = $_GET['date_to'] ?? null;
+    if ($action === 'toggle_reaction') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $messageId = $_POST['message_id'] ?? 0;
+        $emoji = $_POST['emoji'] ?? '';
 
-            if ($partnerId) {
-                // Search in DMs
-                $sql = "SELECT dm.*, u.username, u.avatar_url 
+        if ($messageId && $emoji) {
+            // Check if already reacted
+            $stmt = $mysqli->prepare("SELECT id FROM message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?");
+            $stmt->bind_param("iis", $messageId, $userId, $emoji);
+            $stmt->execute();
+            $res = $stmt->get_result();
+
+            if ($row = $res->fetch_assoc()) {
+                // Remove
+                $del = $mysqli->prepare("DELETE FROM message_reactions WHERE id = ?");
+                $del->bind_param("i", $row['id']);
+                $del->execute();
+            } else {
+                // Add
+                $ins = $mysqli->prepare("INSERT INTO message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)");
+                $ins->bind_param("iis", $messageId, $userId, $emoji);
+                $ins->execute();
+            }
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Invalid parameters']);
+        }
+        exit;
+    }
+
+    if ($action === 'toggle_pin') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $messageId = $_POST['message_id'] ?? 0;
+        if ($messageId) {
+            $stmt = $mysqli->prepare("UPDATE messages SET is_pinned = NOT is_pinned WHERE id = ?");
+            $stmt->bind_param("i", $messageId);
+            $stmt->execute();
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Message ID required']);
+        }
+        exit;
+    }
+
+    if ($action === 'search_messages') {
+        $threadId = $_GET['thread_id'] ?? null;
+        $groupThreadId = $_GET['group_thread_id'] ?? null;
+        $partnerId = $_GET['partner_id'] ?? null;
+        $keyword = $_GET['keyword'] ?? '';
+        $hasAttachment = isset($_GET['has_attachment']) && $_GET['has_attachment'] === '1';
+        $dateFrom = $_GET['date_from'] ?? null;
+        $dateTo = $_GET['date_to'] ?? null;
+
+        if ($partnerId) {
+            // Search in DMs
+            $sql = "SELECT dm.*, u.username, u.avatar_url 
                     FROM direct_messages dm 
                     JOIN users u ON dm.sender_id = u.id 
                     WHERE ((dm.sender_id = ? AND dm.receiver_id = ?) OR (dm.sender_id = ? AND dm.receiver_id = ?))";
-                $params = [$userId, $partnerId, $partnerId, $userId];
-                $types = "iiii";
-            } else {
-                // Search in Threads or Groups
-                $sql = "SELECT m.*, u.username, u.avatar_url 
+            $params = [$userId, $partnerId, $partnerId, $userId];
+            $types = "iiii";
+        } else {
+            // Search in Threads or Groups
+            $sql = "SELECT m.*, u.username, u.avatar_url 
                     FROM messages m 
                     JOIN users u ON m.user_id = u.id 
                     WHERE 1=1";
-                $params = [];
-                $types = "";
+            $params = [];
+            $types = "";
 
-                if ($threadId) {
-                    $sql .= " AND m.thread_id = ?";
-                    $params[] = $threadId;
-                    $types .= "i";
-                } elseif ($groupThreadId) {
-                    $sql .= " AND m.group_thread_id = ?";
-                    $params[] = $groupThreadId;
-                    $types .= "i";
-                } else {
-                    echo json_encode(['error' => 'Thread, Group or Partner ID required']);
-                    exit;
-                }
-            }
-
-            if ($keyword) {
-                $sql .= " AND " . ($partnerId ? "dm.content" : "m.content") . " LIKE ?";
-                $params[] = "%$keyword%";
-                $types .= "s";
-            }
-
-            if ($hasAttachment) {
-                $sql .= " AND " . ($partnerId ? "dm.attachment_path" : "m.attachment_path") . " IS NOT NULL";
-            }
-
-            if ($dateFrom) {
-                $sql .= " AND " . ($partnerId ? "dm.created_at" : "m.created_at") . " >= ?";
-                $params[] = $dateFrom . " 00:00:00";
-                $types .= "s";
-            }
-            if ($dateTo) {
-                $sql .= " AND " . ($partnerId ? "dm.created_at" : "m.created_at") . " <= ?";
-                $params[] = $dateTo . " 23:59:59";
-                $types .= "s";
-            }
-
-            $sql .= " ORDER BY " . ($partnerId ? "dm.created_at" : "m.created_at") . " DESC LIMIT 50";
-
-            if ($types) {
-                $stmt = $mysqli->prepare($sql);
-                $stmt->bind_param($types, ...$params);
-                $stmt->execute();
-                echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+            if ($threadId) {
+                $sql .= " AND m.thread_id = ?";
+                $params[] = $threadId;
+                $types .= "i";
+            } elseif ($groupThreadId) {
+                $sql .= " AND m.group_thread_id = ?";
+                $params[] = $groupThreadId;
+                $types .= "i";
             } else {
-                $res = $mysqli->query($sql);
-                echo json_encode($res->fetch_all(MYSQLI_ASSOC));
+                echo json_encode(['error' => 'Thread, Group or Partner ID required']);
+                exit;
             }
-            exit;
         }
 
-        if ($action === 'update_typing_status') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $threadId = $_POST['thread_id'] ?? null;
-            $isTyping = ($_POST['is_typing'] ?? '0') === '1';
+        if ($keyword) {
+            $sql .= " AND " . ($partnerId ? "dm.content" : "m.content") . " LIKE ?";
+            $params[] = "%$keyword%";
+            $types .= "s";
+        }
 
-            $stmt = $mysqli->prepare("UPDATE users SET typing_thread_id = ?, typing_at = ? WHERE id = ?");
-            $threadVal = $isTyping ? $threadId : null;
-            $timeVal = $isTyping ? date('Y-m-d H:i:s') : null;
-            $stmt->bind_param("ssi", $threadVal, $timeVal, $userId);
+        if ($hasAttachment) {
+            $sql .= " AND " . ($partnerId ? "dm.attachment_path" : "m.attachment_path") . " IS NOT NULL";
+        }
+
+        if ($dateFrom) {
+            $sql .= " AND " . ($partnerId ? "dm.created_at" : "m.created_at") . " >= ?";
+            $params[] = $dateFrom . " 00:00:00";
+            $types .= "s";
+        }
+        if ($dateTo) {
+            $sql .= " AND " . ($partnerId ? "dm.created_at" : "m.created_at") . " <= ?";
+            $params[] = $dateTo . " 23:59:59";
+            $types .= "s";
+        }
+
+        $sql .= " ORDER BY " . ($partnerId ? "dm.created_at" : "m.created_at") . " DESC LIMIT 50";
+
+        if ($types) {
+            $stmt = $mysqli->prepare($sql);
+            $stmt->bind_param($types, ...$params);
             $stmt->execute();
-            echo json_encode(['success' => true]);
-            exit;
+            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        } else {
+            $res = $mysqli->query($sql);
+            echo json_encode($res->fetch_all(MYSQLI_ASSOC));
         }
+        exit;
+    }
 
-        if ($action === 'get_typing_users') {
-            $threadId = $_GET['thread_id'] ?? '';
-            // Consider users who typing_at is within last 5 seconds
-            $stmt = $mysqli->prepare("
+    if ($action === 'update_typing_status') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $threadId = $_POST['thread_id'] ?? null;
+        $isTyping = ($_POST['is_typing'] ?? '0') === '1';
+
+        $stmt = $mysqli->prepare("UPDATE users SET typing_thread_id = ?, typing_at = ? WHERE id = ?");
+        $threadVal = $isTyping ? $threadId : null;
+        $timeVal = $isTyping ? date('Y-m-d H:i:s') : null;
+        $stmt->bind_param("ssi", $threadVal, $timeVal, $userId);
+        $stmt->execute();
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    if ($action === 'get_typing_users') {
+        $threadId = $_GET['thread_id'] ?? '';
+        // Consider users who typing_at is within last 5 seconds
+        $stmt = $mysqli->prepare("
             SELECT username FROM users 
             WHERE typing_thread_id = ? 
             AND id != ? 
             AND typing_at > (NOW() - INTERVAL 5 SECOND)
         ");
-            $stmt->bind_param("si", $threadId, $userId);
+        $stmt->bind_param("si", $threadId, $userId);
+        $stmt->execute();
+        $res = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        echo json_encode($res);
+        exit;
+    }
+
+    if ($action === 'mark_dms_as_read') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $partnerId = $_POST['partner_id'] ?? 0;
+        if ($partnerId) {
+            $stmt = $mysqli->prepare("UPDATE direct_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0");
+            $stmt->bind_param("ii", $partnerId, $userId);
             $stmt->execute();
-            $res = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-            echo json_encode($res);
-            exit;
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Partner ID required']);
         }
+        exit;
+    }
 
-        if ($action === 'mark_dms_as_read') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $partnerId = $_POST['partner_id'] ?? 0;
-            if ($partnerId) {
-                $stmt = $mysqli->prepare("UPDATE direct_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0");
-                $stmt->bind_param("ii", $partnerId, $userId);
-                $stmt->execute();
-                echo json_encode(['success' => true]);
-            } else {
-                echo json_encode(['error' => 'Partner ID required']);
-            }
-            exit;
-        }
+    if ($action === 'edit_message') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $messageId = $_POST['message_id'] ?? 0;
+        $dmId = $_POST['dm_id'] ?? 0;
+        $content = $_POST['content'] ?? '';
 
-        if ($action === 'edit_message') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $messageId = $_POST['message_id'] ?? 0;
-            $dmId = $_POST['dm_id'] ?? 0;
-            $content = $_POST['content'] ?? '';
-
-            if ($messageId) {
-                $stmt = $mysqli->prepare("UPDATE messages SET content = ?, is_edited = 1 WHERE id = ? AND user_id = ?");
-                $stmt->bind_param("sii", $content, $messageId, $userId);
-                $stmt->execute();
-                echo json_encode(['success' => true]);
-            } else if ($dmId) {
-                $stmt = $mysqli->prepare("UPDATE direct_messages SET content = ?, is_edited = 1 WHERE id = ? AND sender_id = ?");
-                $stmt->bind_param("sii", $content, $dmId, $userId);
-                $stmt->execute();
-                echo json_encode(['success' => true]);
-            } else {
-                echo json_encode(['error' => 'Invalid parameters']);
-            }
-            exit;
-        }
-
-        if ($action === 'get_attachments') {
-            $threadId = $_GET['thread_id'] ?? null;
-            $partnerId = $_GET['partner_id'] ?? null;
-
-            if ($threadId) {
-                $stmt = $mysqli->prepare("SELECT attachment_path FROM messages WHERE thread_id = ? AND attachment_path IS NOT NULL ORDER BY created_at DESC");
-                $stmt->bind_param("i", $threadId);
-            } else if ($partnerId) {
-                $stmt = $mysqli->prepare("SELECT attachment_path FROM direct_messages WHERE ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)) AND attachment_path IS NOT NULL ORDER BY created_at DESC");
-                $stmt->bind_param("iiii", $userId, $partnerId, $partnerId, $userId);
-            } else {
-                echo json_encode([]);
-                exit;
-            }
+        if ($messageId) {
+            $stmt = $mysqli->prepare("UPDATE messages SET content = ?, is_edited = 1 WHERE id = ? AND user_id = ?");
+            $stmt->bind_param("sii", $content, $messageId, $userId);
             $stmt->execute();
-            $res = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-            echo json_encode($res);
+            echo json_encode(['success' => true]);
+        } else if ($dmId) {
+            $stmt = $mysqli->prepare("UPDATE direct_messages SET content = ?, is_edited = 1 WHERE id = ? AND sender_id = ?");
+            $stmt->bind_param("sii", $content, $dmId, $userId);
+            $stmt->execute();
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Invalid parameters']);
+        }
+        exit;
+    }
+
+    if ($action === 'get_attachments') {
+        $threadId = $_GET['thread_id'] ?? null;
+        $partnerId = $_GET['partner_id'] ?? null;
+
+        if ($threadId) {
+            $stmt = $mysqli->prepare("SELECT attachment_path FROM messages WHERE thread_id = ? AND attachment_path IS NOT NULL ORDER BY created_at DESC");
+            $stmt->bind_param("i", $threadId);
+        } else if ($partnerId) {
+            $stmt = $mysqli->prepare("SELECT attachment_path FROM direct_messages WHERE ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)) AND attachment_path IS NOT NULL ORDER BY created_at DESC");
+            $stmt->bind_param("iiii", $userId, $partnerId, $partnerId, $userId);
+        } else {
+            echo json_encode([]);
             exit;
         }
+        $stmt->execute();
+        $res = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        echo json_encode($res);
+        exit;
+    }
 
-        if ($action === 'get_messages') {
-            $threadId = $_GET['thread_id'] ?? 0;
-            $stmt = $mysqli->prepare("
+    if ($action === 'get_messages') {
+        $threadId = $_GET['thread_id'] ?? 0;
+        $stmt = $mysqli->prepare("
         SELECT m.*, u.username, u.status, u.avatar_url, r.content as reply_content, ru.username as reply_username
         FROM messages m 
         JOIN users u ON m.user_id = u.id 
@@ -970,234 +950,140 @@ if (isset($_GET['api'])) {
         WHERE m.thread_id = ? 
         ORDER BY m.created_at ASC
     ");
-            $stmt->bind_param("i", $threadId);
-            $stmt->execute();
-            $msgs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->bind_param("i", $threadId);
+        $stmt->execute();
+        $msgs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-            // Fetch reactions for each message
-            foreach ($msgs as &$m) {
-                $rStmt = $mysqli->prepare("SELECT emoji, user_id FROM message_reactions WHERE message_id = ?");
-                $rStmt->bind_param("i", $m['id']);
-                $rStmt->execute();
-                $m['reactions'] = $rStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-            }
-
-            echo json_encode($msgs);
-            $stmt->close();
-            exit;
+        // Fetch reactions for each message
+        foreach ($msgs as &$m) {
+            $rStmt = $mysqli->prepare("SELECT emoji, user_id FROM message_reactions WHERE message_id = ?");
+            $rStmt->bind_param("i", $m['id']);
+            $rStmt->execute();
+            $m['reactions'] = $rStmt->get_result()->fetch_all(MYSQLI_ASSOC);
         }
 
-        if ($action === 'get_dm_partners') {
-            // Get users I have sent to OR received from
-            $query = "
+        echo json_encode($msgs);
+        $stmt->close();
+        exit;
+    }
+
+    if ($action === 'get_dm_partners') {
+        // Get users I have sent to OR received from
+        $query = "
         SELECT DISTINCT u.id, u.username, u.status, u.custom_status, u.avatar_url 
         FROM users u
         JOIN direct_messages dm ON (u.id = dm.sender_id OR u.id = dm.receiver_id)
         WHERE (dm.sender_id = ? OR dm.receiver_id = ?) AND u.id != ?
     ";
-            $stmt = $mysqli->prepare($query);
-            $stmt->bind_param("iii", $userId, $userId, $userId);
+        $stmt = $mysqli->prepare($query);
+        $stmt->bind_param("iii", $userId, $userId, $userId);
+        $stmt->execute();
+        $partners = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        echo json_encode($partners);
+        exit;
+    }
+
+    if ($action === 'get_all_users') {
+        // Search all users to start new DM
+        $res = $mysqli->query("SELECT id, username, status, custom_status, avatar_url FROM users WHERE id != $userId");
+        echo json_encode($res->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    if ($action === 'create_group_thread') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $name = $_POST['name'] ?? 'Group Chat';
+        $participantIds = json_decode($_POST['participant_ids'] ?? '[]', true);
+
+        $stmt = $mysqli->prepare("INSERT INTO group_threads (name, creator_id) VALUES (?, ?)");
+        $stmt->bind_param("si", $name, $userId);
+        $stmt->execute();
+        $threadId = $stmt->insert_id;
+
+        // Add creator as participant
+        $stmt = $mysqli->prepare("INSERT INTO group_thread_participants (thread_id, user_id) VALUES (?, ?)");
+        $stmt->bind_param("ii", $threadId, $userId);
+        $stmt->execute();
+
+        // Add selected participants
+        foreach ($participantIds as $pId) {
+            $stmt->bind_param("ii", $threadId, $pId);
             $stmt->execute();
-            $partners = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-            echo json_encode($partners);
-            exit;
         }
 
-        if ($action === 'get_all_users') {
-            // Search all users to start new DM
-            $res = $mysqli->query("SELECT id, username, status, custom_status, avatar_url FROM users WHERE id != $userId");
-            echo json_encode($res->fetch_all(MYSQLI_ASSOC));
-            exit;
-        }
+        echo json_encode(['success' => true, 'id' => $threadId]);
+        exit;
+    }
 
-        if ($action === 'create_group_thread') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $name = $_POST['name'] ?? 'Group Chat';
-            $participantIds = json_decode($_POST['participant_ids'] ?? '[]', true);
-
-            $stmt = $mysqli->prepare("INSERT INTO group_threads (name, creator_id) VALUES (?, ?)");
-            $stmt->bind_param("si", $name, $userId);
-            $stmt->execute();
-            $threadId = $stmt->insert_id;
-
-            // Add creator as participant
-            $stmt = $mysqli->prepare("INSERT INTO group_thread_participants (thread_id, user_id) VALUES (?, ?)");
-            $stmt->bind_param("ii", $threadId, $userId);
-            $stmt->execute();
-
-            // Add selected participants
-            foreach ($participantIds as $pId) {
-                $stmt->bind_param("ii", $threadId, $pId);
-                $stmt->execute();
-            }
-
-            echo json_encode(['success' => true, 'id' => $threadId]);
-            exit;
-        }
-
-        if ($action === 'get_group_threads') {
-            $stmt = $mysqli->prepare("
+    if ($action === 'get_group_threads') {
+        $stmt = $mysqli->prepare("
             SELECT gt.* 
             FROM group_threads gt
             JOIN group_thread_participants gtp ON gt.id = gtp.thread_id
             WHERE gtp.user_id = ?
             ORDER BY gt.created_at DESC
         ");
-            $stmt->bind_param("i", $userId);
-            $stmt->execute();
-            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    if ($action === 'get_group_messages') {
+        $threadId = $_GET['thread_id'] ?? 0;
+        // Verify membership
+        $stmt = $mysqli->prepare("SELECT 1 FROM group_thread_participants WHERE thread_id = ? AND user_id = ?");
+        $stmt->bind_param("ii", $threadId, $userId);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows === 0) {
+            echo json_encode(['error' => 'Forbidden']);
             exit;
         }
 
-        if ($action === 'edit_group_thread') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $threadId = $_POST['thread_id'] ?? 0;
-            $newName = $_POST['name'] ?? '';
-
-            if (!$threadId || !$newName) {
-                echo json_encode(['error' => 'ID and Name required']);
-                exit;
-            }
-
-            $stmt = $mysqli->prepare("UPDATE group_threads SET name = ? WHERE id = ?");
-            $stmt->bind_param("si", $newName, $threadId);
-            $stmt->execute();
-            echo json_encode(['success' => true]);
-            exit;
-        }
-
-        if ($action === 'delete_group_thread') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $threadId = $_POST['thread_id'] ?? 0;
-
-            if (!$threadId) {
-                echo json_encode(['error' => 'ID required']);
-                exit;
-            }
-
-            // Transactions would be better but keeping it simple as per current style
-            $mysqli->query("DELETE FROM messages WHERE group_thread_id = $threadId");
-            $mysqli->query("DELETE FROM group_thread_participants WHERE thread_id = $threadId");
-            $mysqli->query("DELETE FROM group_threads WHERE id = $threadId");
-
-            echo json_encode(['success' => true]);
-            exit;
-        }
-
-        if ($action === 'get_group_messages') {
-            $threadId = $_GET['thread_id'] ?? 0;
-            // Verify membership
-            $stmt = $mysqli->prepare("SELECT 1 FROM group_thread_participants WHERE thread_id = ? AND user_id = ?");
-            $stmt->bind_param("ii", $threadId, $userId);
-            $stmt->execute();
-            if ($stmt->get_result()->num_rows === 0) {
-                echo json_encode(['error' => 'Forbidden']);
-                exit;
-            }
-
-            $stmt = $mysqli->prepare("
+        $stmt = $mysqli->prepare("
             SELECT m.*, u.username, u.avatar_url 
             FROM messages m
             JOIN users u ON m.user_id = u.id
             WHERE m.group_thread_id = ?
             ORDER BY m.created_at ASC
         ");
-            $stmt->bind_param("i", $threadId);
+        $stmt->bind_param("i", $threadId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    if ($action === 'update_location') {
+        $lat = $_POST['lat'] ?? null;
+        $lon = $_POST['lon'] ?? null;
+        $accuracy = $_POST['accuracy'] ?? null;
+
+        if ($lat && $lon) {
+            $stmt = $mysqli->prepare("INSERT INTO user_locations (user_id, lat, lon, accuracy) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE lat = VALUES(lat), lon = VALUES(lon), accuracy = VALUES(accuracy), updated_at = CURRENT_TIMESTAMP");
+            $stmt->bind_param("iddd", $userId, $lat, $lon, $accuracy);
             $stmt->execute();
-            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
-            exit;
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Invalid coordinates']);
         }
+        exit;
+    }
 
-        if ($action === 'update_location') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) {
-                http_response_code(403);
-                echo json_encode(['error' => 'CSRF token validation failed']);
-                exit;
-            }
-
-            // Rate Limiter Init
-            $rateLimiter = null;
-            if (extension_loaded('redis') && class_exists('Redis')) {
-                try {
-                    $redis = new \Redis();
-                    $redis->connect('127.0.0.1', 6379);
-                    require_once __DIR__ . '/../backend/RateLimiter.php';
-                    $rateLimiter = new RateLimiter($redis);
-                } catch (\Exception $e) {
-                    error_log("Redis connection failed, falling back to file-based rate limiting: " . $e->getMessage());
-                }
-            }
-
-            if (!$rateLimiter) {
-                require_once __DIR__ . '/../backend/FileRateLimiter.php';
-                $rateLimiter = new FileRateLimiter(__DIR__ . '/../logs/rate_limit_cache');
-            }
-
-            // User rate limit
-            $userRateLimit = $rateLimiter->checkUserRateLimit($userId, 12, 60);
-
-            // IP rate limit
-            $clientIP = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-            $ipRateLimit = $rateLimiter->checkIPRateLimit($clientIP, 100, 60);
-
-            if (!$userRateLimit['allowed'] || !$ipRateLimit['allowed']) {
-                http_response_code(429); // Too Many Requests
-
-                $retryAfter = max($userRateLimit['retry_after'], $ipRateLimit['retry_after']);
-                header('Retry-After: ' . $retryAfter);
-
-                echo json_encode([
-                    'error' => 'rate_limit_exceeded',
-                    'message' => 'リクエストが多すぎます。しばらく待機してください。',
-                    'retry_after' => $retryAfter,
-                    'reset_at' => max($userRateLimit['reset_at'], $ipRateLimit['reset_at']),
-                ]);
-                exit;
-            }
-
-            $lat = $_POST['lat'] ?? null;
-            $lon = $_POST['lon'] ?? null;
-            $accuracy = $_POST['accuracy'] ?? null;
-
-            if (!$lat || !$lon) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Invalid coordinates']);
-                exit;
-            }
-
-            try {
-                $stmt = $mysqli->prepare("INSERT INTO user_locations (user_id, lat, lon, accuracy) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE lat = VALUES(lat), lon = VALUES(lon), accuracy = VALUES(accuracy), updated_at = CURRENT_TIMESTAMP");
-                $stmt->bind_param("iddd", $userId, $lat, $lon, $accuracy);
-                $stmt->execute();
-
-                http_response_code(200);
-                echo json_encode([
-                    'success' => true,
-                    'message' => '位置情報を更新しました',
-                    'remaining_requests' => $userRateLimit['remaining'],
-                ]);
-            } catch (Exception $e) {
-                http_response_code(500);
-                echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
-            }
-            exit;
-        }
-
-        if ($action === 'get_user_locations') {
-            // Only return locations updated in the last 15 minutes
-            $res = $mysqli->query("
+    if ($action === 'get_user_locations') {
+        // Only return locations updated in the last 15 minutes
+        $res = $mysqli->query("
             SELECT ul.*, u.username, u.avatar_url 
             FROM user_locations ul
             JOIN users u ON ul.user_id = u.id
             WHERE ul.updated_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
         ");
-            echo json_encode($res->fetch_all(MYSQLI_ASSOC));
-            exit;
-        }
+        echo json_encode($res->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
 
-        if ($action === 'get_direct_messages') {
-            $partnerId = $_GET['partner_id'] ?? 0;
-            $stmt = $mysqli->prepare("
+    if ($action === 'get_direct_messages') {
+        $partnerId = $_GET['partner_id'] ?? 0;
+        $stmt = $mysqli->prepare("
         SELECT dm.*, u.username, u.avatar_url 
         FROM direct_messages dm
         JOIN users u ON dm.sender_id = u.id
@@ -1205,439 +1091,343 @@ if (isset($_GET['api'])) {
             OR (dm.sender_id = ? AND dm.receiver_id = ?)
         ORDER BY dm.created_at ASC
     ");
-            $stmt->bind_param("iiii", $userId, $partnerId, $partnerId, $userId);
-            $stmt->execute();
-            $msgs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->bind_param("iiii", $userId, $partnerId, $partnerId, $userId);
+        $stmt->execute();
+        $msgs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-            // Fetch reactions for each DM (using message_reactions table with message_id mapping to direct_messages.id)
-            // Wait, the message_reactions table is for 'messages' table. I should probably support reactions for DMs too.
-            // Let's check if message_reactions can be used for both or if I need another table.
-            // The foreign key is to `messages(id)`. I should add `dm_id` or a separate table if I want DM reactions.
-            // For now, let's focus on the 'messages' table as requested/planned.
+        // Fetch reactions for each DM (using message_reactions table with message_id mapping to direct_messages.id)
+        // Wait, the message_reactions table is for 'messages' table. I should probably support reactions for DMs too.
+        // Let's check if message_reactions can be used for both or if I need another table.
+        // The foreign key is to `messages(id)`. I should add `dm_id` or a separate table if I want DM reactions.
+        // For now, let's focus on the 'messages' table as requested/planned.
 
-            echo json_encode($msgs);
-            exit;
-        }
+        echo json_encode($msgs);
+        exit;
+    }
 
-        if ($action === 'send_direct_message') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $receiverId = $_POST['receiver_id'] ?? 0;
-            $content = $_POST['content'] ?? '';
-            $attachmentPath = null;
+    if ($action === 'send_direct_message') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $receiverId = $_POST['receiver_id'] ?? 0;
+        $content = $_POST['content'] ?? '';
+        $attachmentPath = null;
 
-            // Reuse file upload logic
-            if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
-                $tmpName = $_FILES['attachment']['tmp_name'];
-                $fileName = $_FILES['attachment']['name'];
-                $fileInfo = pathinfo($fileName);
-                $ext = strtolower($fileInfo['extension'] ?? '');
+        // Reuse file upload logic
+        if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+            $tmpName = $_FILES['attachment']['tmp_name'];
+            $fileName = $_FILES['attachment']['name'];
+            $fileInfo = pathinfo($fileName);
+            $ext = strtolower($fileInfo['extension'] ?? '');
 
-                require_once __DIR__ . '/../backend/SecurityUtil.php';
+            require_once __DIR__ . '/../backend/SecurityUtil.php';
 
-                if (SecurityUtil::validateFile($tmpName, $ext)) {
-                    $uuid = SecurityUtil::generateUuid();
+            if (SecurityUtil::validateFile($tmpName, $ext)) {
+                $uuid = SecurityUtil::generateUuid();
 
-                    if ($ext === 'svg') {
-                        // Logic for SVG: Sanitize -> Protected Storage -> Convert PNG -> Public Storage
-                        $rawContent = file_get_contents($tmpName);
-                        $sanitized = SecurityUtil::sanitizeSVG($rawContent);
+                if ($ext === 'svg') {
+                    // Logic for SVG: Sanitize -> Protected Storage -> Convert PNG -> Public Storage
+                    $rawContent = file_get_contents($tmpName);
+                    $sanitized = SecurityUtil::sanitizeSVG($rawContent);
 
-                        if ($sanitized) {
-                            // Save Original (Sanitized) to protected
-                            $protectedDir = __DIR__ . '/../protected_uploads/';
-                            if (!is_dir($protectedDir)) mkdir($protectedDir, 0700, true);
-                            file_put_contents($protectedDir . $uuid . '.svg', $sanitized);
+                    if ($sanitized) {
+                        // Save Original (Sanitized) to protected
+                        $protectedDir = __DIR__ . '/../protected_uploads/';
+                        if (!is_dir($protectedDir)) mkdir($protectedDir, 0700, true);
+                        file_put_contents($protectedDir . $uuid . '.svg', $sanitized);
 
-                            // Convert to PNG for display
-                            $publicDir = __DIR__ . '/uploads/';
-                            if (!is_dir($publicDir)) mkdir($publicDir, 0755, true);
+                        // Convert to PNG for display
+                        $publicDir = __DIR__ . '/uploads/';
+                        if (!is_dir($publicDir)) mkdir($publicDir, 0755, true);
 
-                            $pngName = $uuid . '.png';
-                            $publicPath = $publicDir . $pngName;
+                        $pngName = $uuid . '.png';
+                        $publicPath = $publicDir . $pngName;
 
-                            if (SecurityUtil::convertSvgToPng($protectedDir . $uuid . '.svg', $publicPath)) {
-                                // Success: DB stores PNG path. 
-                                // *Download Logic will infer SVG availability via UUID match.*
-                                $attachmentPath = 'uploads/' . $pngName;
-                            } else {
-                                // Fallback? If conversion fails, maybe we reject or just don't show image?
-                                // Rejecting is safer as requirement says "Display as PNG".
-                                echo json_encode(['error' => 'SVG Conversion Failed']);
-                                exit;
-                            }
+                        if (SecurityUtil::convertSvgToPng($protectedDir . $uuid . '.svg', $publicPath)) {
+                            // Success: DB stores PNG path. 
+                            // *Download Logic will infer SVG availability via UUID match.*
+                            $attachmentPath = 'uploads/' . $pngName;
                         } else {
-                            echo json_encode(['error' => 'Invalid SVG content']);
+                            // Fallback? If conversion fails, maybe we reject or just don't show image?
+                            // Rejecting is safer as requirement says "Display as PNG".
+                            echo json_encode(['error' => 'SVG Conversion Failed']);
                             exit;
                         }
                     } else {
-                        // Standard File Flow
-                        $uploadDir = __DIR__ . '/uploads/'; // use relative path consistency
-                        if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
-
-                        $newFileName = $uuid . '.' . $ext;
-                        // Move
-                        if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
-                            $attachmentPath = 'uploads/' . $newFileName;
-                        }
+                        echo json_encode(['error' => 'Invalid SVG content']);
+                        exit;
                     }
                 } else {
-                    echo json_encode(['error' => 'Invalid file type or content']);
-                    exit;
-                }
-            }
+                    // Standard File Flow
+                    $uploadDir = __DIR__ . '/uploads/'; // use relative path consistency
+                    if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
 
-            if (($receiverId && $content !== '') || ($receiverId && $attachmentPath)) {
-                $expiresIn = $_POST['expires_in'] ?? 0;
-                $expiresAt = $expiresIn > 0 ? date('Y-m-d H:i:s', time() + (int)$expiresIn) : null;
-
-                $stmt = $mysqli->prepare("INSERT INTO direct_messages (sender_id, receiver_id, content, attachment_path, expires_at) VALUES (?, ?, ?, ?, ?)");
-                $stmt->bind_param("iisss", $userId, $receiverId, $content, $attachmentPath, $expiresAt);
-                $stmt->execute();
-                $dmId = $stmt->insert_id;
-
-                // Notify Realtime Server
-                $newDm = [
-                    'id' => $dmId,
-                    'sender_id' => $userId,
-                    'receiver_id' => $receiverId,
-                    'content' => $content,
-                    'attachment_path' => $attachmentPath,
-                    'username' => $_SESSION['username'] ?? 'User',
-                    'created_at' => date('Y-m-d H:i:s')
-                ];
-                notifyRealtimeServer('new_dm', ['receiverId' => $receiverId, 'message' => $newDm]);
-
-                // Notification for DM
-                $notifContent = ($_SESSION['username'] ?? 'User') . "さんからDMが届きました: " . mb_strimwidth($content, 0, 50, "...");
-                $link = "index.php?dm=" . $userId;
-                $nStmt = $mysqli->prepare("INSERT INTO notifications (user_id, type, content, link) VALUES (?, 'dm', ?, ?)");
-                $nStmt->bind_param("iss", $receiverId, $notifContent, $link);
-                $nStmt->execute();
-                $nStmt->close();
-                notifyRealtimeServer('new_notification', ['userId' => $receiverId]);
-                sendPushNotification($receiverId, [
-                    'title' => '新着DM: ' . ($_SESSION['username'] ?? 'User'),
-                    'body' => $content,
-                    'icon' => 'assets/img/SYCS_favicon.svg',
-                    'data' => ['url' => 'index.php?dm=' . $userId]
-                ]);
-
-                echo json_encode(['success' => true]);
-            } else {
-                echo json_encode(['error' => 'Receiver and content/attachment required']);
-            }
-            exit;
-        }
-
-        if ($action === 'send_message') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit; // Enforce CSRF Check
-            $threadId = !empty($_POST['thread_id']) ? $_POST['thread_id'] : null;
-            $groupThreadId = !empty($_POST['group_thread_id']) ? $_POST['group_thread_id'] : null;
-            $content = $_POST['content'] ?? '';
-            $replyToId = !empty($_POST['reply_to_id']) ? $_POST['reply_to_id'] : null;
-            $attachmentPath = null;
-
-            // Handle File Upload (ALLOWLIST approach)
-            if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
-                $tmpName = $_FILES['attachment']['tmp_name'];
-                $fileName = $_FILES['attachment']['name'];
-                $fileInfo = pathinfo($fileName);
-                $ext = strtolower($fileInfo['extension'] ?? '');
-
-                require_once __DIR__ . '/../backend/SecurityUtil.php';
-
-                if (SecurityUtil::validateFile($tmpName, $ext)) {
-                    $uuid = SecurityUtil::generateUuid();
-
-                    if ($ext === 'svg') {
-                        // Logic for SVG: Sanitize -> Protected Storage -> Convert PNG -> Public Storage
-                        $rawContent = file_get_contents($tmpName);
-                        $sanitized = SecurityUtil::sanitizeSVG($rawContent);
-
-                        if ($sanitized) {
-                            // Save Original (Sanitized) to protected
-                            $protectedDir = __DIR__ . '/../protected_uploads/';
-                            if (!is_dir($protectedDir)) mkdir($protectedDir, 0700, true);
-                            file_put_contents($protectedDir . $uuid . '.svg', $sanitized);
-
-                            // Convert to PNG for display
-                            $publicDir = __DIR__ . '/uploads/';
-                            if (!is_dir($publicDir)) mkdir($publicDir, 0755, true);
-
-                            $pngName = $uuid . '.png';
-                            $publicPath = $publicDir . $pngName;
-
-                            if (SecurityUtil::convertSvgToPng($protectedDir . $uuid . '.svg', $publicPath)) {
-                                // Success: DB stores PNG path. 
-                                $attachmentPath = 'uploads/' . $pngName;
-                            } else {
-                                echo json_encode(['error' => 'SVG Conversion Failed']);
-                                exit;
-                            }
-                        } else {
-                            echo json_encode(['error' => 'Invalid SVG content']);
-                            exit;
-                        }
-                    } else {
-                        // Standard File Flow
-                        $uploadDir = __DIR__ . '/uploads/';
-                        if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
-
-                        $newFileName = $uuid . '.' . $ext;
-
-                        if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
-                            $attachmentPath = 'uploads/' . $newFileName;
-                        }
+                    $newFileName = $uuid . '.' . $ext;
+                    // Move
+                    if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
+                        $attachmentPath = 'uploads/' . $newFileName;
                     }
-                } else {
-                    echo json_encode(['error' => 'Invalid file type or content']);
-                    exit;
-                }
-            }
-
-            if ((($threadId !== null || $groupThreadId !== null) && ($content !== '' || $attachmentPath !== null))) {
-                $expiresIn = $_POST['expires_in'] ?? 0;
-                $expiresAt = $expiresIn > 0 ? date('Y-m-d H:i:s', time() + (int)$expiresIn) : null;
-
-                $stmt = $mysqli->prepare("INSERT INTO messages (thread_id, group_thread_id, user_id, content, reply_to_id, attachment_path, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("iiisiss", $threadId, $groupThreadId, $userId, $content, $replyToId, $attachmentPath, $expiresAt);
-                $stmt->execute();
-                $msgId = $stmt->insert_id;
-                $stmt->close();
-
-                // Notify Realtime Server
-                $newMsg = [
-                    'id' => $msgId,
-                    'thread_id' => $threadId,
-                    'group_thread_id' => $groupThreadId,
-                    'user_id' => $userId,
-                    'content' => $content,
-                    'attachment_path' => $attachmentPath,
-                    'username' => $_SESSION['username'] ?? 'User',
-                    'created_at' => date('Y-m-d H:i:s')
-                ];
-
-                if ($groupThreadId) {
-                    notifyRealtimeServer('new_group_message', ['groupThreadId' => $groupThreadId, 'message' => $newMsg]);
-                } elseif ($threadId) {
-                    notifyRealtimeServer('new_message', ['threadId' => $threadId, 'message' => $newMsg]);
-                }
-
-                if ($groupThreadId) {
-                    // Group Push Notification: Notify all participants except sender
-                    $pStmt = $mysqli->prepare("SELECT user_id FROM group_thread_participants WHERE thread_id = ? AND user_id != ?");
-                    $pStmt->bind_param("ii", $groupThreadId, $userId);
-                    $pStmt->execute();
-                    $pRes = $pStmt->get_result();
-                    while ($pRow = $pRes->fetch_assoc()) {
-                        sendPushNotification($pRow['user_id'], [
-                            'title' => '新着グループメッセージ: ' . ($_SESSION['username'] ?? 'User'),
-                            'body' => $content ?: ($attachmentPath ? '[添付ファイル]' : ''),
-                            'icon' => 'assets/img/SYCS_favicon.svg',
-                            'data' => ['url' => 'index.php?group=' . $groupThreadId]
-                        ]);
-                    }
-                    $pStmt->close();
-                } elseif ($threadId) {
-                    // Thread Push Notification: Notify all push-subscribed users (except sender)
-                    // In a large app, we'd filter by thread-specific subs, but here we notify all subscribers for simplicity
-                    $pStmt = $mysqli->prepare("SELECT DISTINCT user_id FROM push_subscriptions WHERE user_id != ?");
-                    $pStmt->bind_param("i", $userId);
-                    $pStmt->execute();
-                    $pRes = $pStmt->get_result();
-                    while ($pRow = $pRes->fetch_assoc()) {
-                        sendPushNotification($pRow['user_id'], [
-                            'title' => '新着メッセージ: #' . ($threadName ?? 'Thread'),
-                            'body' => ($_SESSION['username'] ?? 'User') . ': ' . ($content ?: ($attachmentPath ? '[添付ファイル]' : '')),
-                            'icon' => 'assets/img/SYCS_favicon.svg',
-                            'data' => ['url' => 'index.php?thread=' . $threadId]
-                        ]);
-                    }
-                    $pStmt->close();
-
-                    // Thread-wide Notification: Notify all previous participants except sender (if not already handled by mention or push)
-                    // First, get those who have spoken in this thread
-                    $partStmt = $mysqli->prepare("SELECT DISTINCT user_id FROM messages WHERE thread_id = ? AND user_id != ?");
-                    $partStmt->bind_param("ii", $threadId, $userId);
-                    $partStmt->execute();
-                    $partRes = $partStmt->get_result();
-                    $participants = [];
-                    while ($pRow = $partRes->fetch_assoc()) {
-                        $participants[] = $pRow['user_id'];
-                    }
-                    $partStmt->close();
-
-                    // Get mentioned users to avoid duplicate notifications
-                    $mentionedUserIds = [];
-                    if (preg_match_all('/@([a-zA-Z0-9_]+)/', $content, $matches)) {
-                        $mentionedNames = array_unique($matches[1]);
-                        foreach ($mentionedNames as $mName) {
-                            $mStmt = $mysqli->prepare("SELECT id FROM users WHERE username = ? AND id != ?");
-                            $mStmt->bind_param("si", $mName, $userId);
-                            $mStmt->execute();
-                            if ($mRow = $mStmt->get_result()->fetch_assoc()) {
-                                $mentionedUserIds[] = $mRow['id'];
-                                $notifContent = ($_SESSION['username'] ?? 'User') . "さんがあなたをメンションしました: " . mb_strimwidth($content, 0, 50, "...");
-                                $link = "index.php?thread=" . $threadId;
-                                $nStmt = $mysqli->prepare("INSERT INTO notifications (user_id, type, content, link) VALUES (?, 'mention', ?, ?)");
-                                $nStmt->bind_param("iss", $mRow['id'], $notifContent, $link);
-                                $nStmt->execute();
-                                $nStmt->close();
-                                notifyRealtimeServer('new_notification', ['userId' => $mRow['id']]);
-                            }
-                        }
-                    }
-
-                    // Notify other participants who were NOT mentioned
-                    foreach ($participants as $pUserId) {
-                        if (!in_array($pUserId, $mentionedUserIds)) {
-                            $threadTitle = $threadName ?? 'スレッド';
-                            $notifContent = "#{$threadTitle} に新しいメッセージがあります: " . mb_strimwidth($content, 0, 50, "...");
-                            $link = "index.php?thread=" . $threadId;
-                            $nStmt = $mysqli->prepare("INSERT INTO notifications (user_id, type, content, link) VALUES (?, 'thread_message', ?, ?)");
-                            $nStmt->bind_param("iss", $pUserId, $notifContent, $link);
-                            $nStmt->execute();
-                            $nStmt->close();
-                            notifyRealtimeServer('new_notification', ['userId' => $pUserId]);
-                        }
-                    }
-
-                    // Discord Webhook Integration
-                    $wStmt = $mysqli->prepare("SELECT name, discord_webhook_url FROM threads WHERE id = ?");
-                    $wStmt->bind_param("i", $threadId);
-                    $wStmt->execute();
-                    $wRes = $wStmt->get_result();
-                    if ($wRow = $wRes->fetch_assoc()) {
-                        $threadName = $wRow['name'];
-                        if ($wRow['discord_webhook_url']) {
-                            // Get user info for webhook
-                            $uStmt = $mysqli->prepare("SELECT username, avatar_url FROM users WHERE id = ?");
-                            $uStmt->bind_param("i", $userId);
-                            $uStmt->execute();
-                            $uRes = $uStmt->get_result();
-                            if ($uRow = $uRes->fetch_assoc()) {
-                                $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http");
-                                $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-                                $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
-                                $baseUrl = $protocol . "://" . $host . dirname($requestUri);
-
-                                sendDiscordWebhook($wRow['discord_webhook_url'], $uRow['username'], $content, $uRow['avatar_url'], $attachmentPath, $baseUrl);
-                            }
-                            $uStmt->close();
-                        }
-                    }
-                    $wStmt->close();
-                }
-
-                echo json_encode(['success' => true]);
-            } else {
-                echo json_encode(['error' => 'Thread and content/attachment required']);
-            }
-            exit;
-        }
-
-        if ($action === 'delete_message') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit; // Enforce CSRF Check
-            $msgId = $_POST['message_id'] ?? 0;
-            // Verify ownership
-            $stmt = $mysqli->prepare("SELECT user_id FROM messages WHERE id = ?");
-            $stmt->bind_param("i", $msgId);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            if ($row = $res->fetch_assoc()) {
-                if ($row['user_id'] == $userId) {
-                    // Hard delete or Soft delete? Using Hard delete for now as per plan
-                    $del = $mysqli->prepare("DELETE FROM messages WHERE id = ?");
-                    $del->bind_param("i", $msgId);
-                    $del->execute();
-                    echo json_encode(['success' => true]);
-                } else {
-                    echo json_encode(['error' => 'Forbidden']);
                 }
             } else {
-                echo json_encode(['error' => 'Not found']);
-            }
-            exit;
-        }
-
-        if ($action === 'set_last_thread') {
-            $threadId = $_GET['thread_id'] ?? 1;
-            $stmt = $mysqli->prepare("UPDATE users SET last_thread_id = ? WHERE id = ?");
-            $stmt->bind_param("ii", $threadId, $userId);
-            $stmt->execute();
-            echo json_encode(['success' => true]);
-            $stmt->close();
-            exit;
-        }
-
-        // --- Friend System API ---
-
-        if ($action === 'request_friend') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $targetId = $_POST['target_id'] ?? 0;
-            if ($targetId == $userId) {
-                echo json_encode(['error' => 'Cannot add self']);
+                echo json_encode(['error' => 'Invalid file type or content']);
                 exit;
             }
+        }
 
-            // Check existence
-            $stmt = $mysqli->prepare("SELECT id, status FROM friends WHERE (user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?)");
-            $stmt->bind_param("iiii", $userId, $targetId, $targetId, $userId);
+        if (($receiverId && $content !== '') || ($receiverId && $attachmentPath)) {
+            $expiresIn = $_POST['expires_in'] ?? 0;
+            $expiresAt = $expiresIn > 0 ? date('Y-m-d H:i:s', time() + (int)$expiresIn) : null;
+
+            $stmt = $mysqli->prepare("INSERT INTO direct_messages (sender_id, receiver_id, content, attachment_path, expires_at) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("iisss", $userId, $receiverId, $content, $attachmentPath, $expiresAt);
             $stmt->execute();
-            if ($stmt->get_result()->num_rows > 0) {
-                echo json_encode(['error' => 'Already friends or pending']);
+            $dmId = $stmt->insert_id;
+
+            // Notify Realtime Server
+            $newDm = [
+                'id' => $dmId,
+                'sender_id' => $userId,
+                'receiver_id' => $receiverId,
+                'content' => $content,
+                'attachment_path' => $attachmentPath,
+                'username' => $_SESSION['username'] ?? 'User',
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+            notifyRealtimeServer('new_dm', ['receiverId' => $receiverId, 'message' => $newDm]);
+
+            // Push Notification
+            sendPushNotification($receiverId, [
+                'title' => '新着DM: ' . ($_SESSION['username'] ?? 'User'),
+                'body' => $content,
+                'icon' => 'assets/img/SYCS_favicon.svg',
+                'data' => ['url' => 'index.php?dm=' . $userId]
+            ]);
+
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Receiver and content/attachment required']);
+        }
+        exit;
+    }
+
+    if ($action === 'send_message') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null); // Enforce CSRF Check
+        $threadId = !empty($_POST['thread_id']) ? $_POST['thread_id'] : null;
+        $groupThreadId = !empty($_POST['group_thread_id']) ? $_POST['group_thread_id'] : null;
+        $content = $_POST['content'] ?? '';
+        $replyToId = !empty($_POST['reply_to_id']) ? $_POST['reply_to_id'] : null;
+        $attachmentPath = null;
+
+        // Handle File Upload (ALLOWLIST approach)
+        if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+            $tmpName = $_FILES['attachment']['tmp_name'];
+            $fileName = $_FILES['attachment']['name'];
+            $fileInfo = pathinfo($fileName);
+            $ext = strtolower($fileInfo['extension'] ?? '');
+
+            require_once __DIR__ . '/../backend/SecurityUtil.php';
+
+            if (SecurityUtil::validateFile($tmpName, $ext)) {
+                $uuid = SecurityUtil::generateUuid();
+
+                if ($ext === 'svg') {
+                    // Logic for SVG: Sanitize -> Protected Storage -> Convert PNG -> Public Storage
+                    $rawContent = file_get_contents($tmpName);
+                    $sanitized = SecurityUtil::sanitizeSVG($rawContent);
+
+                    if ($sanitized) {
+                        // Save Original (Sanitized) to protected
+                        $protectedDir = __DIR__ . '/../protected_uploads/';
+                        if (!is_dir($protectedDir)) mkdir($protectedDir, 0700, true);
+                        file_put_contents($protectedDir . $uuid . '.svg', $sanitized);
+
+                        // Convert to PNG for display
+                        $publicDir = __DIR__ . '/uploads/';
+                        if (!is_dir($publicDir)) mkdir($publicDir, 0755, true);
+
+                        $pngName = $uuid . '.png';
+                        $publicPath = $publicDir . $pngName;
+
+                        if (SecurityUtil::convertSvgToPng($protectedDir . $uuid . '.svg', $publicPath)) {
+                            // Success: DB stores PNG path. 
+                            $attachmentPath = 'uploads/' . $pngName;
+                        } else {
+                            echo json_encode(['error' => 'SVG Conversion Failed']);
+                            exit;
+                        }
+                    } else {
+                        echo json_encode(['error' => 'Invalid SVG content']);
+                        exit;
+                    }
+                } else {
+                    // Standard File Flow
+                    $uploadDir = __DIR__ . '/uploads/';
+                    if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+                    $newFileName = $uuid . '.' . $ext;
+
+                    if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
+                        $attachmentPath = 'uploads/' . $newFileName;
+                    }
+                }
             } else {
-                // Insert (user_id_1 is sender)
-                $stmt = $mysqli->prepare("INSERT INTO friends (user_id_1, user_id_2, status) VALUES (?, ?, 'pending')");
-                $stmt->bind_param("ii", $userId, $targetId);
-                $stmt->execute();
-
-                // Notification for Friend Request
-                $notifContent = ($_SESSION['username'] ?? 'User') . "さんからフレンド申請が届きました。";
-                $link = "index.php?tab=dm"; // Friend Hub
-                $nStmt = $mysqli->prepare("INSERT INTO notifications (user_id, type, content, link) VALUES (?, 'friend_request', ?, ?)");
-                $nStmt->bind_param("iss", $targetId, $notifContent, $link);
-                $nStmt->execute();
-                $nStmt->close();
-                notifyRealtimeServer('new_notification', ['userId' => $targetId]);
-
-                echo json_encode(['success' => true]);
+                echo json_encode(['error' => 'Invalid file type or content']);
+                exit;
             }
+        }
+
+        if ((($threadId !== null || $groupThreadId !== null) && ($content !== '' || $attachmentPath !== null))) {
+            $expiresIn = $_POST['expires_in'] ?? 0;
+            $expiresAt = $expiresIn > 0 ? date('Y-m-d H:i:s', time() + (int)$expiresIn) : null;
+
+            $stmt = $mysqli->prepare("INSERT INTO messages (thread_id, group_thread_id, user_id, content, reply_to_id, attachment_path, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("iiisiss", $threadId, $groupThreadId, $userId, $content, $replyToId, $attachmentPath, $expiresAt);
+            $stmt->execute();
+            $msgId = $stmt->insert_id;
+            $stmt->close();
+
+            // Notify Realtime Server
+            $newMsg = [
+                'id' => $msgId,
+                'thread_id' => $threadId,
+                'group_thread_id' => $groupThreadId,
+                'user_id' => $userId,
+                'content' => $content,
+                'attachment_path' => $attachmentPath,
+                'username' => $_SESSION['username'] ?? 'User',
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+
+            if ($groupThreadId) {
+                notifyRealtimeServer('new_group_message', ['groupThreadId' => $groupThreadId, 'message' => $newMsg]);
+            } elseif ($threadId) {
+                notifyRealtimeServer('new_message', ['threadId' => $threadId, 'message' => $newMsg]);
+            }
+
+            if ($threadId) {
+                // Discord Webhook Integration
+                $wStmt = $mysqli->prepare("SELECT discord_webhook_url FROM threads WHERE id = ?");
+                $wStmt->bind_param("i", $threadId);
+                $wStmt->execute();
+                $wRes = $wStmt->get_result();
+                if ($wRow = $wRes->fetch_assoc()) {
+                    if ($wRow['discord_webhook_url']) {
+                        // Get user info for webhook
+                        $uStmt = $mysqli->prepare("SELECT username, avatar_url FROM users WHERE id = ?");
+                        $uStmt->bind_param("i", $userId);
+                        $uStmt->execute();
+                        $uRes = $uStmt->get_result();
+                        if ($uRow = $uRes->fetch_assoc()) {
+                            $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http");
+                            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                            $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+                            $baseUrl = $protocol . "://" . $host . dirname($requestUri);
+
+                            sendDiscordWebhook($wRow['discord_webhook_url'], $uRow['username'], $content, $uRow['avatar_url'], $attachmentPath, $baseUrl);
+                        }
+                        $uStmt->close();
+                    }
+                }
+                $wStmt->close();
+            }
+
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Thread and content/attachment required']);
+        }
+        exit;
+    }
+
+    if ($action === 'delete_message') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null); // Enforce CSRF Check
+        $msgId = $_POST['message_id'] ?? 0;
+        // Verify ownership
+        $stmt = $mysqli->prepare("SELECT user_id FROM messages WHERE id = ?");
+        $stmt->bind_param("i", $msgId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($row = $res->fetch_assoc()) {
+            if ($row['user_id'] == $userId) {
+                // Hard delete or Soft delete? Using Hard delete for now as per plan
+                $del = $mysqli->prepare("DELETE FROM messages WHERE id = ?");
+                $del->bind_param("i", $msgId);
+                $del->execute();
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['error' => 'Forbidden']);
+            }
+        } else {
+            echo json_encode(['error' => 'Not found']);
+        }
+        exit;
+    }
+
+    if ($action === 'set_last_thread') {
+        $threadId = $_GET['thread_id'] ?? 1;
+        $stmt = $mysqli->prepare("UPDATE users SET last_thread_id = ? WHERE id = ?");
+        $stmt->bind_param("ii", $threadId, $userId);
+        $stmt->execute();
+        echo json_encode(['success' => true]);
+        $stmt->close();
+        exit;
+    }
+
+    // --- Friend System API ---
+
+    if ($action === 'request_friend') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $targetId = $_POST['target_id'] ?? 0;
+        if ($targetId == $userId) {
+            echo json_encode(['error' => 'Cannot add self']);
             exit;
         }
 
-        if ($action === 'accept_friend') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $requestId = $_POST['request_id'] ?? 0;
-            // Verify I am the receiver (user_id_2)
-            $stmt = $mysqli->prepare("UPDATE friends SET status = 'accepted' WHERE id = ? AND user_id_2 = ? AND status = 'pending'");
-            $stmt->bind_param("ii", $requestId, $userId);
+        // Check existence
+        $stmt = $mysqli->prepare("SELECT id, status FROM friends WHERE (user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?)");
+        $stmt->bind_param("iiii", $userId, $targetId, $targetId, $userId);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows > 0) {
+            echo json_encode(['error' => 'Already friends or pending']);
+        } else {
+            // Insert (user_id_1 is sender)
+            $stmt = $mysqli->prepare("INSERT INTO friends (user_id_1, user_id_2, status) VALUES (?, ?, 'pending')");
+            $stmt->bind_param("ii", $userId, $targetId);
             $stmt->execute();
-            if ($stmt->affected_rows > 0) {
-                echo json_encode(['success' => true]);
-            } else {
-                echo json_encode(['error' => 'Invalid request']);
-            }
-            exit;
+            echo json_encode(['success' => true]);
         }
+        exit;
+    }
 
-        if ($action === 'get_friend_requests') {
-            // Incoming requests (I am user_id_2)
-            $stmt = $mysqli->prepare("
+    if ($action === 'accept_friend') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $requestId = $_POST['request_id'] ?? 0;
+        // Verify I am the receiver (user_id_2)
+        $stmt = $mysqli->prepare("UPDATE friends SET status = 'accepted' WHERE id = ? AND user_id_2 = ? AND status = 'pending'");
+        $stmt->bind_param("ii", $requestId, $userId);
+        $stmt->execute();
+        if ($stmt->affected_rows > 0) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['error' => 'Invalid request']);
+        }
+        exit;
+    }
+
+    if ($action === 'get_friend_requests') {
+        // Incoming requests (I am user_id_2)
+        $stmt = $mysqli->prepare("
         SELECT f.id, u.username 
         FROM friends f 
         JOIN users u ON f.user_id_1 = u.id 
         WHERE f.user_id_2 = ? AND f.status = 'pending'
     ");
-            $stmt->bind_param("i", $userId);
-            $stmt->execute();
-            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
-            exit;
-        }
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
 
-        if ($action === 'get_friends') {
-            // Accepted friends, sorted by most recent conversation
-            $stmt = $mysqli->prepare("
+    if ($action === 'get_friends') {
+        // Accepted friends, sorted by most recent conversation
+        $stmt = $mysqli->prepare("
         SELECT u.id, u.username, u.status, u.custom_status, u.avatar_url, u.banner_color,
         MAX(dm.created_at) as last_msg_at
         FROM friends f
@@ -1652,332 +1442,321 @@ if (isset($_GET['api'])) {
         GROUP BY u.id
         ORDER BY last_msg_at DESC, u.username ASC
     ");
-            $stmt->bind_param("iiiii", $userId, $userId, $userId, $userId, $userId);
-            $stmt->execute();
-            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
-            exit;
+        $stmt->bind_param("iiiii", $userId, $userId, $userId, $userId, $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    // --- Favorites API ---
+
+    if ($action === 'toggle_favorite') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $threadId = $_POST['thread_id'] ?? 0;
+
+        // Check if exists
+        $stmt = $mysqli->prepare("SELECT id FROM favorites WHERE user_id = ? AND thread_id = ?");
+        $stmt->bind_param("ii", $userId, $threadId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+
+        if ($row = $res->fetch_assoc()) {
+            // Remove
+            $del = $mysqli->prepare("DELETE FROM favorites WHERE id = ?");
+            $del->bind_param("i", $row['id']);
+            $del->execute();
+            echo json_encode(['success' => true, 'status' => 'removed']);
+        } else {
+            // Add
+            $ins = $mysqli->prepare("INSERT INTO favorites (user_id, thread_id) VALUES (?, ?)");
+            $ins->bind_param("ii", $userId, $threadId);
+            $ins->execute();
+            echo json_encode(['success' => true, 'status' => 'added']);
         }
+        exit;
+    }
 
-        // --- Favorites API ---
-
-        if ($action === 'toggle_favorite') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $threadId = $_POST['thread_id'] ?? 0;
-
-            // Check if exists
-            $stmt = $mysqli->prepare("SELECT id FROM favorites WHERE user_id = ? AND thread_id = ?");
-            $stmt->bind_param("ii", $userId, $threadId);
-            $stmt->execute();
-            $res = $stmt->get_result();
-
-            if ($row = $res->fetch_assoc()) {
-                // Remove
-                $del = $mysqli->prepare("DELETE FROM favorites WHERE id = ?");
-                $del->bind_param("i", $row['id']);
-                $del->execute();
-                echo json_encode(['success' => true, 'status' => 'removed']);
-            } else {
-                // Add
-                $ins = $mysqli->prepare("INSERT INTO favorites (user_id, thread_id) VALUES (?, ?)");
-                $ins->bind_param("ii", $userId, $threadId);
-                $ins->execute();
-                echo json_encode(['success' => true, 'status' => 'added']);
-            }
-            exit;
-        }
-
-        if ($action === 'get_favorites') {
-            $stmt = $mysqli->prepare("
+    if ($action === 'get_favorites') {
+        $stmt = $mysqli->prepare("
         SELECT t.* 
         FROM favorites f 
         JOIN threads t ON f.thread_id = t.id 
         WHERE f.user_id = ?
         ORDER BY f.created_at DESC
     ");
-            $stmt->bind_param("i", $userId);
-            $stmt->execute();
-            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    if ($action === 'check_favorite') {
+        $threadId = $_GET['thread_id'] ?? 0;
+        $stmt = $mysqli->prepare("SELECT id FROM favorites WHERE user_id = ? AND thread_id = ?");
+        $stmt->bind_param("ii", $userId, $threadId);
+        $stmt->execute();
+        echo json_encode(['is_favorite' => $stmt->get_result()->num_rows > 0]);
+        exit;
+    }
+
+    // --- Block System API ---
+
+    if ($action === 'block_user') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $targetId = $_POST['target_id'] ?? 0;
+        if ($targetId == $userId) {
+            echo json_encode(['error' => 'Cannot block self']);
             exit;
         }
+        $stmt = $mysqli->prepare("INSERT IGNORE INTO blocked_users (blocker_id, blocked_id) VALUES (?, ?)");
+        $stmt->bind_param("ii", $userId, $targetId);
+        $stmt->execute();
 
-        if ($action === 'check_favorite') {
-            $threadId = $_GET['thread_id'] ?? 0;
-            $stmt = $mysqli->prepare("SELECT id FROM favorites WHERE user_id = ? AND thread_id = ?");
-            $stmt->bind_param("ii", $userId, $threadId);
-            $stmt->execute();
-            echo json_encode(['is_favorite' => $stmt->get_result()->num_rows > 0]);
-            exit;
-        }
+        // Also remove friendship if exists
+        $del = $mysqli->prepare("DELETE FROM friends WHERE (user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?)");
+        $del->bind_param("iiii", $userId, $targetId, $targetId, $userId);
+        $del->execute();
 
-        // --- Block System API ---
+        echo json_encode(['success' => true]);
+        exit;
+    }
 
-        if ($action === 'block_user') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $targetId = $_POST['target_id'] ?? 0;
-            if ($targetId == $userId) {
-                echo json_encode(['error' => 'Cannot block self']);
-                exit;
-            }
-            $stmt = $mysqli->prepare("INSERT IGNORE INTO blocked_users (blocker_id, blocked_id) VALUES (?, ?)");
-            $stmt->bind_param("ii", $userId, $targetId);
-            $stmt->execute();
+    if ($action === 'unblock_user') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $targetId = $_POST['target_id'] ?? 0;
+        $stmt = $mysqli->prepare("DELETE FROM blocked_users WHERE blocker_id = ? AND blocked_id = ?");
+        $stmt->bind_param("ii", $userId, $targetId);
+        $stmt->execute();
+        echo json_encode(['success' => true]);
+        exit;
+    }
 
-            // Also remove friendship if exists
-            $del = $mysqli->prepare("DELETE FROM friends WHERE (user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?)");
-            $del->bind_param("iiii", $userId, $targetId, $targetId, $userId);
-            $del->execute();
-
-            echo json_encode(['success' => true]);
-            exit;
-        }
-
-        if ($action === 'unblock_user') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $targetId = $_POST['target_id'] ?? 0;
-            $stmt = $mysqli->prepare("DELETE FROM blocked_users WHERE blocker_id = ? AND blocked_id = ?");
-            $stmt->bind_param("ii", $userId, $targetId);
-            $stmt->execute();
-            echo json_encode(['success' => true]);
-            exit;
-        }
-
-        if ($action === 'get_blocked_users') {
-            $stmt = $mysqli->prepare("
+    if ($action === 'get_blocked_users') {
+        $stmt = $mysqli->prepare("
         SELECT u.id, u.username 
         FROM blocked_users b 
         JOIN users u ON b.blocked_id = u.id 
         WHERE b.blocker_id = ?
     ");
-            $stmt->bind_param("i", $userId);
-            $stmt->execute();
-            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
-            exit;
-        }
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
 
-        if ($action === 'search_users') {
-            $query = $_GET['q'] ?? '';
-            $query = "%$query%";
-            // Search by ID (exact) or Username (partial)
-            // Exclude self and blocked users? 
-            // Logic: Exclude self.
-            $stmt = $mysqli->prepare("
+    if ($action === 'get_my_files') {
+        $stmt = $mysqli->prepare("
+            SELECT DISTINCT attachment_path, created_at FROM (
+                SELECT attachment_path, created_at FROM messages WHERE user_id = ? AND attachment_path IS NOT NULL
+                UNION ALL
+                SELECT attachment_path, created_at FROM direct_messages WHERE sender_id = ? AND attachment_path IS NOT NULL
+            ) as combined_files
+            ORDER BY created_at DESC
+            LIMIT 50
+        ");
+        $stmt->bind_param("ii", $userId, $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    if ($action === 'search_users') {
+        $query = $_GET['q'] ?? '';
+        $query = "%$query%";
+        // Search by ID (exact) or Username (partial)
+        // Exclude self and blocked users? 
+        // Logic: Exclude self.
+        $stmt = $mysqli->prepare("
         SELECT id, username FROM users 
         WHERE id != ? 
         AND (username LIKE ? OR id = ?)
         LIMIT 20
     ");
-            // For ID search, simpler to just param check
-            $idParam = is_numeric($_GET['q']) ? $_GET['q'] : 0;
-            $stmt->bind_param("isi", $userId, $query, $idParam);
+        // For ID search, simpler to just param check
+        $idParam = is_numeric($_GET['q']) ? $_GET['q'] : 0;
+        $stmt->bind_param("isi", $userId, $query, $idParam);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
+
+    if ($action === 'join_meeting') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $threadId = $_POST['thread_id'] ?? null;
+        $dmPartnerId = $_POST['dm_partner_id'] ?? null;
+
+        // Generate a stable room name
+        if ($threadId) {
+            $roomName = "thread_" . $threadId;
+            // Verify access (could add more complex logic, but baseline is "thread exists")
+            // In a real app, check if user is a member or thread is public
+        } else if ($dmPartnerId) {
+            $ids = [$userId, $dmPartnerId];
+            sort($ids);
+            $roomName = "dm_" . $ids[0] . "_" . $ids[1];
+
+            // Verify DM Partnership
+            $stmt = $mysqli->prepare("SELECT id FROM friends WHERE ((user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?)) AND status = 'accepted'");
+            $stmt->bind_param("iiii", $userId, $dmPartnerId, $dmPartnerId, $userId);
             $stmt->execute();
-            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
-            exit;
-        }
-
-        if ($action === 'join_meeting') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $threadId = $_POST['thread_id'] ?? null;
-            $dmPartnerId = $_POST['dm_partner_id'] ?? null;
-
-            // Generate a stable room name
-            if ($threadId) {
-                $roomName = "thread_" . $threadId;
-                // Verify access (could add more complex logic, but baseline is "thread exists")
-                // In a real app, check if user is a member or thread is public
-            } else if ($dmPartnerId) {
-                $ids = [$userId, $dmPartnerId];
-                sort($ids);
-                $roomName = "dm_" . $ids[0] . "_" . $ids[1];
-
-                // Verify DM Partnership
-                $stmt = $mysqli->prepare("SELECT id FROM friends WHERE ((user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?)) AND status = 'accepted'");
-                $stmt->bind_param("iiii", $userId, $dmPartnerId, $dmPartnerId, $userId);
-                $stmt->execute();
-                if ($stmt->get_result()->num_rows === 0) {
-                    http_response_code(403);
-                    echo json_encode(['error' => 'Forbidden: Must be friends to start DM meeting']);
-                    exit;
-                }
-            } else {
-                http_response_code(400);
-                echo json_encode(['error' => 'Thread or DM partner required']);
-                exit;
-            }
-
-            // Find or create room
-            $stmt = $mysqli->prepare("SELECT id FROM meeting_rooms WHERE room_name = ?");
-            $stmt->bind_param("s", $roomName);
-            $stmt->execute();
-            $room = $stmt->get_result()->fetch_assoc();
-
-            if (!$room) {
-                $stmt = $mysqli->prepare("INSERT INTO meeting_rooms (thread_id, dm_partner_id, creator_id, room_name) VALUES (?, ?, ?, ?)");
-                $stmt->bind_param("iiis", $threadId, $dmPartnerId, $userId, $roomName);
-                $stmt->execute();
-                $roomId = $stmt->insert_id;
-            } else {
-                $roomId = $room['id'];
-            }
-
-            echo json_encode(['success' => true, 'room_id' => $roomId, 'room_name' => $roomName]);
-            exit;
-        }
-
-        if ($action === 'send_signaling') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $roomId = $_POST['room_id'] ?? 0;
-            $receiverId = $_POST['receiver_id'] ?? 0;
-            $type = $_POST['type'] ?? '';
-            $content = $_POST['content'] ?? '';
-
-            // Verify Room Membership/Access
-            $stmt = $mysqli->prepare("SELECT thread_id, dm_partner_id, creator_id FROM meeting_rooms WHERE id = ?");
-            $stmt->bind_param("i", $roomId);
-            $stmt->execute();
-            $room = $stmt->get_result()->fetch_assoc();
-
-            if (!$room) {
-                http_response_code(404);
-                echo json_encode(['error' => 'Room not found']);
-                exit;
-            }
-
-            // Basic check: I am creator? OR if DM, I am one of the parties?
-            $isDmParty = ($room['dm_partner_id'] && ($room['dm_partner_id'] == $userId || $room['creator_id'] == $userId));
-            $isThreadParty = ($room['thread_id'] !== null); // Assuming threads are accessible by logged-in users
-
-            if (!$isDmParty && !$isThreadParty) {
+            if ($stmt->get_result()->num_rows === 0) {
                 http_response_code(403);
-                echo json_encode(['error' => 'Forbidden']);
+                echo json_encode(['error' => 'Forbidden: Must be friends to start DM meeting']);
                 exit;
             }
-
-            $stmt = $mysqli->prepare("INSERT INTO signaling (room_id, sender_id, receiver_id, type, content) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("iiiss", $roomId, $userId, $receiverId, $type, $content);
-            $stmt->execute();
-            echo json_encode(['success' => true]);
+        } else {
+            http_response_code(400);
+            echo json_encode(['error' => 'Thread or DM partner required']);
             exit;
         }
 
-        if ($action === 'get_signaling') {
-            $roomId = $_GET['room_id'] ?? 0;
-            $lastId = $_GET['last_id'] ?? 0;
+        // Find or create room
+        $stmt = $mysqli->prepare("SELECT id FROM meeting_rooms WHERE room_name = ?");
+        $stmt->bind_param("s", $roomName);
+        $stmt->execute();
+        $room = $stmt->get_result()->fetch_assoc();
 
-            // Fetch new signaling messages for ME
-            $stmt = $mysqli->prepare("
+        if (!$room) {
+            $stmt = $mysqli->prepare("INSERT INTO meeting_rooms (thread_id, dm_partner_id, creator_id, room_name) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("iiis", $threadId, $dmPartnerId, $userId, $roomName);
+            $stmt->execute();
+            $roomId = $stmt->insert_id;
+        } else {
+            $roomId = $room['id'];
+        }
+
+        echo json_encode(['success' => true, 'room_id' => $roomId, 'room_name' => $roomName]);
+        exit;
+    }
+
+    if ($action === 'send_signaling') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $roomId = $_POST['room_id'] ?? 0;
+        $receiverId = $_POST['receiver_id'] ?? 0;
+        $type = $_POST['type'] ?? '';
+        $content = $_POST['content'] ?? '';
+
+        // Verify Room Membership/Access
+        $stmt = $mysqli->prepare("SELECT thread_id, dm_partner_id, creator_id FROM meeting_rooms WHERE id = ?");
+        $stmt->bind_param("i", $roomId);
+        $stmt->execute();
+        $room = $stmt->get_result()->fetch_assoc();
+
+        if (!$room) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Room not found']);
+            exit;
+        }
+
+        // Basic check: I am creator? OR if DM, I am one of the parties?
+        $isDmParty = ($room['dm_partner_id'] && ($room['dm_partner_id'] == $userId || $room['creator_id'] == $userId));
+        $isThreadParty = ($room['thread_id'] !== null); // Assuming threads are accessible by logged-in users
+
+        if (!$isDmParty && !$isThreadParty) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Forbidden']);
+            exit;
+        }
+
+        $stmt = $mysqli->prepare("INSERT INTO signaling (room_id, sender_id, receiver_id, type, content) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("iiiss", $roomId, $userId, $receiverId, $type, $content);
+        $stmt->execute();
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    if ($action === 'get_signaling') {
+        $roomId = $_GET['room_id'] ?? 0;
+        $lastId = $_GET['last_id'] ?? 0;
+
+        // Fetch new signaling messages for ME
+        $stmt = $mysqli->prepare("
         SELECT s.*, u.username as sender_name 
         FROM signaling s 
         JOIN users u ON s.sender_id = u.id 
         WHERE s.room_id = ? AND s.receiver_id = ? AND s.id > ?
         ORDER BY s.created_at ASC
     ");
-            $stmt->bind_param("iii", $roomId, $userId, $lastId);
+        $stmt->bind_param("iii", $roomId, $userId, $lastId);
+        $stmt->execute();
+        $res = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        echo json_encode($res);
+        exit;
+    }
+
+    if ($action === 'toggle_mute') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $targetType = $_POST['target_type'] ?? '';
+        $targetId = $_POST['target_id'] ?? 0;
+        $isMuted = ($_POST['is_muted'] ?? '1') === '1';
+
+        if ($isMuted) {
+            $stmt = $mysqli->prepare("INSERT IGNORE INTO user_notification_settings (user_id, target_type, target_id) VALUES (?, ?, ?)");
+            $stmt->bind_param("isi", $userId, $targetType, $targetId);
             $stmt->execute();
-            $res = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-            echo json_encode($res);
-            exit;
-        }
-
-        if ($action === 'toggle_mute') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $targetType = $_POST['target_type'] ?? '';
-            $targetId = $_POST['target_id'] ?? 0;
-            $isMuted = ($_POST['is_muted'] ?? '1') === '1';
-
-            if ($isMuted) {
-                $stmt = $mysqli->prepare("INSERT IGNORE INTO user_notification_settings (user_id, target_type, target_id) VALUES (?, ?, ?)");
-                $stmt->bind_param("isi", $userId, $targetType, $targetId);
-                $stmt->execute();
-                echo json_encode(['success' => true, 'muted' => true]);
-            } else {
-                $stmt = $mysqli->prepare("DELETE FROM user_notification_settings WHERE user_id = ? AND target_type = ? AND target_id = ?");
-                $stmt->bind_param("isi", $userId, $targetType, $targetId);
-                $stmt->execute();
-                echo json_encode(['success' => true, 'muted' => false]);
-            }
-            exit;
-        }
-
-        if ($action === 'get_mute_statuses') {
-            $stmt = $mysqli->prepare("SELECT target_type, target_id FROM user_notification_settings WHERE user_id = ?");
-            $stmt->bind_param("i", $userId);
+            echo json_encode(['success' => true, 'muted' => true]);
+        } else {
+            $stmt = $mysqli->prepare("DELETE FROM user_notification_settings WHERE user_id = ? AND target_type = ? AND target_id = ?");
+            $stmt->bind_param("isi", $userId, $targetType, $targetId);
             $stmt->execute();
-            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
-            exit;
+            echo json_encode(['success' => true, 'muted' => false]);
         }
+        exit;
+    }
 
-        if ($action === 'update_notification_keywords') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $keywords = $_POST['keywords'] ?? null;
-            $stmt = $mysqli->prepare("UPDATE users SET notification_keywords = ? WHERE id = ?");
-            $stmt->bind_param("si", $keywords, $userId);
-            $stmt->execute();
-            echo json_encode(['success' => true]);
-            exit;
-        }
+    if ($action === 'get_mute_statuses') {
+        $stmt = $mysqli->prepare("SELECT target_type, target_id FROM user_notification_settings WHERE user_id = ?");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
 
-        if ($action === 'get_notifications') {
-            $stmt = $mysqli->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50");
-            $stmt->bind_param("i", $userId);
-            $stmt->execute();
-            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
-            exit;
-        }
+    if ($action === 'update_notification_keywords') {
+        verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null);
+        $keywords = $_POST['keywords'] ?? '';
+        $stmt = $mysqli->prepare("UPDATE users SET notification_keywords = ? WHERE id = ?");
+        $stmt->bind_param("si", $keywords, $userId);
+        $stmt->execute();
+        echo json_encode(['success' => true]);
+        exit;
+    }
 
-        if ($action === 'mark_notification_read') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $notifId = $_POST['notification_id'] ?? 0;
-            $stmt = $mysqli->prepare("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?");
-            $stmt->bind_param("ii", $notifId, $userId);
-            $stmt->execute();
-            echo json_encode(['success' => true]);
-            exit;
-        }
+    // --- New: Pinned Messages List ---
+    if ($action === 'get_pinned_messages') {
+        $threadId = $_GET['thread_id'] ?? null;
+        $groupThreadId = $_GET['group_thread_id'] ?? null;
 
-        if ($action === 'mark_all_notifications_read') {
-            if (!verify_csrf($_POST['csrf_token'] ?? null, $_SESSION['csrf_token'] ?? null)) exit;
-            $stmt = $mysqli->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ?");
-            $stmt->bind_param("i", $userId);
-            $stmt->execute();
-            echo json_encode(['success' => true]);
-            exit;
-        }
-
-        // --- New: Pinned Messages List ---
-        if ($action === 'get_pinned_messages') {
-            $threadId = $_GET['thread_id'] ?? null;
-            $groupThreadId = $_GET['group_thread_id'] ?? null;
-
-            if ($threadId) {
-                $stmt = $mysqli->prepare("
+        if ($threadId) {
+            $stmt = $mysqli->prepare("
                 SELECT m.*, u.username, u.avatar_url
                 FROM messages m
                 JOIN users u ON m.user_id = u.id
                 WHERE m.thread_id = ? AND m.is_pinned = 1
                 ORDER BY m.created_at DESC
             ");
-                $stmt->bind_param("i", $threadId);
-            } elseif ($groupThreadId) {
-                $stmt = $mysqli->prepare("
+            $stmt->bind_param("i", $threadId);
+        } elseif ($groupThreadId) {
+            $stmt = $mysqli->prepare("
                 SELECT m.*, u.username, u.avatar_url
                 FROM messages m
                 JOIN users u ON m.user_id = u.id
                 WHERE m.group_thread_id = ? AND m.is_pinned = 1
                 ORDER BY m.created_at DESC
             ");
-                $stmt->bind_param("i", $groupThreadId);
-            } else {
-                echo json_encode([]);
-                exit;
-            }
-            $stmt->execute();
-            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+            $stmt->bind_param("i", $groupThreadId);
+        } else {
+            echo json_encode([]);
             exit;
         }
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
 
-        // --- New: Online Users List ---
-        if ($action === 'get_online_users') {
-            $stmt = $mysqli->prepare("
+    // --- New: Online Users List ---
+    if ($action === 'get_online_users') {
+        $stmt = $mysqli->prepare("
             SELECT id, username, status, custom_status, avatar_url
             FROM users
             WHERE status IN ('online', 'busy', 'not_allowed', 'step_out', 'going_away', 'away')
@@ -1995,50 +1774,29 @@ if (isset($_GET['api'])) {
                 username ASC
             LIMIT 50
         ");
-            $stmt->bind_param("i", $userId);
-            $stmt->execute();
-            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
-            exit;
-        }
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        exit;
+    }
 
-        // --- New: Unread DM Counts ---
-        if ($action === 'get_unread_dm_counts') {
-            $stmt = $mysqli->prepare("
+    // --- New: Unread DM Counts ---
+    if ($action === 'get_unread_dm_counts') {
+        $stmt = $mysqli->prepare("
             SELECT sender_id, COUNT(*) as unread_count
             FROM direct_messages
             WHERE receiver_id = ? AND is_read = 0
             GROUP BY sender_id
         ");
-            $stmt->bind_param("i", $userId);
-            $stmt->execute();
-            $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-            $counts = [];
-            foreach ($rows as $row) {
-                $counts[$row['sender_id']] = (int)$row['unread_count'];
-            }
-            $total = array_sum($counts);
-            echo json_encode(['counts' => $counts, 'total' => $total]);
-            exit;
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[$row['sender_id']] = (int)$row['unread_count'];
         }
-    } catch (SecurityException $e) {
-        $logger->warning('Security error: ' . $e->getMessage(), ['action' => $action]);
-        http_response_code(403);
-        echo (new ErrorResponse('SECURITY_ERROR', $e->getMessage(), $e->getUserMessage()))->toJSON();
-        exit;
-    } catch (ValidationException $e) {
-        $logger->warning('Validation error: ' . $e->getMessage(), ['action' => $action]);
-        http_response_code(400);
-        echo (new ErrorResponse('VALIDATION_ERROR', $e->getMessage(), $e->getUserMessage()))->toJSON();
-        exit;
-    } catch (DatabaseException $e) {
-        $logger->error('Database error: ' . $e->getMessage(), ['action' => $action], $e);
-        http_response_code(500);
-        echo (new ErrorResponse('DB_ERROR', $e->getMessage(), 'データベースエラーが発生しました。'))->toJSON();
-        exit;
-    } catch (Exception $e) {
-        $logger->critical('Unexpected error: ' . $e->getMessage(), ['action' => $action], $e);
-        http_response_code(500);
-        echo (new ErrorResponse('SERVER_ERROR', $e->getMessage(), 'サーバーエラーが発生しました。'))->toJSON();
+        $total = array_sum($counts);
+        echo json_encode(['counts' => $counts, 'total' => $total]);
         exit;
     }
 }
@@ -2061,7 +1819,7 @@ if (isset($_GET['logout'])) {
 }
 
 if ($isLoggedIn) {
-    $stmt = $mysqli->prepare("SELECT last_thread_id, status, custom_status, bio, avatar_url, banner_color, social_links, theme_preference, notification_keywords FROM users WHERE id = ?");
+    $stmt = $mysqli->prepare("SELECT last_thread_id, status, custom_status, bio, avatar_url, banner_color, social_links, theme_preference FROM users WHERE id = ?");
     $stmt->bind_param("i", $_SESSION['user_id']);
     $stmt->execute();
     if ($row = $stmt->get_result()->fetch_assoc()) {
@@ -2074,7 +1832,6 @@ if ($isLoggedIn) {
         $currentUserBanner = $row['banner_color'] ?: '#6366f1';
         $currentUserSocialLinks = json_decode($row['social_links'] ?: '{}', true);
         $currentUserThemePref = json_decode($row['theme_preference'] ?: '{}', true);
-        $currentUserKeywords = $row['notification_keywords'];
     }
     $stmt->close();
 
@@ -2113,7 +1870,292 @@ if ($isLoggedIn) {
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/style-index.css">
+    <link rel="stylesheet" href="css/widgets.css">
+    <style>
+        /* Status Indicators */
+        .avatar-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .status-indicator {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid var(--sidebar-bg, #1e1e2e);
+            background-color: #94a3b8;
+            /* Default offline */
+        }
+
+        .status-online {
+            background-color: #6BB700;
+        }
+
+        .status-busy {
+            background-color: #C50F1F;
+        }
+
+        .status-away {
+            background-color: #FCD116;
+        }
+
+        .status-offline {
+            background-color: #747f8d;
+        }
+
+        .status-not_allowed {
+            background-color: #C50F1F;
+        }
+
+        .status-step_out {
+            background-color: #FCD116;
+        }
+
+        .status-going_away {
+            background-color: #e100ffff;
+        }
+
+        /* Status Dropdown */
+        .status-select-container {
+            position: relative;
+            margin-top: 4px;
+        }
+
+        .status-select {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .status-select:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .status-select option {
+            background: #1e1e2e;
+            color: white;
+        }
+
+        /* Discord-style Profile Modal */
+        .profile-modal {
+            background: #1e1e2e;
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            padding: 0;
+            width: 800px;
+            max-width: 90vw;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            top: auto;
+            bottom: 20px;
+        }
+
+        .profile-modal::backdrop {
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .profile-content {
+            display: flex;
+            height: 650px;
+            /* Increased from 500px to see more content */
+        }
+
+        .profile-edit-form {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        .profile-preview-pane {
+            width: 340px;
+            background: #2b2d31;
+            padding: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Discord Card Preview */
+        .discord-card {
+            width: 300px;
+            background: #111214;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .discord-banner {
+            height: 60px;
+            background: var(--accent-color, #6366f1);
+        }
+
+        .discord-avatar-wrapper {
+            margin-top: -30px;
+            margin-left: 16px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .discord-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 6px solid #111214;
+            background: #5865f2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            font-weight: bold;
+            object-fit: cover;
+        }
+
+        .discord-status-indicator {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 4px solid #111214;
+        }
+
+        .discord-body {
+            padding: 16px;
+        }
+
+        .discord-username {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .discord-custom-status {
+            font-size: 0.85rem;
+            color: #dbdee1;
+            margin-bottom: 12px;
+        }
+
+        .discord-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 12px 0;
+        }
+
+        .discord-section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #b5bac1;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .discord-bio {
+            font-size: 0.85rem;
+            color: #dbdee1;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        /* Form styling */
+        .modal-form-group {
+            margin-bottom: 20px;
+        }
+
+        .modal-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #b5bac1;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .modal-input,
+        .modal-textarea {
+            width: 100%;
+            background: #1e1f22;
+            border: none;
+            border-radius: 4px;
+            padding: 10px;
+            color: #dbdee1;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .modal-textarea {
+            resize: none;
+            height: 80px;
+        }
+
+        .modal-input:focus,
+        .modal-textarea:focus {
+            background: #000;
+        }
+
+        #tac-map-container {
+            border-top: 1px solid var(--border-color);
+        }
+
+        .leaflet-container {
+            background: #111 !important;
+        }
+
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-tip {
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-color) !important;
+        }
+
+        .custom-div-icon {
+            background: none !important;
+            border: none !important;
+        }
+
+        .marker-pin {
+            width: 30px;
+            height: 30px;
+            border-radius: 50% 50% 50% 0;
+            background: var(--accent-color);
+            position: absolute;
+            transform: rotate(-45deg);
+            left: 50%;
+            top: 50%;
+            margin: -21px 0 0 -15px;
+            border: 2px solid white;
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .marker-pin::after {
+            content: '';
+            width: 24px;
+            height: 24px;
+            margin: 1px 0 0 1px;
+            background: #fff;
+            position: absolute;
+            border-radius: 50%;
+            z-index: -1;
+        }
+
+        .marker-pin.me {
+            background-color: #10b981;
+            box-shadow: 0 0 15px #10b981;
+        }
+    </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 </head>
 
@@ -2124,16 +2166,16 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end; color: var(--text-secondary);">v1.2.18</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.23</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
-                        <a href="../release_notes/release_notes.php" target="_blank" rel="noopener noreferrer" style="font-size: 0.8rem; margin-left: 120px; align-items: end; text-decoration: none; color: var(--text-primary); background-color: var(--accent-hover); border-radius: 4px; padding: 2px 4px;"><?= __('release_notes') ?></a>
+                        <a href="../release_notes/release_notes.html" style="font-size: 0.8rem; margin-left: 120px; align-items: end; text-decoration: none; color: var(--text-primary); background-color: var(--accent-hover); border-radius: 4px; padding: 2px 4px;">リリースノート</a>
                     </div>
                 </div>
                 <nav>
                     <ul class="nav-list">
-                        <li class="nav-item active" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;" data-tab="threads">
+                        <li class="nav-item active" data-tab="threads">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="4" y1="9" x2="20" y2="9" />
@@ -2141,90 +2183,134 @@ if ($isLoggedIn) {
                                 <line x1="10" y1="3" x2="8" y2="21" />
                                 <line x1="16" y1="3" x2="14" y2="21" />
                             </svg>
-                            <span><?= __('threads') ?></span>
+                            <span>スレッド</span>
                         </li>
-                        <li class="nav-item" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;" data-tab="dm">
+                        <li class="nav-item" data-tab="dm">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                             </svg>
-                            <span><?= __('dm') ?></span>
+                            <span>DM</span>
                             <span id="dm-unread-badge" style="display:none; background:#ef4444; color:white; border-radius:9999px; font-size:0.65rem; font-weight:700; padding:1px 6px; margin-left:6px; min-width:18px; text-align:center;"></span>
                         </li>
-                        <li class="nav-item" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;" data-tab="favorites">
+                        <li class="nav-item" data-tab="favorites">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polygon
                                     points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                             </svg>
-                            <span><?= __('favorites') ?></span>
+                            <span>お気に入り</span>
                         </li>
                         <li class="nav-item" onclick="window.location.href='meetings.php'" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polygon points="23 7 16 12 23 17 23 7"></polygon>
                                 <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                             </svg>
-                            <span style="font-weight: 600; color: #818cf8;">Meeting (ID連携)</span>
+                            <span style="font-weight: 600;">ミーティング(ID連携)</span>
                         </li>
                     </ul>
                 </nav>
+            </div>
+
+            <!-- Sidebar Widgets -->
+            <div class="sidebar-widgets">
+                <div class="widget-tabs">
+                    <button class="widget-tab active" data-widget="clock" title="時計">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </button>
+                    <button class="widget-tab" data-widget="notepad" title="メモ帳">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                    </button>
+                    <button class="widget-tab" data-widget="filer" title="ファイル">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                            <polyline points="13 2 13 9 20 9"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <div class="widget-content">
+                    <div id="widget-clock" class="widget-pane active">
+                        <div class="clock-display">
+                            <div id="analog-clock" class="analog-clock">
+                                <div class="clock-face">
+                                    <div class="sub-dial sub-9"></div>
+                                    <div class="sub-dial sub-3"></div>
+                                    <div class="sub-dial sub-6"></div>
+                                    <div class="date-window"><span>19</span></div>
+                                    <img src="./assets/img/SYCS_Logo.svg" alt="Logo" class="clock-logo">
+                                    <div class="hand hour-hand"></div>
+                                    <div class="hand minute-hand"></div>
+                                    <div class="hand second-hand"></div>
+                                    <div class="center-dot"></div>
+                                </div>
+                            </div>
+                            <div id="digital-clock" class="digital-clock" style="display:none;">00:00:00</div>
+                        </div>
+                        <div class="clock-controls">
+                            <label class="switch-label">
+                                <span>Digital</span>
+                                <div class="switch">
+                                    <input type="checkbox" id="clock-type-toggle" checked>
+                                    <span class="slider"></span>
+                                </div>
+                                <span>Analog</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="widget-notepad" class="widget-pane">
+                        <textarea id="notepad-area" placeholder="メモを入力..."></textarea>
+                    </div>
+                    <div id="widget-filer" class="widget-pane">
+                        <div id="file-list" class="file-list">
+                            <div class="loading">読み込み中...</div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="sidebar-bottom">
                 <div class="user-block">
                     <div class="avatar-container">
                         <div class="avatar" id="global-user-avatar">
                             <?php if ($currentUserAvatar): ?>
-                                <img src="<?= htmlspecialchars($currentUserAvatar ?? '') ?>" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                                <img src="<?= htmlspecialchars($currentUserAvatar) ?>" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
                             <?php else: ?>
-                                <?= htmlspecialchars(mb_substr($currentUser ?? '', 0, 1)) ?>
+                                <?= htmlspecialchars(mb_substr($currentUser, 0, 1)) ?>
                             <?php endif; ?>
                         </div>
-                        <div class="status-indicator status-<?= htmlspecialchars($currentUserStatus ?? 'online') ?>" id="global-status-indicator"></div>
-
+                        <div class="status-indicator status-<?= htmlspecialchars($currentUserStatus) ?>" id="global-status-indicator"></div>
                     </div>
                     <div class="user-info">
                         <span class="user-name"><?= htmlspecialchars($currentUser) ?></span>
                         <div class="status-select-container">
                             <select id="sidebar-status-input" class="modal-input" style="padding: 2px 4px; font-size: 0.75rem; width: auto; background-color: #2a2b2f; border: 1px solid #444; color: #fff;" onchange="updateMyStatus(this.value)">
-                                <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>><?= __('status_online', '連絡可能') ?></option>
-                                <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>><?= __('status_busy', '取り込み中') ?></option>
-                                <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>><?= __('status_not_allowed', '応答不可') ?></option>
-                                <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>><?= __('status_step_out', '一時退席中') ?></option>
-                                <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>><?= __('status_away', '退席中') ?></option>
-                                <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>><?= __('status_offline', 'オフライン表示') ?></option>
-                                <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>><?= __('status_going_away', '外出中') ?></option>
+                                <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>連絡可能</option>
+                                <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
+                                <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>>応答不可</option>
+                                <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>>一時退席中</option>
+                                <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>退席中</option>
+                                <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン表示</option>
+                                <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>>外出中</option>
                             </select>
                         </div>
                     </div>
                 </div>
                 <div class="sidebar-actions">
-                    <a href="javascript:void(0)" onclick="showProfileModal()" class="action-link"><?= __('settings') ?></a>
-                    <select onchange="changeLang(this.value)" style="background:transparent; color:var(--text-secondary); border:none; font-size:0.75rem; cursor:pointer; padding-top: 3px;">
-                        <option value="ja" style="color:var(--text-secondary);" <?= I18n::getInstance()->getCurrentLang() === 'ja' ? 'selected' : '' ?>>日本語</option>
-                        <option value="en" style="color:var(--text-secondary);" <?= I18n::getInstance()->getCurrentLang() === 'en' ? 'selected' : '' ?>>English</option>
-                        <option value="zh" style="color:var(--text-secondary);" <?= I18n::getInstance()->getCurrentLang() === 'zh' ? 'selected' : '' ?>>中文</option>
-                    </select>
-                    <a href="?logout=1" class="action-link" style="color:#f87171;"><?= __('logout') ?></a>
+                    <a href="javascript:void(0)" onclick="showProfileModal()" class="action-link">設定</a>
+                    <a href="?logout=1" class="action-link" style="color:#f87171;">ログアウト</a>
                 </div>
             </div>
         </aside>
 
         <main class="main-content">
-            <!-- Notifications Modal (Centered in Main Content Area) -->
-            <div id="notification-overlay" onclick="toggleNotificationDropdown()"></div>
-            <div id="notification-dropdown">
-                <div class="notif-header">
-                    <h4><?= __('notification_center') ?></h4>
-                    <div style="display:flex; gap:12px; align-items:center;">
-                        <button id="mark-all-read-btn" onclick="markAllNotificationsRead()"><?= __('mark_all_read') ?></button>
-                        <button class="icon-btn" onclick="toggleNotificationDropdown()" style="padding:4px; opacity:0.7;">✕</button>
-                    </div>
-                </div>
-                <div id="notification-list" class="scroller">
-                    <div class="empty-state"><?= __('no_notifications') ?></div>
-                </div>
-            </div>
-
             <section id="threads-pane" class="content-pane active">
                 <div class="chat-area">
                     <header class="chat-header">
@@ -2256,14 +2342,22 @@ if ($isLoggedIn) {
                         </div>
                         <div class="thread-actions" id="thread-actions-block" style="display:flex; margin-left: auto; align-items:center; gap:8px;">
                             <div class="search-input-wrapper" style="position:relative; display:flex; align-items:center; background:rgba(0,0,0,0.2); border-radius:4px; padding:2px 8px; margin-right:8px;">
-                                <input type="text" id="search-input" placeholder="<?= __('search') ?>" style="background:transparent; border:none; color:white; font-size:0.85rem; outline:none; width:120px;" onkeydown="if(event.key==='Enter') searchMessages()">
+                                <input type="text" id="search-input" placeholder="検索..." style="background:transparent; border:none; color:white; font-size:0.85rem; outline:none; width:120px;" onkeydown="if(event.key==='Enter') searchMessages()">
                                 <button class="icon-btn" onclick="toggleAdvancedSearch()" style="padding:2px; height:auto; background:transparent;" title="検索フィルター">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;">
-                                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="4" y1="21" x2="4" y2="14"></line>
+                                        <line x1="4" y1="10" x2="4" y2="3"></line>
+                                        <line x1="12" y1="21" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12" y2="3"></line>
+                                        <line x1="20" y1="21" x2="20" y2="16"></line>
+                                        <line x1="20" y1="12" x2="20" y2="3"></line>
+                                        <line x1="1" y1="14" x2="7" y2="14"></line>
+                                        <line x1="9" y1="8" x2="15" y2="8"></line>
+                                        <line x1="17" y1="16" x2="23" y2="16"></line>
                                     </svg>
                                 </button>
-                                <button class="icon-btn" onclick="searchMessages()" style="padding:2px; height:auto; background:transparent;" title="検索">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;">
+                                <button class="icon-btn" onclick="searchMessages()" style="padding:2px; height:auto; background:transparent;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <circle cx="11" cy="11" r="8"></circle>
                                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                                     </svg>
@@ -2290,7 +2384,6 @@ if ($isLoggedIn) {
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                                    <line x1="1" y1="1" x2="23" y2="23"></line>
                                 </svg>
                             </button>
                             <button class="icon-btn" onclick="startMeeting()" title="ビデオ会議">
@@ -2305,10 +2398,10 @@ if ($isLoggedIn) {
                             <button class="icon-btn" onclick="showPinnedMessages()" title="ピン留めメッセージ一覧">
                                 <span style="font-size:14px;">📌</span>
                             </button>
-                            <button id="thread-edit-btn" class="icon-btn" onclick="editCurrentThread()" title="編集">
+                            <button class="icon-btn" onclick="editCurrentThread()" title="編集">
                                 <img src="assets/img/edit.svg" alt="編集" style="width:16px; height:16px;">
                             </button>
-                            <button id="thread-delete-btn" class="icon-btn" onclick="deleteCurrentThread()" title="削除"
+                            <button class="icon-btn" onclick="deleteCurrentThread()" title="削除"
                                 style="color:red;"><img src="assets/img/trash.svg" alt="削除" style="width:16px; height:16px;"></button>
                         </div>
                     </header>
@@ -2335,13 +2428,13 @@ if ($isLoggedIn) {
                         <span class="close-btn upload-cancel" onclick="cancelUpload()">✕</span>
                     </div>
 
-                    <div id="pwa-install-banner-threads" class="pwa-install-banner-integrated">
-                        <div class="pwa-banner-content">
-                            <span class="pwa-banner-icon">📱</span>
-                            <span class="pwa-banner-text">SYCSをインストール</span>
+                    <div id="pwa-install-banner-threads" class="pwa-install-banner-integrated" style="display:none;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:1.1rem;">📱</span>
+                            <span style="font-weight:600; font-size:1.1rem;">SYCSをインストール</span>
                         </div>
-                        <button class="pwa-install-btn" onclick="installPWA()">追加</button>
-                        <button class="pwa-close-btn" onclick="dismissInstallBanner()">✕</button>
+                        <button onclick="installPWA()" style="background:white; color:#4f46e5; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;">追加</button>
+                        <button onclick="dismissInstallBanner()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.1rem; opacity:0.7; padding:4px;">✕</button>
                     </div>
 
                     <div id="typing-indicator" class="typing-indicator-bar" style="font-size: 0.75rem; color: var(--text-secondary); margin: 0 16px; min-height: 18px;"></div>
@@ -2493,13 +2586,13 @@ if ($isLoggedIn) {
                         <button class="close-btn" onclick="cancelDmUpload()">×</button>
                     </div>
 
-                    <div id="pwa-install-banner-dm" class="pwa-install-banner-integrated">
-                        <div class="pwa-banner-content">
-                            <span class="pwa-banner-icon">📱</span>
-                            <span class="pwa-banner-text">SYCSをインストール</span>
+                    <div id="pwa-install-banner-dm" class="pwa-install-banner-integrated" style="display:none;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:1.1rem;">📱</span>
+                            <span style="font-weight:600; font-size:1.1rem;">SYCSをインストール</span>
                         </div>
-                        <button class="pwa-install-btn" onclick="installPWA()">追加</button>
-                        <button class="pwa-close-btn" onclick="dismissInstallBanner()">✕</button>
+                        <button onclick="installPWA()" style="background:white; color:#4f46e5; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;">追加</button>
+                        <button onclick="dismissInstallBanner()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.1rem; opacity:0.7; padding:4px;">✕</button>
                     </div>
 
                     <div id="dm-typing-indicator" class="typing-indicator-bar" style="font-size: 0.75rem; color: var(--text-secondary); margin: 0 16px; min-height: 18px;"></div>
@@ -2576,7 +2669,7 @@ if ($isLoggedIn) {
 
             <!-- WebRTC Meeting Modal -->
             <dialog id="meeting-modal" class="modal meeting-modal" style="border:none; border-radius:12px; padding:0; background:#000; width:100vw; height:100vh; max-width:100vw; max-height:100vh; margin:0; overflow:hidden;">
-                <div class="video-grid" id="video-grid">
+                <div class="video-grid-container" id="video-grid">
                     <!-- Local video and remote videos will be injected here -->
                 </div>
                 <div class="meeting-controls">
@@ -2733,7 +2826,7 @@ if ($isLoggedIn) {
             <dialog id="profile-modal" class="profile-modal">
                 <div class="profile-content">
                     <div class="profile-edit-form">
-                        <h3 class="settings-title">ユーザー設定</h3>
+                        <h3 style="margin-bottom: 24px;">ユーザー設定</h3>
 
                         <div class="modal-form-group">
                             <label class="modal-label">アバター画像</label>
@@ -2747,9 +2840,8 @@ if ($isLoggedIn) {
                         <div class="modal-form-group">
                             <label class="modal-label">バナー色</label>
                             <input type="color" id="edit-banner-input" class="modal-input" style="height: 40px; padding: 5px;"
-                                oninput="updatePreviewBanner(this.value)" value="<?= htmlspecialchars($currentUserBanner ?? '#6366f1') ?>">
+                                oninput="updatePreviewBanner(this.value)" value="<?= htmlspecialchars($currentUserBanner) ?>">
                         </div>
-
 
                         <div class="modal-form-group">
                             <label class="modal-label">Twitter/X ID (@抜き)</label>
@@ -2759,9 +2851,9 @@ if ($isLoggedIn) {
 
                         <div class="modal-form-group">
                             <label class="modal-label">テーマ設定</label>
-                            <div class="theme-switch-group">
-                                <button class="btn-theme-selector" onclick="setTheme('dark')">ダーク</button>
-                                <button class="btn-theme-selector" onclick="setTheme('light')">ライト</button>
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn-secondary" onclick="setTheme('dark')" style="flex:1;">ダーク</button>
+                                <button class="btn-secondary" onclick="setTheme('light')" style="flex:1;">ライト</button>
                             </div>
                         </div>
 
@@ -2780,7 +2872,7 @@ if ($isLoggedIn) {
                         <div class="modal-form-group">
                             <label class="modal-label">自己紹介</label>
                             <textarea id="edit-bio-input" class="modal-textarea" placeholder="自分について書こう"
-                                oninput="updatePreviewBio(this.value)"><?= htmlspecialchars($currentUserBio ?? '') ?></textarea>
+                                oninput="updatePreviewBio(this.value)"><?= htmlspecialchars($currentUserBio) ?></textarea>
                         </div>
 
                         <div class="modal-form-group">
@@ -2795,52 +2887,50 @@ if ($isLoggedIn) {
                         <div class="modal-form-group">
                             <label class="modal-label">ステータス</label>
                             <select id="modal-status-input" class="modal-input" onchange="updatePreviewStatus(this.value)">
-                                <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>><?= __('status_online') ?></option>
-                                <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>><?= __('status_busy') ?></option>
-                                <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>><?= __('status_not_allowed') ?></option>
-                                <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>><?= __('status_step_out') ?></option>
-                                <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>><?= __('status_away') ?></option>
-                                <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>><?= __('status_offline') ?></option>
-                                <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>><?= __('status_going_away') ?></option>
+                                <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>連絡可能</option>
+                                <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
+                                <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>>応答不可</option>
+                                <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>>一時退席中</option>
+                                <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>退席中</option>
+                                <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン表示</option>
+                                <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>>外出中</option>
                             </select>
                         </div>
 
-                        <div class="settings-actions">
-                            <div class="primary-actions">
-                                <button class="btn-glass-secondary" onclick="document.getElementById('profile-modal').close()">キャンセル</button>
-                                <button class="btn-premium-primary" onclick="saveProfile()">保存</button>
+                        <div style="margin-top:32px; display:flex; flex-direction:column; gap:12px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <button class="btn-secondary" onclick="document.getElementById('profile-modal').close()" style="padding: 12px; flex: 1;">キャンセル</button>
+                                <button class="btn-primary" onclick="saveProfile()" style="padding: 12px; flex: 1; font-weight: 600;">保存</button>
                             </div>
-                            <div class="danger-zone">
-                                <a href="delete_account.php" class="delete-account-link">アカウント削除</a>
+                            <div style="display:flex; justify-content: flex-end;">
+                                <a href="delete_account.php" style="color:#f87171; font-size:0.8rem; text-decoration:none;">アカウント削除</a>
                             </div>
                         </div>
                     </div>
 
                     <div class="profile-preview-pane">
                         <div class="discord-card">
-                            <div class="discord-banner" id="preview-banner" style="background: <?= htmlspecialchars($currentUserBanner ?? '#6366f1') ?>"></div>
+                            <div class="discord-banner" id="preview-banner" style="background: <?= htmlspecialchars($currentUserBanner) ?>"></div>
                             <div class="discord-avatar-wrapper">
                                 <div class="discord-avatar" id="preview-avatar-container">
                                     <?php if ($currentUserAvatar): ?>
-                                        <img src="<?= htmlspecialchars($currentUserAvatar ?? '') ?>" class="discord-avatar" id="preview-avatar-img">
+                                        <img src="<?= htmlspecialchars($currentUserAvatar) ?>" class="discord-avatar" id="preview-avatar-img">
                                     <?php else: ?>
-                                        <?= strtoupper(substr($currentUser ?? '', 0, 1)) ?>
+                                        <?= strtoupper(substr($currentUser, 0, 1)) ?>
                                     <?php endif; ?>
                                 </div>
-                                <div class="discord-status-indicator status-<?= htmlspecialchars($currentUserStatus ?? 'online') ?>" id="preview-status-indicator"></div>
+                                <div class="discord-status-indicator status-<?= htmlspecialchars($currentUserStatus) ?>" id="preview-status-indicator"></div>
                             </div>
                             <div class="discord-body">
-                                <div class="discord-username"><?= htmlspecialchars($currentUser ?? '') ?></div>
+                                <div class="discord-username"><?= htmlspecialchars($currentUser) ?></div>
                                 <div class="discord-custom-status" id="preview-custom-status-text"></div>
                                 <div class="discord-divider"></div>
                                 <div class="discord-section-title">自己紹介</div>
-                                <div class="discord-bio" id="preview-bio"><?= nl2br(htmlspecialchars($currentUserBio ?? '')) ?></div>
-
+                                <div class="discord-bio" id="preview-bio"><?= nl2br(htmlspecialchars($currentUserBio)) ?></div>
 
                                 <section class="section2" id="gps-section">
                                     <h3>GPS</h3>
-                                    <div id="gps-status-display" style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 2px;"></div>
-
+                                    <div id="gps-status">位置取得待機中…</div>
                                 </section>
                             </div>
                         </div>
@@ -2850,8 +2940,8 @@ if ($isLoggedIn) {
 
             <!-- User Profile View Modal -->
             <dialog id="user-profile-modal" class="profile-modal">
-                <div class="profile-content user-view-content">
-                    <div class="profile-preview-pane" style="width: 100%; border-left: none;">
+                <div class="profile-content" style="max-width: 450px;">
+                    <div class="profile-preview-pane" style="width: 100%;">
                         <div class="discord-card" id="user-profile-card">
                             <div class="discord-banner" id="user-profile-banner"></div>
                             <div class="discord-avatar-wrapper">
@@ -2866,13 +2956,12 @@ if ($isLoggedIn) {
                                 <div class="discord-bio" id="user-profile-bio"></div>
                                 <div class="discord-divider"></div>
                                 <div class="discord-section-title">SNS</div>
-                                <div id="user-profile-sns" class="sns-links-container"></div>
-
-                                <div class="user-view-actions">
-                                    <button class="btn-premium-primary" id="user-profile-dm-btn">メッセージを送る</button>
-                                    <button class="btn-glass-secondary" onclick="document.getElementById('user-profile-modal').close()">閉じる</button>
-                                </div>
+                                <div id="user-profile-sns" style="display:flex; gap:10px; margin-top:8px;"></div>
                             </div>
+                        </div>
+                        <div style="margin-top: 16px; display: flex; gap: 8px; margin-left: 15px;">
+                            <button class="btn-primary" onclick="document.getElementById('user-profile-modal').close()" style="flex: 1;">閉じる</button>
+                            <button class="btn-primary" id="user-profile-dm-btn" style="flex: 1;">DMを送る</button>
                         </div>
                     </div>
                 </div>
@@ -2884,27 +2973,7 @@ if ($isLoggedIn) {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="js/webrtc.js"></script>
     <script src="js/locate.js"></script>
-    <script>
-        window.SYCS_CONFIG = {
-            currentThreadId: <?= (int) ($initialThreadId ?? 1) ?>,
-            currentThreadCreatorId: <?= (int) ($currentThreadCreatorId ?? 0) ?>,
-            currentUserId: <?= (int) $_SESSION['user_id'] ?>,
-            currentUserName: <?= json_encode($currentUser) ?>,
-            currentUserTheme: <?= json_encode($currentUserThemePref ?? (object) []) ?>,
-            userKeywords: <?= json_encode(array_values(array_filter(array_map('trim', explode(',', $currentUserKeywords ?? ''))))) ?>,
-            csrfToken: <?= json_encode($_SESSION['csrf_token']) ?>,
-            vapidPublicKey: <?= json_encode(getenv('VAPID_PUBLIC_KEY') ?: 'BN1pSd_YbB6fni2gJ1jRDrPipOsYQlrSXXA6LusnqUuSIi9KRYOMAAHxR-xTKV-nNjybdxHwHoxn2HeDgN1guh8') ?>,
-            lang: <?= json_encode(I18n::getInstance()->getCurrentLang()) ?>,
-            translations: <?= json_encode(I18n::getInstance()->getTranslations()) ?>
-        };
-        async function changeLang(lang) {
-            const res = await fetch(`index.php?api=set_lang&lang=${lang}`);
-            if (res.ok) {
-                location.reload();
-            }
-        }
-    </script>
-    <script src="js/index.js"></script>
+
 
     <!-- PWA Installation Logic moved to integrated locations -->
 
@@ -2912,14 +2981,7 @@ if ($isLoggedIn) {
     <div id="offline-indicator" style="display:none; position:fixed; top:0; left:0; right:0; background:#ef4444; color:white; text-align:center; padding:6px; font-size:0.8rem; font-family:'Inter',sans-serif; z-index:10001; animation: slideDown 0.3s ease-out;">
         ⚠️ オフラインです - 一部の機能が制限されます
     </div>
-    <!-- Floating Notification Button -->
-    <button id="notif-btn" onclick="toggleNotificationDropdown(event)" title="通知センター">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-        </svg>
-        <span id="notif-badge" class="notif-badge">0</span>
-    </button>
+    <script src="js/widgets.js"></script>
 </body>
 
 </html>

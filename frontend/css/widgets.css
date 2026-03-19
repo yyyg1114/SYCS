@@ -1,0 +1,376 @@
+/* Sidebar Widgets Container */
+.sidebar-widgets {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.15);
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.widget-tabs {
+    display: flex;
+    justify-content: space-around;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    padding: 2px;
+}
+
+.widget-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 6px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.widget-tab:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+.widget-tab.active {
+    background: var(--accent-color);
+    color: white;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.widget-content {
+    height: 350px; /* Increased height */
+    position: relative;
+    overflow: hidden;
+}
+
+.widget-pane {
+    display: none;
+    height: 100%;
+    flex-direction: column;
+    animation: fadeIn 0.3s ease;
+}
+
+.widget-pane.active {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Clock Widget */
+.clock-display {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+
+.digital-clock {
+    font-family: 'Inter', monospace;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+/* Analog Clock - Based on provided image */
+.analog-clock {
+    width: 180px;
+    height: 180px;
+    position: relative;
+    background: #111;
+    border-radius: 50%;
+    border: 8px solid #222;
+    box-shadow: inset 0 0 25px rgba(0,0,0,0.8), 0 8px 20px rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.clock-face {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.clock-index {
+    position: absolute;
+    left: 50%;
+    top: -1px;
+    transform-origin: 50% 84px;
+    z-index: 2;
+    border-radius: 2px;
+}
+
+.clock-index.hour {
+    width: 3px;
+    height: 12px;
+    background: #8b5cf6;
+    margin-left: -1.5px;
+    transform: rotate(calc(var(--i) * 30deg));
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.8);
+}
+
+.clock-index.minute {
+    width: 1px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    margin-left: -0.5px;
+    transform: rotate(calc(var(--i) * 6deg));
+}
+
+/* Sub-dials */
+.sub-dial {
+    position: absolute;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.sub-9 { top: 50%; left: 25%; transform: translate(-50%, -50%); }
+.sub-3 { top: 50%; right: 25%; transform: translate(50%, -50%); }
+.sub-6 { bottom: 25%; left: 50%; transform: translate(-50%, 50%); }
+
+.sub-dial::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2px;
+    height: 12px;
+    background: #8b5cf6;
+    transform-origin: bottom center;
+    transform: translate(-50%, -100%) rotate(0deg);
+}
+
+/* Date Window */
+.date-window {
+    position: absolute;
+    top: 70%;
+    right: 20%;
+    width: 16px;
+    height: 16px;
+    background: #000;
+    border: 1px solid #333;
+    font-size: 9px;
+    color: #8b5cf6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transform: rotate(45deg);
+}
+
+.date-window span {
+    transform: rotate(0deg);
+}
+
+/* Custom Watch Face details */
+.clock-logo {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: auto;
+    opacity: 0.8;
+}
+
+.hand {
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    transform-origin: bottom center;
+    border-radius: 10px;
+    z-index: 5;
+}
+
+.hour-hand {
+    width: 5px;
+    height: 45px;
+    background: transparent;
+    border: 2px solid #8b5cf6;
+    margin-left: -2.5px;
+}
+
+.minute-hand {
+    width: 4px;
+    height: 65px;
+    background: transparent;
+    border: 2px solid #8b5cf6;
+    margin-left: -2px;
+}
+
+.second-hand {
+    width: 1.5px;
+    height: 75px;
+    background: #8b5cf6;
+    margin-left: -0.75px;
+    z-index: 6;
+}
+
+.center-dot {
+    width: 6px;
+    height: 6px;
+    background: #111;
+    border: 1.5px solid #8b5cf6;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+}
+
+
+.clock-controls {
+    display: flex;
+    justify-content: center;
+    padding: 5px;
+}
+
+/* Switch Styling */
+.switch-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 20px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #333;
+    transition: .4s;
+    border-radius: 20px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--accent-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(14px);
+}
+
+/* Notepad Widget */
+#notepad-area {
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    color: #eee;
+    padding: 12px;
+    font-size: 0.85rem;
+    resize: none;
+    outline: none;
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+}
+
+#notepad-area:focus {
+    border-color: rgba(99, 102, 241, 0.3);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Filer Widget */
+.file-list {
+    height: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 2px;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.file-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    transform: translateX(2px);
+}
+
+.file-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.file-info {
+    overflow: hidden;
+}
+
+.file-name {
+    font-size: 0.8rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    display: block;
+}
+
+.file-date {
+    font-size: 0.65rem;
+    opacity: 0.5;
+}
+
+.loading, .empty-files {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    opacity: 0.6;
+}

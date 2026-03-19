@@ -1,3 +1,30 @@
+<!-- ===== v1.2.23 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.23</span>
+        <span class="release-title">Analog Clock Widget Added</span>
+        <span class="release-date">2026-03-20</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> New Features
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⌚</span>
+                    <div>
+                        <strong>Analog Clock Widget Added</strong>
+                        <span class="detail">
+                            Added an analog clock widget to the home screen. This high-performance clock features time display, date display, day of the week display, second hand display, and sub-dials (at 12, 3, 6, and 9 o'clock positions).
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <article class="release">
     <div class="release-header">
         <span class="version-badge">v1.2.20</span>

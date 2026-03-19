@@ -44,7 +44,6 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
-  min-height: 100dvh;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -163,7 +162,6 @@ a:hover {
 .app-container {
   display: flex;
   height: 100vh;
-  height: 100dvh;
 }
 
 /* Sidebar */
@@ -261,7 +259,6 @@ a:hover {
   white-space: nowrap;
   text-overflow: ellipsis;
   display: block;
-  color: var(--text-secondary);
 }
 
 .user-status {
@@ -290,8 +287,6 @@ a:hover {
   display: flex;
   overflow: hidden;
   position: relative;
-  height: 100%;
-  min-height: 0;
 }
 
 /* Chat Area */
@@ -300,7 +295,6 @@ a:hover {
   display: flex;
   flex-direction: column;
   background-color: var(--bg-color);
-  position: relative;
 }
 
 .chat-header {
@@ -331,16 +325,16 @@ a:hover {
   background: rgba(255, 255, 255, 0.05);
 }
 
-.chat-messages,
-.messages-container {
+.chat-messages {
   flex-grow: 1;
   padding: 25px 25px 10px 25px;
-  height: auto;
-  min-height: 0;
+  height: calc(100% - 50px);
+  /* Bottom padding for scrollability */
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* Reduced specific gap for compact look */
 }
 
 /* Message Layout */
@@ -385,7 +379,7 @@ a:hover {
 
 .message-content {
   font-size: 0.95rem;
-  color: var(--text-secondary);
+  color: #cbd5e1;
   word-break: break-all;
   white-space: pre-wrap;
 }
@@ -493,11 +487,6 @@ a:hover {
   align-items: center;
   justify-content: space-between;
   font-weight: 700;
-}
-
-.panel-header span{
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
 }
 
 /* Reply & Upload UI */
@@ -806,22 +795,7 @@ header.chat-header div.thread-info {
 
   .thread-name-clickable {
     padding: 4px 8px;
-    font-size: 0.9rem;
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .search-input-wrapper {
-    display: none !important;
-  }
-
-  #mute-btn,
-  .chat-header .icon-btn[title="ビデオ会議"],
-  .chat-header .icon-btn[title="ピン留めメッセージ一覧"],
-  .chat-header .icon-btn[title="添付ファイル一覧"] {
-    display: none !important;
+    font-size: 1rem;
   }
 
   .chat-messages {
@@ -836,19 +810,12 @@ header.chat-header div.thread-info {
     gap: 10px;
   }
 
-  .pwa-install-banner-integrated {
-    display: none !important;
-  }
-
   .profile-modal {
     width: 100% !important;
     height: 100% !important;
     max-width: 100vw !important;
     border-radius: 0;
-    bottom: 0px !important;
-    top: auto !important;
-    transform: none !important;
-    margin: 0 !important;
+    bottom: 0px;
   }
 
   .profile-content {
@@ -1019,6 +986,14 @@ header.chat-header div.thread-info {
 }
 
 .control-btn.muted:hover {
+  background: #dc2626;
+}
+
+.hangup-btn {
+  background: #ef4444;
+}
+
+.hangup-btn:hover {
   background: #dc2626;
 }
 
@@ -1600,4 +1575,343 @@ header.chat-header div.thread-info {
 #notif-btn svg {
   width: 28px;
   height: 28px;
+}
+
+/* --- Clock Widget Styles --- */
+.sidebar-widget {
+    margin: 15px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+}
+
+.widget-header {
+    display: flex;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.widget-tab {
+    flex: 1;
+    padding: 10px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: 0.2s;
+}
+
+.widget-tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.widget-tab.active {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--accent-color);
+}
+
+.widget-content {
+    padding: 20px 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+}
+
+.digital-clock {
+    font-size: 2rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-family: 'Inter', monospace;
+    letter-spacing: -1px;
+    margin-bottom: 20px;
+}
+
+.analog-clock-container {
+    display: none;
+    width: 150px;
+    height: 150px;
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.analog-clock-container.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.widget-footer {
+    padding: 10px 15px;
+    background: rgba(0, 0, 0, 0.1);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.widget-footer span {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Toggle Switch Styling */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--input-bg);
+    transition: .4s;
+    border-radius: 20px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--accent-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(16px);
+}
+
+/* Analog Clock Visuals */
+.face {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, #2a2b2f 0%, #0f0f10 100%);
+    border-radius: 50%;
+    border: 6px solid #1a1b1e;
+    position: relative;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.9), 0 10px 25px rgba(0,0,0,0.6);
+}
+
+.face::after {
+    content: "";
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #a855f7;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 15;
+    box-shadow: 0 0 5px rgba(168, 85, 247, 0.5);
+}
+
+.clock-logo {
+    position: absolute;
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+}
+
+/* Sub-dials */
+.sub-dial {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+}
+
+.sub-dial-left { top: 50%; left: 25%; transform: translate(-50%, -50%); width: 30px; height: 30px; }
+.sub-dial-right { top: 50%; right: 25%; transform: translate(50%, -50%); width: 30px; height: 30px; }
+.sub-dial-bottom { bottom: 15%; left: 50%; transform: translateX(-50%); width: 30px; height: 30px;}
+
+.sub-hand {
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    transform-origin: bottom;
+    width: 1.5px;
+    height: 15px;
+    background: #a855f7;
+    border-radius: 1px;
+}
+.sub-hand::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 3px;
+    background: #a855f7;
+    border-radius: 50%;
+}
+
+.sub-label {
+    position: absolute;
+    font-size: 6px;
+    color: var(--text-secondary);
+    font-weight: bold;
+}
+
+/* Date Window */
+.date-window {
+    position: absolute;
+    right: 25%;
+    bottom: 25%;
+    background: #000;
+    border: 1px solid #333;
+    padding: 2px 4px;
+    border-radius: 10px;
+    font-size: 8px;
+    font-size: 8px;
+    color: #a855f7;
+    font-family: monospace;
+}
+
+/* Hands */
+.hand {
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    transform-origin: bottom;
+}
+
+.hour-hand {
+    width: 6px;
+    height: 38px;
+    background: transparent;
+    border: 1px solid #a855f7;
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+    z-index: 12;
+}
+
+.hour-hand::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 80%;
+    background: #a855f7;
+}
+
+.minute-hand {
+    width: 6px;
+    height: 58px;
+    background: transparent;
+    border: 1px solid #a855f7;
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+    z-index: 13;
+}
+
+.minute-hand::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 85%;
+    background: #a855f7;
+}
+
+.second-hand {
+    width: 1.5px;
+    height: 75px;
+    background: #a855f7;
+    z-index: 14;
+    border-radius: 1px;
+    bottom: calc(50% - 15px);
+    transform-origin: 50% 60px;
+}
+
+.second-hand::after {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background: #a855f7;
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(168, 85, 247, 0.5);
+}
+
+/* Markers */
+.mark {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    transform-origin: 50% 50%;
+    pointer-events: none;
+}
+
+.mark.small::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.mark.accent::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 12px;
+    background: #a855f7;
+    box-shadow: 0 0 6px rgba(168, 85, 247, 0.4);
+    border-radius: 1px;
+}
+
+.sidebar.collapsed .sidebar-widget {
+    display: none;
 }

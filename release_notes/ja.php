@@ -6,6 +6,33 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v1.2.23 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.23</span>
+        <span class="release-title">アナログ時計ウィジェットの追加</span>
+        <span class="release-date">2026-03-20</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 新機能 (New Features)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⌚</span>
+                    <div>
+                        <strong>アナログ時計ウィジェットの追加</strong>
+                        <span class="detail">
+                            ホーム画面にアナログ時計ウィジェットを追加しました。時刻表示、日付表示、曜日表示、秒針表示、サブダイヤル（12時、3時、6時、9時位置）を備えた高機能な時計です。
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.20 ===== -->
 <article class="release">
     <div class="release-header">

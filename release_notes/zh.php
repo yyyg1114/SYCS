@@ -7,6 +7,33 @@
  */
 ?>
 
+<!-- ===== v1.2.23 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.23</span>
+        <span class="release-title">模拟时钟小部件的添加</span>
+        <span class="release-date">2026-03-20</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 新功能 (New Features)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⌚</span>
+                    <div>
+                        <strong>模拟时钟小部件的添加</strong>
+                        <span class="detail">
+                            在主屏幕上添加了模拟时钟小部件。这是一个功能齐全的时钟，具有时间显示、日期显示、星期显示、秒针显示以及子表盘（位于12点、3点、6点和9点位置）。
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.19 ===== -->
 <article class="release">
     <div class="release-header">
