@@ -1,5 +1,5 @@
 <?php
-// v1.2.18
+// v1.2.19
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -2169,6 +2169,82 @@ if ($isLoggedIn) {
                     </ul>
                 </nav>
             </div>
+
+            <!-- Clock Widget -->
+            <div class="sidebar-widget">
+                <div class="widget-header">
+                    <button class="widget-tab active" title="Clock">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                    </button>
+                    <button class="widget-tab" title="Calendar">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                    </button>
+                    <button class="widget-tab" title="Documents">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="widget-content">
+                    <div id="digital-clock" class="digital-clock">00:00:00</div>
+                    <div id="analog-clock" class="analog-clock-container">
+                        <div class="face">
+                            <!-- Logo Area -->
+                            <div class="clock-logo">
+                                <img src="./assets/img/SYCS_Logo.svg" alt="SYCS" style="width: 24px; opacity: 0.8;">
+                            </div>
+
+                            <!-- Sub Dials -->
+                            <div class="sub-dial sub-dial-left">
+                                <div id="sub-hand-left" class="sub-hand"></div>
+                                <span class="sub-label" style="left: 20%; bottom: 10%;">40</span>
+                                <span class="sub-label" style="right: 20%; bottom: 10%;">20</span>
+                                <span class="sub-label" style="top: 10%; left: 50%; transform: translateX(-50%);">60</span>
+                            </div>
+                            <div class="sub-dial sub-dial-right">
+                                <div id="sub-hand-right" class="sub-hand"></div>
+                                <span class="sub-label" style="left: 20%; bottom: 10%;">20</span>
+                                <span class="sub-label" style="right: 20%; bottom: 10%;">10</span>
+                                <span class="sub-label" style="top: 10%; left: 50%; transform: translateX(-50%);">30</span>
+                            </div>
+                            <div class="sub-dial sub-dial-bottom">
+                                <div id="sub-hand-bottom" class="sub-hand"></div>
+                                <span class="sub-label" style="left: 10%; top: 50%; transform: translateY(-50%);">9</span>
+                                <span class="sub-label" style="right: 10%; top: 50%; transform: translateY(-50%);">3</span>
+                                <span class="sub-label" style="bottom: 15%; left: 50%; transform: translateX(-50%);">6</span>
+                                <span class="sub-label" style="top: 5%; left: 50%; transform: translateX(-50%);">12</span>
+                            </div>
+
+                            <!-- Date Window -->
+                            <div class="date-window">
+                                <span id="clock-date">12</span>
+                            </div>
+
+                            <div id="hour-hand" class="hand hour-hand"></div>
+                            <div id="minute-hand" class="hand minute-hand"></div>
+                            <div id="second-hand" class="hand second-hand"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="widget-footer">
+                    <span>Digital</span>
+                    <label class="switch">
+                        <input type="checkbox" id="clock-type-toggle">
+                        <span class="slider"></span>
+                    </label>
+                    <span>Analog</span>
+                </div>
+            </div>
+
             <div class="sidebar-bottom">
                 <div class="user-block">
                     <div class="avatar-container">

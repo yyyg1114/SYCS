@@ -7,6 +7,34 @@
  */
 ?>
 
+<!-- ===== v1.2.19 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.19</span>
+        <span class="release-title">アナログ/デジタル時計ウィジェットの追加</span>
+        <span class="release-date">2026-03-19</span>
+    </div>
+    <div class="release-body">
+        <!-- 新機能 -->
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 (New Features)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⌚</span>
+                    <div>
+                        <strong>時計ウィジェットの実装</strong>
+                        <span class="detail">
+                            ダッシュボードにアナログ時計とデジタル時計を切り替え可能なウィジェットを追加しました。日付表示と滑らかな秒針の動きに対応しています。
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.18 ===== -->
 <article class="release">
     <div class="release-header">

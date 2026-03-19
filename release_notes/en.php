@@ -1,3 +1,31 @@
+<!-- ===== v1.2.19 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.19</span>
+        <span class="release-title">Analog & Digital Clock Widget Added</span>
+        <span class="release-date">2026-03-19</span>
+    </div>
+    <div class="release-body">
+        <!-- New Features -->
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> New Features
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⌚</span>
+                    <div>
+                        <strong>Clock Widget Implementation</strong>
+                        <span class="detail">
+                            Added a toggleable analog and digital clock widget to the dashboard, featuring date display and smooth second-hand movement.
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.18 ===== -->
 <article class="release">
     <div class="release-header">

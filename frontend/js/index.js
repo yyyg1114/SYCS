@@ -3243,7 +3243,128 @@ function dismissInstallBanner() {
   const bannerDm = document.getElementById("pwa-install-banner-dm");
   if (bannerThreads) bannerThreads.style.display = "none";
   if (bannerDm) bannerDm.style.display = "none";
+  if (bannerThreads) bannerThreads.style.display = "none";
+  if (bannerDm) bannerDm.style.display = "none";
   localStorage.setItem("pwa-install-dismissed", Date.now());
+}
+
+/* --- Clock Widget Logic --- */
+function initClockWidget() {
+    const digitalClock = document.getElementById('digital-clock');
+    const analogClock = document.getElementById('analog-clock');
+    const clockToggle = document.getElementById('clock-type-toggle');
+    const hourHand = document.getElementById('hour-hand');
+    const minuteHand = document.getElementById('minute-hand');
+    const secondHand = document.getElementById('second-hand');
+    const subHandLeft = document.getElementById('sub-hand-left');
+    const subHandRight = document.getElementById('sub-hand-right');
+    const subHandBottom = document.getElementById('sub-hand-bottom');
+    const dateDisplay = document.getElementById('clock-date');
+    const face = document.querySelector('.face');
+
+    // Generate markers
+    if (face) {
+        face.querySelectorAll('.mark').forEach(m => m.remove()); // Clean existing
+        for (let i = 0; i < 60; i++) {
+            const mark = document.createElement('div');
+            mark.className = 'mark';
+            if (i % 5 === 0) {
+                mark.classList.add('accent'); // Large purple bars
+            } else {
+                // i % 1 === 0 is always true, so these are the small white lines
+                mark.classList.add('small'); 
+            }
+            mark.style.transform = `rotate(${i * 6}deg)`;
+            face.appendChild(mark);
+        }
+    }
+
+    function updateClock() {
+        const now = new Date();
+        const h = now.getHours();
+        const m = now.getMinutes();
+        const s = now.getSeconds();
+        const ms = now.getMilliseconds();
+
+        // Digital
+        if (digitalClock) {
+            digitalClock.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        // Analog Main Hands
+        if (hourHand) {
+            const hrDeg = (h % 12) * 30 + m * 0.5;
+            const minDeg = m * 6 + s * 0.1;
+            const secDeg = s * 6; // Smooth second hand
+            hourHand.style.transform = `rotate(${hrDeg}deg)`;
+            minuteHand.style.transform = `rotate(${minDeg}deg)`;
+            secondHand.style.transform = `rotate(${secDeg}deg)`;
+        }
+
+        // Sub-dials
+        if (subHandLeft) {
+            // Left: Seconds (20, 40, 60)
+            const secSubDeg = s * 6;
+            subHandLeft.style.transform = `rotate(${secSubDeg}deg)`;
+        }
+        if (subHandRight) {
+            // Right: Minutes (10, 20, 30) - 30 minutes rotation
+            const minSubDeg = (m % 30) * 12 + s * 0.2;
+            subHandRight.style.transform = `rotate(${minSubDeg}deg)`;
+        }
+        if (subHandBottom) {
+            // Bottom: Hours (3, 6, 9, 12)
+            const hrSubDeg = (h % 12) * 30 + m * 0.5;
+            subHandBottom.style.transform = `rotate(${hrSubDeg}deg)`;
+        }
+
+        // Date
+        if (dateDisplay) {
+            dateDisplay.textContent = now.getDate();
+        }
+    }
+
+    if (clockToggle) {
+        clockToggle.addEventListener('change', () => {
+            const digitalDisplay = clockToggle.checked ? 'none' : 'block';
+            if (digitalClock) digitalClock.style.display = digitalDisplay;
+            if (analogClock) {
+                if (clockToggle.checked) {
+                    analogClock.classList.add('active');
+                } else {
+                    analogClock.classList.remove('active');
+                }
+            }
+        });
+    }
+
+    // Tab switching for widget
+    const widgetTabs = document.querySelectorAll('.widget-tab');
+    widgetTabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => {
+            widgetTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            // For now, only the first tab (clock) has content
+            const content = document.querySelector('.widget-content');
+            if (index === 0) {
+                content.style.opacity = '1';
+                content.style.pointerEvents = 'auto';
+            } else {
+                content.style.opacity = '0.3';
+                content.style.pointerEvents = 'none';
+            }
+        });
+    });
+
+    setInterval(updateClock, 1000);
+    updateClock();
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initClockWidget);
+} else {
+    initClockWidget();
 }
 
 // Online/Offline detection
