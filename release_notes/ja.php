@@ -7,45 +7,6 @@
  */
 ?>
 
-<!-- ===== v1.2.19 ===== -->
-<article class="release">
-    <div class="release-header">
-        <span class="version-badge">v1.2.19</span>
-        <span class="release-title">ログイン画面のUI調整と微細なクリーンアップ</span>
-        <span class="release-date">2026-03-18</span>
-    </div>
-    <div class="release-body">
-
-        <!-- UI/UX 向上 -->
-        <div class="section">
-            <div class="section-title">
-                <span class="dot dot-blue"></span> UI/UX 向上 (UI/UX)
-            </div>
-            <ul>
-                <li>
-                    <span class="icon">🎨</span>
-                    <div>
-                        <strong>ログインカードのレイアウト調整</strong>
-                        <span class="detail">
-                            ログイン画面のカード最大幅を <code>500px</code> に拡大し、よりゆとりのあるモダンなレイアウトに調整しました。
-                        </span>
-                    </div>
-                </li>
-                <li>
-                    <span class="icon">🧹</span>
-                    <div>
-                        <strong>スタイルシートのクリーンアップ</strong>
-                        <span class="detail">
-                            <code>style-index.css</code> 内の冗長な背景グラデーション指定を削除し、コードの保守性を向上させました。
-                        </span>
-                    </div>
-                </li>
-            </ul>
-        </div>
-
-    </div>
-</article>
-
 <!-- ===== v1.2.18 ===== -->
 <article class="release">
     <div class="release-header">

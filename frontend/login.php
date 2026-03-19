@@ -410,7 +410,7 @@ if (isset($_GET['api'])) {
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
             width: 100%;
-            max-width: 500px;
+            max-width: 420px;
             text-align: center;
             animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -421,7 +421,6 @@ if (isset($_GET['api'])) {
                 width: 95%;
                 margin: 0 auto;
             }
-
             h1 {
                 font-size: 1.8rem;
             }
