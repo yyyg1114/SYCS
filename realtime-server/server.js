@@ -45,7 +45,55 @@ io.on("connection", (socket) => {
     socket.join(`thread_${threadId}`);
     console.log(`Socket ${socket.id} joined thread_${threadId}`);
   });
+  
+  // --- WebRTC Meeting Events ---
+  socket.on("join_meeting", (data) => {
+    const { roomId, userId, username } = data;
+    socket.join(`meeting_${roomId}`);
+    console.log(`User ${userId} (${username}) joined meeting_${roomId}`);
+    
+    // Notify others in the room
+    socket.to(`meeting_${roomId}`).emit("user_joined_meeting", {
+      userId,
+      username,
+      socketId: socket.id
+    });
+  });
 
+  socket.on("leave_meeting", (data) => {
+    const { roomId, userId } = data;
+    socket.leave(`meeting_${roomId}`);
+    console.log(`User ${userId} left meeting_${roomId}`);
+    
+    socket.to(`meeting_${roomId}`).emit("user_left_meeting", {
+      userId
+    });
+  });
+
+  socket.on("webrtc_signal", (data) => {
+    const { roomId, targetId, type, content, senderId } = data;
+    // We can send to a specific room or a specific user-socket if we tracked them better.
+    // For Mesh, we often broadcast or send to the specific target room/user.
+    // If targetId is provided, we try to find their socket.
+    if (targetId) {
+      const targetSocketId = users.get(targetId.toString());
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("webrtc_signal", {
+          senderId,
+          type,
+          content
+        });
+        return;
+      }
+    }
+    
+    // Fallback: broadcast to the meeting room (excluding sender)
+    socket.to(`meeting_${roomId}`).emit("webrtc_signal", {
+      senderId,
+      type,
+      content
+    });
+  });
   socket.on("typing", (data) => {
     const { threadId, userId, username, isTyping } = data;
     socket

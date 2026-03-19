@@ -1,3 +1,29 @@
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.20</span>
+        <span class="release-title">WebRTC Signaling Migration to Socket.IO</span>
+        <span class="release-date">2026-03-18</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Improvements & Fixes
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>Real-time WebRTC Signaling</strong>
+                        <span class="detail">
+                            Migrated meeting signaling from HTTP polling to Socket.IO. This update significantly reduces connection latency and server overhead by enabling true bi-directional communication.
+                        </span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.19 ===== -->
 <article class="release">
     <div class="release-header">

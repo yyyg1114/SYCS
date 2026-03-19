@@ -200,6 +200,7 @@ if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
                 <select onchange="changeLang(this.value)" style="background:transparent; color:var(--text-secondary); border:none; font-size:0.85rem; cursor:pointer;">
                     <option value="ja" <?= I18n::getInstance()->getCurrentLang() === 'ja' ? 'selected' : '' ?>>日本語</option>
                     <option value="en" <?= I18n::getInstance()->getCurrentLang() === 'en' ? 'selected' : '' ?>>English</option>
+                    <option value="zh" <?= I18n::getInstance()->getCurrentLang() === 'zh' ? 'selected' : '' ?>>中文</option>
                 </select>
             </div>
             <h2><?= __('signup') ?></h2>
