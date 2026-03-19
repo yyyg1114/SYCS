@@ -1,7 +1,7 @@
-<!-- ===== v1.2.19 ===== -->
+<!-- ===== v1.2.20 ===== -->
 <article class="release">
     <div class="release-header">
-        <span class="version-badge">v1.2.19</span>
+        <span class="version-badge">v1.2.20</span>
         <span class="release-title">Analog & Digital Clock Widget Added</span>
         <span class="release-date">2026-03-19</span>
     </div>
