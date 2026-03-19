@@ -458,22 +458,9 @@ if (isset($_GET['api'])) {
     </dialog>
 
 
-    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
     <script>
         const currentUserId = <?= json_encode($userId) ?>;
         const currentUsername = <?= json_encode($username) ?>;
-        const currentUserName = currentUsername; // For compatibility with webrtc.js logic
-
-        let socket = null;
-        function initSocket() {
-            if (typeof io === 'undefined') return;
-            socket = io("http://localhost:3000");
-            socket.on('connect', () => {
-                console.log("Connected to realtime server from meetings.php");
-                socket.emit('register', currentUserId);
-            });
-        }
-        initSocket();
 
         async function api(action, method = 'GET', body = null) {
             const url = `meetings.php?api=${action}`;
@@ -574,16 +561,9 @@ if (isset($_GET['api'])) {
                     this.addVideoTrack(currentUserId, this.localStream, true);
                     document.getElementById('meeting-modal').showModal();
                     document.getElementById('join-card').style.display = 'none';
+                    this.startPolling();
 
-                    // Use Socket.io instead of polling
-                    this.setupSocketEvents();
-                    socket.emit("join_meeting", {
-                        roomId: this.roomId,
-                        userId: currentUserId,
-                        username: currentUsername,
-                    });
-
-                    // Initial knock: get other members (Optional with user_joined_meeting)
+                    // Initial knock: get other members
                     const members = await api(`get_room_members&room_id=${this.roomId}`);
                     members.forEach(m => {
                         if (m.sender_id != currentUserId) this.initiateCall(m.sender_id);
@@ -594,27 +574,22 @@ if (isset($_GET['api'])) {
                 }
             }
 
-            setupSocketEvents() {
-                if (!socket) return;
-                socket.on("user_joined_meeting", (data) => {
-                    if (data.userId != currentUserId) {
-                        this.initiateCall(data.userId);
+            startPolling() {
+                this.pollingInterval = setInterval(async () => {
+                    if (!this.roomId) return;
+                    const msgs = await api(`get_signaling&room_id=${this.roomId}&last_id=${this.lastSignalingId}`);
+                    if (msgs && msgs.length > 0) {
+                        for (const msg of msgs) {
+                            this.lastSignalingId = Math.max(this.lastSignalingId, msg.id);
+                            await this.handleSignaling(msg);
+                        }
                     }
-                });
-
-                socket.on("user_left_meeting", (data) => {
-                    this.removeVideoTrack(data.userId);
-                });
-
-                socket.on("webrtc_signal", async (data) => {
-                    if (data.senderId == currentUserId) return;
-                    await this.handleSignaling(data);
-                });
+                }, 2000);
             }
 
             async handleSignaling(msg) {
-                const from = msg.senderId;
-                const content = msg.content;
+                const from = msg.sender_id;
+                const content = JSON.parse(msg.content);
                 if (msg.type === 'offer') {
                     const pc = this.getOrCreatePeer(from);
                     await pc.setRemoteDescription(new RTCSessionDescription(content));
@@ -662,22 +637,12 @@ if (isset($_GET['api'])) {
             }
 
             async sendSignaling(recvId, type, content) {
-                if (socket) {
-                    socket.emit("webrtc_signal", {
-                        roomId: this.roomId,
-                        targetId: recvId,
-                        senderId: currentUserId,
-                        type: type,
-                        content: content,
-                    });
-                } else {
-                    const body = new FormData();
-                    body.append('room_id', this.roomId);
-                    body.append('receiver_id', recvId);
-                    body.append('type', type);
-                    body.append('content', JSON.stringify(content));
-                    await api('send_signaling', 'POST', body);
-                }
+                const body = new FormData();
+                body.append('room_id', this.roomId);
+                body.append('receiver_id', recvId);
+                body.append('type', type);
+                body.append('content', JSON.stringify(content));
+                await api('send_signaling', 'POST', body);
             }
 
             addVideoTrack(userId, stream, isLocal) {
@@ -789,12 +754,7 @@ if (isset($_GET['api'])) {
             }
 
             async leave() {
-                if (this.roomId && socket) {
-                    socket.emit("leave_meeting", {
-                        roomId: this.roomId,
-                        userId: currentUserId,
-                    });
-                }
+                if (this.pollingInterval) clearInterval(this.pollingInterval);
 
                 // Clear meeting ID/Pass from DB on exit
                 if (this.roomId) {
@@ -808,12 +768,6 @@ if (isset($_GET['api'])) {
                 }
                 if (this.localStream) {
                     this.localStream.getTracks().forEach(t => t.stop());
-                }
-
-                if (socket) {
-                    socket.off("user_joined_meeting");
-                    socket.off("user_left_meeting");
-                    socket.off("webrtc_signal");
                 }
                 location.reload();
             }

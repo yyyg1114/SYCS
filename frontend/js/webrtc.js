@@ -52,48 +52,34 @@ class MeetingManager {
     this.roomId = res.room_id;
     document.getElementById("meeting-modal").showModal();
 
-    // Use Socket.io for signaling instead of polling
-    this.setupSocketEvents();
-
-    socket.emit("join_meeting", {
-      roomId: this.roomId,
-      userId: currentUserId,
-      username: currentUserName,
-    });
+    // Start polling for signaling
+    this.startPolling();
 
     // If it's a DM, we can automatically "knock" the partner
+    // In a thread, we'll just wait for others to join and send offers
     if (dmPartnerId) {
       this.initiateCall(dmPartnerId);
     }
   }
 
-  setupSocketEvents() {
-    if (!socket) {
-      console.error("Socket.io is not initialized");
-      return;
-    }
-
-    socket.on("user_joined_meeting", (data) => {
-      console.log("User joined meeting:", data);
-      if (data.userId != currentUserId) {
-        this.initiateCall(data.userId);
+  startPolling() {
+    this.pollingInterval = setInterval(async () => {
+      if (!this.roomId) return;
+      const res = await api(
+        `get_signaling&room_id=${this.roomId}&last_id=${this.lastSignalingId}`,
+      );
+      if (res && res.length > 0) {
+        for (const msg of res) {
+          this.lastSignalingId = Math.max(this.lastSignalingId, msg.id);
+          await this.handleSignaling(msg);
+        }
       }
-    });
-
-    socket.on("user_left_meeting", (data) => {
-      console.log("User left meeting:", data);
-      this.removeVideoTrack(data.userId);
-    });
-
-    socket.on("webrtc_signal", async (data) => {
-      if (data.senderId == currentUserId) return;
-      await this.handleSignaling(data);
-    });
+    }, 2000);
   }
 
   async handleSignaling(msg) {
-    const fromUser = msg.senderId;
-    const content = msg.content; // No longer stringified in new version
+    const fromUser = msg.sender_id;
+    const content = JSON.parse(msg.content);
 
     if (msg.type === "offer") {
       await this.handleOffer(fromUser, content);
@@ -178,23 +164,12 @@ class MeetingManager {
   }
 
   async sendSignaling(receiverId, type, content) {
-    if (socket) {
-      socket.emit("webrtc_signal", {
-        roomId: this.roomId,
-        targetId: receiverId,
-        senderId: currentUserId,
-        type: type,
-        content: content,
-      });
-    } else {
-      // Fallback to legacy API if socket is unavailable (optional)
-      const body = new FormData();
-      body.append("room_id", this.roomId);
-      body.append("receiver_id", receiverId);
-      body.append("type", type);
-      body.append("content", JSON.stringify(content));
-      await api("send_signaling", "POST", body);
-    }
+    const body = new FormData();
+    body.append("room_id", this.roomId);
+    body.append("receiver_id", receiverId);
+    body.append("type", type);
+    body.append("content", JSON.stringify(content));
+    await api("send_signaling", "POST", body);
   }
 
   addVideoTrack(userId, stream, isLocal) {
@@ -354,12 +329,7 @@ class MeetingManager {
   }
 
   leave() {
-    if (this.roomId && socket) {
-      socket.emit("leave_meeting", {
-        roomId: this.roomId,
-        userId: currentUserId,
-      });
-    }
+    if (this.pollingInterval) clearInterval(this.pollingInterval);
 
     for (const userId in this.peers) {
       this.peers[userId].connection.close();
@@ -376,13 +346,6 @@ class MeetingManager {
     this.lastSignalingId = 0;
 
     document.getElementById("meeting-modal").close();
-
-    // Remove socket listeners to avoid duplicates on next start
-    if (socket) {
-      socket.off("user_joined_meeting");
-      socket.off("user_left_meeting");
-      socket.off("webrtc_signal");
-    }
   }
 }
 
