@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/Session.php';
 
 class I18n
 {
@@ -14,36 +15,92 @@ class I18n
         if (self::$instance === null) {
             self::$instance = new self();
             self::$instance->init($lang);
+        } else if ($lang !== null) {
+            self::$instance->init($lang);
         }
         return self::$instance;
     }
 
     /**
      * Initialize translations
+     *
+     * @param string|null $lang Language code to initialize.
      */
     public function init($lang = null)
     {
         // 1. Determine language (Order: Argument > Session > Cookie > Default 'ja')
         if (!$lang) {
-            $lang = $_SESSION['lang'] ?? $_COOKIE['lang'] ?? 'ja';
+            $lang = $this->getSessionLang() ?? $this->getCookieLang() ?? 'ja';
+        }
+
+        // Sanitize language code to prevent path traversal
+        $lang = preg_replace('/[^a-z0-9_-]/i', '', $lang);
+        if (empty($lang)) {
+            $lang = 'ja';
+        }
+
+        // Avoid re-initializing if the language hasn't changed and we already have translations
+        if ($this->currentLang === $lang && !empty($this->translations)) {
+            return;
         }
 
         $this->currentLang = $lang;
 
         // 2. Persist to session and cookie
-        $_SESSION['lang'] = $lang;
-        if (!isset($_COOKIE['lang']) || $_COOKIE['lang'] !== $lang) {
-            setcookie('lang', $lang, time() + (86400 * 30), "/"); // 30 days
-        }
+        $this->setSessionLang($lang);
+        $this->setCookieLang($lang);
 
         // 3. Load translation file
         $path = __DIR__ . '/../frontend/locales/' . $lang . '.json';
         if (file_exists($path)) {
             $json = file_get_contents($path);
-            $this->translations = json_decode($json, true) ?: [];
-        } else if ($lang !== 'ja') {
-            // Fallback to Japanese if translation file doesn't exist
+            if ($json !== false) {
+                $this->translations = json_decode($json, true) ?: [];
+            }
+        }
+
+        // Fallback logic
+        if (empty($this->translations) && $lang !== 'ja') {
+            // Fallback to Japanese if translation fails for another language
             $this->init('ja');
+        }
+    }
+
+    /**
+     * Get language from session safely
+     */
+    private function getSessionLang()
+    {
+        return Session::getInstance()->get('lang');
+    }
+
+    /**
+     * Set language to session safely
+     */
+    private function setSessionLang($lang)
+    {
+        Session::getInstance()->set('lang', $lang);
+    }
+
+    /**
+     * Get language from cookie safely
+     */
+    private function getCookieLang()
+    {
+        return $_COOKIE['lang'] ?? null;
+    }
+
+    /**
+     * Set language to cookie safely
+     */
+    private function setCookieLang($lang)
+    {
+        if (isset($_COOKIE['lang']) && $_COOKIE['lang'] === $lang) {
+            return;
+        }
+
+        if (!headers_sent()) {
+            setcookie('lang', $lang, time() + (86400 * 30), "/"); // 30 days
         }
     }
 

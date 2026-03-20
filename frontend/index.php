@@ -10,6 +10,10 @@ require_once __DIR__ . '/../backend/session_config.php';
 
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
+require_once __DIR__ . '/../backend/I18n.php';
+
+// 1.5 Initialize Internationalization
+I18n::getInstance();
 
 // 2. HTTP Security Headers
 SecurityUtil::sendSecurityHeaders();
@@ -640,15 +644,15 @@ if (isset($_GET['api'])) {
         $category = $_POST['category'] ?? 'General';
         if ($name) {
             // Check for duplicate name
-            $cStmt = $mysqli->prepare("SELECT id FROM threads WHERE name = ?");
-            $cStmt->bind_param("s", $name);
-            $cStmt->execute();
-            if ($cStmt->get_result()->num_rows > 0) {
-                echo json_encode(['error' => 'その名前のスレッドは既に存在します']);
-                $cStmt->close();
+            $checkStmt = $mysqli->prepare("SELECT id FROM threads WHERE name = ?");
+            $checkStmt->bind_param("s", $name);
+            $checkStmt->execute();
+            if ($checkStmt->get_result()->num_rows > 0) {
+                echo json_encode(['error' => I18n::getInstance()->t('thread_exists')]);
+                $checkStmt->close();
                 exit;
             }
-            $cStmt->close();
+            $checkStmt->close();
 
             $stmt = $mysqli->prepare("INSERT INTO threads (name, creator_id, category) VALUES (?, ?, ?)");
             $stmt->bind_param("sis", $name, $userId, $category);
@@ -679,7 +683,7 @@ if (isset($_GET['api'])) {
                     $cStmt->bind_param("si", $newName, $threadId);
                     $cStmt->execute();
                     if ($cStmt->get_result()->num_rows > 0) {
-                        echo json_encode(['error' => 'その名前のスレッドは既に存在します']);
+                        echo json_encode(['error' => I18n::getInstance()->t('thread_exists')]);
                         $cStmt->close();
                         exit;
                     }
@@ -1195,7 +1199,7 @@ if (isset($_GET['api'])) {
 
             // Push Notification
             sendPushNotification($receiverId, [
-                'title' => '新着DM: ' . ($_SESSION['username'] ?? 'User'),
+                'title' => I18n::getInstance()->t('new_dm_notification') . ($_SESSION['username'] ?? 'User'),
                 'body' => $content,
                 'icon' => 'assets/img/SYCS_favicon.svg',
                 'data' => ['url' => 'index.php?dm=' . $userId]
@@ -1799,6 +1803,13 @@ if (isset($_GET['api'])) {
         echo json_encode(['counts' => $counts, 'total' => $total]);
         exit;
     }
+
+    if ($action === 'set_lang') {
+        $lang = $_GET['lang'] ?? 'ja';
+        I18n::getInstance($lang);
+        echo json_encode(['success' => true, 'lang' => $lang]);
+        exit;
+    }
 }
 
 // --- Auth Status Check ---
@@ -1819,7 +1830,7 @@ if (isset($_GET['logout'])) {
 }
 
 if ($isLoggedIn) {
-    $stmt = $mysqli->prepare("SELECT last_thread_id, status, custom_status, bio, avatar_url, banner_color, social_links, theme_preference FROM users WHERE id = ?");
+    $stmt = $mysqli->prepare("SELECT last_thread_id, status, custom_status, bio, avatar_url, banner_color, social_links, theme_preference, notification_keywords FROM users WHERE id = ?");
     $stmt->bind_param("i", $_SESSION['user_id']);
     $stmt->execute();
     if ($row = $stmt->get_result()->fetch_assoc()) {
@@ -1832,6 +1843,7 @@ if ($isLoggedIn) {
         $currentUserBanner = $row['banner_color'] ?: '#6366f1';
         $currentUserSocialLinks = json_decode($row['social_links'] ?: '{}', true);
         $currentUserThemePref = json_decode($row['theme_preference'] ?: '{}', true);
+        $currentUserKeywords = $row['notification_keywords'] ?: '';
     }
     $stmt->close();
 
@@ -1846,13 +1858,12 @@ if ($isLoggedIn) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="<?= I18n::getInstance()->getCurrentLang() ?>">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>SYCS - Shinjuku Yamabuki Chat System</title>
-    <meta name="description" content="SYCS - 新宿山吹チャットシステム。リアルタイムメッセージング、ビデオ通話、グループチャット対応。">
+    <meta name="description" content="SYCS - <?= __('release_notes_desc') ?>">
     <meta name="theme-color" content="#6366f1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2157,6 +2168,18 @@ if ($isLoggedIn) {
         }
     </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script>
+        window.SYCS_CONFIG = {
+            currentThreadId: <?= json_encode($initialThreadId) ?>,
+            currentThreadCreatorId: <?= json_encode($currentThreadCreatorId) ?>,
+            currentUserId: <?= json_encode($_SESSION['user_id']) ?>,
+            currentUserName: <?= json_encode($currentUser) ?>,
+            currentUserTheme: <?= json_encode($currentUserThemePref) ?>,
+            userKeywords: <?= json_encode($currentUserKeywords) ?>,
+            translations: <?= json_encode(I18n::getInstance()->getTranslations()) ?>,
+            csrfToken: <?= json_encode($_SESSION['csrf_token']) ?>
+        };
+    </script>
 </head>
 
 <body>
@@ -2170,7 +2193,7 @@ if ($isLoggedIn) {
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
-                        <a href="../release_notes/release_notes.html" style="font-size: 0.8rem; margin-left: 120px; align-items: end; text-decoration: none; color: var(--text-primary); background-color: var(--accent-hover); border-radius: 4px; padding: 2px 4px;">リリースノート</a>
+                        <a href="../release_notes/release_notes.html" style="font-size: 0.8rem; margin-left: 120px; align-items: end; text-decoration: none; color: var(--text-primary); background-color: var(--accent-hover); border-radius: 4px; padding: 2px 4px;"><?= __('release_notes') ?></a>
                     </div>
                 </div>
                 <nav>
@@ -2183,14 +2206,14 @@ if ($isLoggedIn) {
                                 <line x1="10" y1="3" x2="8" y2="21" />
                                 <line x1="16" y1="3" x2="14" y2="21" />
                             </svg>
-                            <span>スレッド</span>
+                            <span><?= __('threads') ?></span>
                         </li>
                         <li class="nav-item" data-tab="dm">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                             </svg>
-                            <span>DM</span>
+                            <span><?= __('dm') ?></span>
                             <span id="dm-unread-badge" style="display:none; background:#ef4444; color:white; border-radius:9999px; font-size:0.65rem; font-weight:700; padding:1px 6px; margin-left:6px; min-width:18px; text-align:center;"></span>
                         </li>
                         <li class="nav-item" data-tab="favorites">
@@ -2199,14 +2222,14 @@ if ($isLoggedIn) {
                                 <polygon
                                     points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                             </svg>
-                            <span>お気に入り</span>
+                            <span><?= __('favorites') ?></span>
                         </li>
                         <li class="nav-item" onclick="window.location.href='meetings.php'" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polygon points="23 7 16 12 23 17 23 7"></polygon>
                                 <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                             </svg>
-                            <span style="font-weight: 600;">ミーティング(ID連携)</span>
+                            <span style="font-weight: 600;"><?= __('meeting') ?></span>
                         </li>
                     </ul>
                 </nav>
@@ -2215,13 +2238,13 @@ if ($isLoggedIn) {
             <!-- Sidebar Widgets -->
             <div class="sidebar-widgets">
                 <div class="widget-tabs">
-                    <button class="widget-tab active" data-widget="clock" title="時計">
+                    <button class="widget-tab active" data-widget="clock" title="<?= __('clock') ?>">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"></circle>
                             <polyline points="12 6 12 12 16 14"></polyline>
                         </svg>
                     </button>
-                    <button class="widget-tab" data-widget="notepad" title="メモ帳">
+                    <button class="widget-tab" data-widget="notepad" title="<?= __('notepad') ?>">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                             <polyline points="14 2 14 8 20 8"></polyline>
@@ -2230,7 +2253,7 @@ if ($isLoggedIn) {
                             <polyline points="10 9 9 9 8 9"></polyline>
                         </svg>
                     </button>
-                    <button class="widget-tab" data-widget="filer" title="ファイル">
+                    <button class="widget-tab" data-widget="filer" title="<?= __('filer') ?>">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
                             <polyline points="13 2 13 9 20 9"></polyline>
@@ -2267,11 +2290,11 @@ if ($isLoggedIn) {
                         </div>
                     </div>
                     <div id="widget-notepad" class="widget-pane">
-                        <textarea id="notepad-area" placeholder="メモを入力..."></textarea>
+                        <textarea id="notepad-area" placeholder="<?= __('notepad_placeholder') ?>"></textarea>
                     </div>
                     <div id="widget-filer" class="widget-pane">
                         <div id="file-list" class="file-list">
-                            <div class="loading">読み込み中...</div>
+                            <div class="loading"><?= __('loading') ?></div>
                         </div>
                     </div>
                 </div>
@@ -2292,20 +2315,27 @@ if ($isLoggedIn) {
                         <span class="user-name"><?= htmlspecialchars($currentUser) ?></span>
                         <div class="status-select-container">
                             <select id="sidebar-status-input" class="modal-input" style="padding: 2px 4px; font-size: 0.75rem; width: auto; background-color: #2a2b2f; border: 1px solid #444; color: #fff;" onchange="updateMyStatus(this.value)">
-                                <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>連絡可能</option>
-                                <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
-                                <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>>応答不可</option>
-                                <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>>一時退席中</option>
-                                <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>退席中</option>
-                                <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン表示</option>
-                                <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>>外出中</option>
+                                <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>><?= __('status_online') ?></option>
+                                <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>><?= __('status_busy') ?></option>
+                                <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>><?= __('status_not_allowed') ?></option>
+                                <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>><?= __('status_step_out') ?></option>
+                                <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>><?= __('status_away') ?></option>
+                                <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>><?= __('status_offline') ?></option>
+                                <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>><?= __('status_going_away') ?></option>
                             </select>
                         </div>
                     </div>
                 </div>
                 <div class="sidebar-actions">
-                    <a href="javascript:void(0)" onclick="showProfileModal()" class="action-link">設定</a>
-                    <a href="?logout=1" class="action-link" style="color:#f87171;">ログアウト</a>
+                    <a href="javascript:void(0)" onclick="showProfileModal()" class="action-link"><?= __('settings') ?></a>
+                    <div class="lang-switcher">
+                        <select onchange="changeLang(this.value)" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 4px; padding: 2px 4px; font-size: 0.75rem; cursor: pointer; outline: none;">
+                            <option value="ja" <?= I18n::getInstance()->getCurrentLang() === 'ja' ? 'selected' : '' ?>><?= __('lang_ja') ?></option>
+                            <option value="en" <?= I18n::getInstance()->getCurrentLang() === 'en' ? 'selected' : '' ?>><?= __('lang_en') ?></option>
+                            <option value="zh" <?= I18n::getInstance()->getCurrentLang() === 'zh' ? 'selected' : '' ?>><?= __('lang_zh') ?></option>
+                        </select>
+                    </div>
+                    <a href="?logout=1" class="action-link" style="color:#f87171;"><?= __('logout') ?></a>
                 </div>
             </div>
         </aside>
@@ -2314,7 +2344,7 @@ if ($isLoggedIn) {
             <section id="threads-pane" class="content-pane active">
                 <div class="chat-area">
                     <header class="chat-header">
-                        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="メニュー">
+                        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="<?= __('menu') ?>">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="3" y1="12" x2="21" y2="12"></line>
                                 <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -2323,7 +2353,7 @@ if ($isLoggedIn) {
                         </button>
                         <div class="thread-name-clickable" onclick="toggleThreadBrowser()">
                             <button id="fav-btn" class="icon-btn" onclick="event.stopPropagation(); toggleFavorite()"
-                                title="お気に入り" style="margin-right: 8px;">
+                                title="<?= __('favorites') ?>" style="margin-right: 8px;">
                                 ☆
                             </button>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -2334,7 +2364,7 @@ if ($isLoggedIn) {
                                 <line x1="16" y1="3" x2="14" y2="21" />
                             </svg>
                             <span
-                                id="current-thread-name"><?= htmlspecialchars($currentThreadName ?? 'general') ?></span>
+                                id="current-thread-name"><?= htmlspecialchars($currentThreadName ?? __('general')) ?></span>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
                                 <polyline points="6 9 12 15 18 9" />
@@ -2342,8 +2372,8 @@ if ($isLoggedIn) {
                         </div>
                         <div class="thread-actions" id="thread-actions-block" style="display:flex; margin-left: auto; align-items:center; gap:8px;">
                             <div class="search-input-wrapper" style="position:relative; display:flex; align-items:center; background:rgba(0,0,0,0.2); border-radius:4px; padding:2px 8px; margin-right:8px;">
-                                <input type="text" id="search-input" placeholder="検索..." style="background:transparent; border:none; color:white; font-size:0.85rem; outline:none; width:120px;" onkeydown="if(event.key==='Enter') searchMessages()">
-                                <button class="icon-btn" onclick="toggleAdvancedSearch()" style="padding:2px; height:auto; background:transparent;" title="検索フィルター">
+                                <input type="text" id="search-input" placeholder="<?= __('search_placeholder') ?>" style="background:transparent; border:none; color:white; font-size:0.85rem; outline:none; width:120px;" onkeydown="if(event.key==='Enter') searchMessages()">
+                                <button class="icon-btn" onclick="toggleAdvancedSearch()" style="padding:2px; height:auto; background:transparent;" title="<?= __('search_filter') ?>">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <line x1="4" y1="21" x2="4" y2="14"></line>
                                         <line x1="4" y1="10" x2="4" y2="3"></line>
@@ -2366,64 +2396,64 @@ if ($isLoggedIn) {
                                 <div id="advanced-search-panel" style="display:none; position:absolute; top:36px; right:0; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px; padding:12px; width:220px; z-index:100; box-shadow:0 8px 16px rgba(0,0,0,0.4);">
                                     <div style="margin-bottom:10px;">
                                         <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
-                                            <input type="checkbox" id="search-has-attachment"> 添付ファイルあり
+                                            <input type="checkbox" id="search-has-attachment"> <?= __('has_attachment') ?>
                                         </label>
                                     </div>
                                     <div style="margin-bottom:10px;">
-                                        <div style="font-size:0.7rem; color:var(--text-secondary); margin-bottom:4px;">開始日</div>
+                                        <div style="font-size:0.7rem; color:var(--text-secondary); margin-bottom:4px;"><?= __('date_from') ?></div>
                                         <input type="date" id="search-date-from" style="width:100%; height:28px; font-size:0.75rem; background:var(--input-bg); border:1px solid var(--border-color); color:white; border-radius:4px; padding:0 4px;">
                                     </div>
                                     <div style="margin-bottom:10px;">
-                                        <div style="font-size:0.7rem; color:var(--text-secondary); margin-bottom:4px;">終了日</div>
+                                        <div style="font-size:0.7rem; color:var(--text-secondary); margin-bottom:4px;"><?= __('date_to') ?></div>
                                         <input type="date" id="search-date-to" style="width:100%; height:28px; font-size:0.75rem; background:var(--input-bg); border:1px solid var(--border-color); color:white; border-radius:4px; padding:0 4px;">
                                     </div>
-                                    <button class="btn-primary" onclick="searchMessages(); toggleAdvancedSearch();" style="width:100%; padding:6px; font-size:0.8rem;">検索</button>
+                                    <button class="btn-primary" onclick="searchMessages(); toggleAdvancedSearch();" style="width:100%; padding:6px; font-size:0.8rem;"><?= __('search') ?></button>
                                 </div>
                             </div>
-                            <button id="mute-btn" class="icon-btn" onclick="toggleMute()" title="通知をミュート" style="color: var(--text-secondary);">
+                            <button id="mute-btn" class="icon-btn" onclick="toggleMute()" title="<?= __('mute_notifications') ?>" style="color: var(--text-secondary);">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                                 </svg>
                             </button>
-                            <button class="icon-btn" onclick="startMeeting()" title="ビデオ会議">
+                            <button class="icon-btn" onclick="startMeeting()" title="<?= __('start_video_meeting') ?>">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <polygon points="23 7 16 12 23 17 23 7"></polygon>
                                     <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                                 </svg>
                             </button>
-                            <button class="icon-btn" onclick="showAttachmentGallery()" title="添付ファイル一覧">
-                                <img src="assets/img/files.svg" alt="ギャラリー" style="width:16px; height:16px; filter: grayscale(1) invert(1);">
+                            <button class="icon-btn" onclick="showAttachmentGallery()" title="<?= __('attachment_list') ?>">
+                                <img src="assets/img/files.svg" alt="<?= __('gallery') ?>" style="width:16px; height:16px; filter: grayscale(1) invert(1);">
                             </button>
-                            <button class="icon-btn" onclick="showPinnedMessages()" title="ピン留めメッセージ一覧">
+                            <button class="icon-btn" onclick="showPinnedMessages()" title="<?= __('pinned_messages_list') ?>">
                                 <span style="font-size:14px;">📌</span>
                             </button>
-                            <button class="icon-btn" onclick="editCurrentThread()" title="編集">
-                                <img src="assets/img/edit.svg" alt="編集" style="width:16px; height:16px;">
+                            <button class="icon-btn" onclick="editCurrentThread()" title="<?= __('edit') ?>">
+                                <img src="assets/img/edit.svg" alt="<?= __('edit') ?>" style="width:16px; height:16px;">
                             </button>
-                            <button class="icon-btn" onclick="deleteCurrentThread()" title="削除"
-                                style="color:red;"><img src="assets/img/trash.svg" alt="削除" style="width:16px; height:16px;"></button>
+                            <button class="icon-btn" onclick="deleteCurrentThread()" title="<?= __('delete') ?>"
+                                style="color:red;"><img src="assets/img/trash.svg" alt="<?= __('delete') ?>" style="width:16px; height:16px;"></button>
                         </div>
                     </header>
                     <div class="search-results-overlay" id="search-results-overlay">
                         <div class="search-results-header">
-                            <span>検索結果</span>
+                            <span><?= __('search_results') ?></span>
                             <span class="close-btn" onclick="toggleSearch(false)">✕</span>
                         </div>
                         <div id="search-results-list" class="search-results-list"></div>
                     </div>
                     <div id="message-container" class="chat-messages"></div>
-                    <div class="drag-overlay">ファイルをドロップしてアップロード</div>
+                    <div class="drag-overlay"><?= __('drop_to_upload') ?></div>
 
                     <div id="reply-bar" class="reply-bar">
                         <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden;">
-                            <span style="font-size: 0.75rem; opacity: 0.8;">Replying to <strong id="reply-target-name">User</strong></span>
+                            <span style="font-size: 0.75rem; opacity: 0.8;"><?= __('replying_to') ?> <strong id="reply-target-name">User</strong></span>
                             <div id="reply-preview-text" style="font-size: 0.8rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; opacity: 0.6;">...</div>
                         </div>
                         <span class="close-btn" onclick="cancelReply()">✕</span>
                     </div>
                     <div id="upload-preview" class="upload-preview">
-                        <span style="font-size:0.85rem; color:var(--text-secondary);">添付ファイル: </span>
+                        <span style="font-size:0.85rem; color:var(--text-secondary);"><?= __('attachments') ?> </span>
                         <div id="preview-content"></div>
                         <span class="close-btn upload-cancel" onclick="cancelUpload()">✕</span>
                     </div>
@@ -2431,9 +2461,9 @@ if ($isLoggedIn) {
                     <div id="pwa-install-banner-threads" class="pwa-install-banner-integrated" style="display:none;">
                         <div style="display:flex; align-items:center; gap:8px;">
                             <span style="font-size:1.1rem;">📱</span>
-                            <span style="font-weight:600; font-size:1.1rem;">SYCSをインストール</span>
+                            <span style="font-weight:600; font-size:1.1rem;"><?= __('install_sycs') ?></span>
                         </div>
-                        <button onclick="installPWA()" style="background:white; color:#4f46e5; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;">追加</button>
+                        <button onclick="installPWA()" style="background:white; color:#4f46e5; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;"><?= __('add') ?></button>
                         <button onclick="dismissInstallBanner()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.1rem; opacity:0.7; padding:4px;">✕</button>
                     </div>
 
@@ -2441,19 +2471,19 @@ if ($isLoggedIn) {
 
                     <div class="chat-input-area">
                         <div class="input-wrapper">
-                            <button class="icon-btn upload-btn-plus" title="アップロード" onclick="openMediaUploadModal()">
+                            <button class="icon-btn upload-btn-plus" title="<?= __('upload') ?>" onclick="openMediaUploadModal()">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                             </button>
-                            <textarea id="msg-input" class="chat-input" placeholder="メッセージを送信... (Shift+Enterで改行)"
+                            <textarea id="msg-input" class="chat-input" placeholder="<?= __('send_message_placeholder') ?>"
                                 rows="1" onkeydown="handleInputKey(event)" oninput="handleTyping()"></textarea>
-                            <select id="self-destruct-timer" class="icon-btn" style="width: auto; font-size: 0.7rem; background: rgba(0,0,0,0.2); border: none; color: var(--text-secondary); border-radius: 4px; padding: 2px 4px;" title="自動削除">
-                                <option value="0">消去なし</option>
-                                <option value="60">1分後</option>
-                                <option value="3600">1時間後</option>
-                                <option value="86400">1日後</option>
+                            <select id="self-destruct-timer" class="icon-btn" style="width: auto; font-size: 0.7rem; background: rgba(0,0,0,0.2); border: none; color: var(--text-secondary); border-radius: 4px; padding: 2px 4px;" title="<?= __('auto_delete') ?>">
+                                <option value="0"><?= __('no_expiry') ?></option>
+                                <option value="60"><?= __('one_minute') ?></option>
+                                <option value="3600"><?= __('one_hour') ?></option>
+                                <option value="86400"><?= __('one_day') ?></option>
                             </select>
                             <button onclick="sendMessage()"
                                 style="background:transparent; border:none; color:var(--accent-color); cursor:pointer; padding:5px; display:flex;">
@@ -2468,7 +2498,7 @@ if ($isLoggedIn) {
                 </div>
                 <aside id="thread-browser" class="thread-browser">
                     <div class="panel-header">
-                        <span>サイドバー</span>
+                        <span><?= __('sidebar') ?></span>
                         <div class="close-btn" onclick="toggleThreadBrowser()"><svg width="18" height="18"
                                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                                 stroke-linecap="round" stroke-linejoin="round">
@@ -2478,26 +2508,26 @@ if ($isLoggedIn) {
                     </div>
 
                     <div class="sidebar-tabs" style="display:flex; border-bottom:1px solid var(--border-color);">
-                        <button class="tab-btn active" onclick="switchSidebarTab('threads')" style="flex:1; padding:10px; background:none; border:none; color:white; cursor:pointer;">スレッド</button>
-                        <button class="tab-btn" onclick="switchSidebarTab('groups')" style="flex:1; padding:10px; background:none; border:none; color:white; cursor:pointer;">グループ</button>
+                        <button class="tab-btn active" onclick="switchSidebarTab('threads')" style="flex:1; padding:10px; background:none; border:none; color:white; cursor:pointer;"><?= __('threads') ?></button>
+                        <button class="tab-btn" onclick="switchSidebarTab('groups')" style="flex:1; padding:10px; background:none; border:none; color:white; cursor:pointer;"><?= __('groups') ?></button>
                     </div>
 
                     <div id="thread-list" class="thread-list"></div>
                     <div id="group-list" class="thread-list" style="display:none;"></div>
 
                     <div id="create-thread-area" class="create-thread-area" style="border-top: none;">
-                        <input type="text" id="new-thread-name" class="create-input" placeholder="新スレッド名">
-                        <button onclick="createThread()" class="btn-primary" style="padding:0.6rem; margin-top:5px; width:100%;">作成</button>
+                        <input type="text" id="new-thread-name" class="create-input" placeholder="<?= __('new_thread_name') ?>">
+                        <button onclick="createThread()" class="btn-primary" style="padding:0.6rem; margin-top:5px; width:100%;"><?= __('create') ?></button>
                     </div>
 
                     <div id="create-group-area" class="create-thread-area" style="border-top: none; display:none;">
-                        <button onclick="showGroupCreationDialog()" class="btn-primary" style="padding:0.6rem; width:100%;">新規グループ作成</button>
+                        <button onclick="showGroupCreationDialog()" class="btn-primary" style="padding:0.6rem; width:100%;"><?= __('create_group') ?></button>
                     </div>
 
                     <!-- Online Users Section -->
                     <div id="online-users-section" style="border-top: 1px solid var(--border-color); padding: 10px 0;">
                         <div style="padding: 8px 10px 5px; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleOnlineUsers()">
-                            <span>オンラインユーザー</span>
+                            <span><?= __('online_users') ?></span>
                             <span id="online-users-toggle-icon" style="font-size:0.9rem;">▾</span>
                         </div>
                         <div id="online-users-list" style="max-height:200px; overflow-y:auto;"></div>
@@ -2506,13 +2536,13 @@ if ($isLoggedIn) {
 
                 <dialog id="group-creation-modal" class="modal"
                     style="border:none; border-radius:8px; padding:1rem; background:var(--bg-secondary); color:var(--text-primary);">
-                    <h3>グループ作成</h3>
-                    <input type="text" id="group-chat-name" class="chat-input" placeholder="グループ名" style="width:100%; margin-bottom:10px;">
-                    <p>メンバーを選択:</p>
+                    <h3><?= __('create_group') ?></h3>
+                    <input type="text" id="group-chat-name" class="chat-input" placeholder="<?= __('enter_group_name') ?>" style="width:100%; margin-bottom:10px;">
+                    <p><?= __('select_members') ?></p>
                     <div id="group-member-picker" style="max-height:200px; overflow-y:auto; margin-bottom:15px; border:1px solid var(--border-color); border-radius:4px; padding:5px;"></div>
                     <div style="display:flex; gap:10px;">
-                        <button class="btn-secondary" onclick="document.getElementById('group-creation-modal').close()">キャンセル</button>
-                        <button class="btn-primary" onclick="submitGroupCreation()">作成</button>
+                        <button class="btn-secondary" onclick="document.getElementById('group-creation-modal').close()"><?= __('cancel') ?></button>
+                        <button class="btn-primary" onclick="submitGroupCreation()"><?= __('create') ?></button>
                     </div>
                 </dialog>
             </section>
@@ -2520,22 +2550,22 @@ if ($isLoggedIn) {
                 <!-- Friend Hub (Default View) -->
                 <div id="dm-hub-view" style="display:flex; flex-direction:column; height:100%;">
                     <div class="chat-header">
-                        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="メニュー">
+                        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="<?= __('menu') ?>">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="3" y1="12" x2="21" y2="12"></line>
                                 <line x1="3" y1="6" x2="21" y2="6"></line>
                                 <line x1="3" y1="18" x2="21" y2="18"></line>
                             </svg>
                         </button>
-                        <h3>Friend Hub</h3>
+                        <h3><?= __('friend_hub') ?></h3>
                         <div style="margin-left:auto; display:flex; gap:10px;">
-                            <button class="btn-primary" onclick="showAddFriendModal()">フレンド申請</button>
-                            <button class="btn-primary" onclick="showPendingRequestsModal()" id="btn-pending-req">フレンド承認</button>
-                            <button class="btn-primary" onclick="showBlockedModal()" style="background-color: #333">ブロック一覧</button>
+                            <button class="btn-primary" onclick="showAddFriendModal()"><?= __('add_friend') ?></button>
+                            <button class="btn-primary" onclick="showPendingRequestsModal()" id="btn-pending-req"><?= __('approve_friend') ?></button>
+                            <button class="btn-primary" onclick="showBlockedModal()" style="background-color: #333"><?= __('block_list') ?></button>
                         </div>
                     </div>
                     <div class="scroller" style="flex:1; padding:20px; overflow-y:auto;">
-                        <h4 style="margin-bottom:10px; color:var(--text-secondary);">フレンドリスト (最近のやりとり順)</h4>
+                        <h4 style="margin-bottom:10px; color:var(--text-secondary);"><?= __('friend_list') ?></h4>
                         <div id="hub-friend-list" class="thread-list"></div>
                     </div>
                 </div>
@@ -2543,7 +2573,7 @@ if ($isLoggedIn) {
                 <!-- DM Chat View (Hidden by default) -->
                 <div id="dm-chat-view" style="display:none; flex-direction:column; height:100%;">
                     <header class="chat-header">
-                        <button class="icon-btn" onclick="backToHub()" title="戻る" style="margin-right:10px;">
+                        <button class="icon-btn" onclick="backToHub()" title="<?= __('back') ?>" style="margin-right:10px;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
                                 <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -2551,19 +2581,19 @@ if ($isLoggedIn) {
                         </button>
                         <div class="thread-info" id="current-dm-partner-info">
                             <span class="thread-icon">@</span>
-                            <h3 class="thread-name" id="current-dm-partner-name">Select a user</h3>
+                            <h3 class="thread-name" id="current-dm-partner-name"><?= __('select_user') ?></h3>
                         </div>
                         <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
-                            <button class="icon-btn" onclick="startMeeting()" title="ビデオ会議">
+                            <button class="icon-btn" onclick="startMeeting()" title="<?= __('video_meeting') ?>">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <polygon points="23 7 16 12 23 17 23 7"></polygon>
                                     <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                                 </svg>
                             </button>
-                            <button class="icon-btn" onclick="showAttachmentGallery()" title="添付ファイル一覧">
-                                <img src="assets/img/files.svg" alt="ギャラリー" style="width:16px; height:16px; filter: grayscale(1) invert(1);">
+                            <button class="icon-btn" onclick="showAttachmentGallery()" title="<?= __('attachment_list') ?>">
+                                <img src="assets/img/files.svg" alt="<?= __('attachment_gallery') ?>" style="width:16px; height:16px; filter: grayscale(1) invert(1);">
                             </button>
-                            <button class="icon-btn" onclick="blockCurrentPartner()" title="ブロック"
+                            <button class="icon-btn" onclick="blockCurrentPartner()" title="<?= __('block') ?>"
                                 style="color:#ef4444;">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2">
@@ -2576,22 +2606,22 @@ if ($isLoggedIn) {
 
                     <div id="dm-message-container" class="messages-container">
                         <div class="empty-state">
-                            <p>メッセージを選択してください</p>
+                            <p><?= __('no_thread_selected') ?></p>
                         </div>
                     </div>
 
                     <div id="dm-upload-preview" class="upload-preview-bar"
                         style="display:none; padding:10px; border-bottom:1px solid var(--border-color);">
                         <div id="dm-preview-content"></div>
-                        <button class="close-btn" onclick="cancelDmUpload()">×</button>
+                        <button class="close-btn" onclick="cancelDmUpload()">&times;</button>
                     </div>
 
                     <div id="pwa-install-banner-dm" class="pwa-install-banner-integrated" style="display:none;">
                         <div style="display:flex; align-items:center; gap:8px;">
                             <span style="font-size:1.1rem;">📱</span>
-                            <span style="font-weight:600; font-size:1.1rem;">SYCSをインストール</span>
+                            <span style="font-weight:600; font-size:1.1rem;"><?= __('install_sycs') ?></span>
                         </div>
-                        <button onclick="installPWA()" style="background:white; color:#4f46e5; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;">追加</button>
+                        <button onclick="installPWA()" style="background:white; color:#4f46e5; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;"><?= __('add') ?></button>
                         <button onclick="dismissInstallBanner()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.1rem; opacity:0.7; padding:4px;">✕</button>
                     </div>
 
@@ -2599,21 +2629,15 @@ if ($isLoggedIn) {
 
                     <div class="chat-input-area" id="dm-chat-area">
                         <div class="input-wrapper">
-                            <button class="icon-btn upload-btn-plus" title="アップロード" onclick="openMediaUploadModal()">
+                            <button class="icon-btn upload-btn-plus" title="<?= __('upload') ?>" onclick="openMediaUploadModal()">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                             </button>
-                            <textarea id="dm-msg-input" class="chat-input" placeholder="DMを送信..." rows="1"
+                            <textarea id="dm-msg-input" class="chat-input" placeholder="<?= __('dm_placeholder') ?>" rows="1"
                                 onkeydown="handleDmInputKey(event)" oninput="handleTyping()"></textarea>
                             <input type="file" id="msg-file-input" hidden onchange="handleMediaUploadFiles(this.files)">
-                            <select id="dm-self-destruct-timer" class="icon-btn" style="width: auto; font-size: 0.7rem; background: rgba(0,0,0,0.2); border: none; color: var(--text-secondary); border-radius: 4px; padding: 2px 4px;" title="自動削除">
-                                <option value="0">消去なし</option>
-                                <option value="60">1分後</option>
-                                <option value="3600">1時間後</option>
-                                <option value="86400">1日後</option>
-                            </select>
                             <button onclick="sendDm()"
                                 style="background:transparent; border:none; color:var(--accent-color); cursor:pointer;">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -2631,13 +2655,13 @@ if ($isLoggedIn) {
             <dialog id="add-friend-modal" class="modal"
                 style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
                 <div class="modal-content" style="min-width:400px;">
-                    <h3>フレンド申請</h3>
+                    <h3><?= __('add_friend') ?></h3>
                     <div style="display:flex; gap:10px; margin-bottom:15px;">
-                        <input type="text" id="user-search-input" class="chat-input" placeholder="ユーザーID または 名前で検索">
-                        <button class="btn-primary" onclick="searchUsers()">検索</button>
+                        <input type="text" id="user-search-input" class="chat-input" placeholder="<?= __('search_user_placeholder') ?>">
+                        <button class="btn-primary" onclick="searchUsers()"><?= __('search') ?></button>
                     </div>
                     <div id="user-search-results" style="max-height:300px; overflow-y:auto;"></div>
-                    <button class="btn-secondary" onclick="document.getElementById('add-friend-modal').close()" style="width:100%; margin-top:10px;">閉じる</button>
+                    <button class="btn-secondary" onclick="document.getElementById('add-friend-modal').close()" style="width:100%; margin-top:10px;"><?= __('close') ?></button>
                 </div>
             </dialog>
 
@@ -2645,7 +2669,7 @@ if ($isLoggedIn) {
                 style="border:none; border-radius:12px; padding:0; background:var(--bg-color); color:var(--text-primary); width:90%; max-width:800px; max-height:80vh;">
                 <div style="display:flex; flex-direction:column; height:100%;">
                     <div style="padding:16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                        <h3 style="margin:0;">添付ファイルギャラリー</h3>
+                        <h3 style="margin:0;"><?= __('attachment_gallery') ?></h3>
                         <button class="close-btn" onclick="document.getElementById('gallery-modal').close()" style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;">✕</button>
                     </div>
                     <div id="gallery-content" style="flex:1; padding:20px; overflow-y:auto; display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:16px;">
@@ -2657,12 +2681,12 @@ if ($isLoggedIn) {
             <dialog id="pending-requests-modal" class="modal"
                 style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
                 <div class="modal-content" style="min-width:400px;">
-                    <h3>承認待ちリクエスト</h3>
+                    <h3><?= __('pending_requests') ?></h3>
                     <div id="pending-requests-list-modal" class="thread-list"
                         style="max-height:300px; overflow-y:auto;"></div>
                     <div class="modal-actions" style="margin-top:10px; text-align:right;">
                         <button class="btn-secondary"
-                            onclick="document.getElementById('pending-requests-modal').close()">閉じる</button>
+                            onclick="document.getElementById('pending-requests-modal').close()"><?= __('close') ?></button>
                     </div>
                 </div>
             </dialog>
@@ -2673,16 +2697,16 @@ if ($isLoggedIn) {
                     <!-- Local video and remote videos will be injected here -->
                 </div>
                 <div class="meeting-controls">
-                    <button class="control-btn" id="toggle-mic" onclick="meetingManager.toggleMic()" title="マイク オン/オフ">
+                    <button class="control-btn" id="toggle-mic" onclick="meetingManager.toggleMic()" title="<?= __('toggle_mic') ?>">
                         <img id="mic-icon" src="assets/img/mic.svg" alt="">
                     </button>
-                    <button class="control-btn" id="toggle-video" onclick="meetingManager.toggleVideo()" title="カメラ オン/オフ">
+                    <button class="control-btn" id="toggle-video" onclick="meetingManager.toggleVideo()" title="<?= __('toggle_video') ?>">
                         <img id="video-icon" src="assets/img/camera_on.svg" alt="">
                     </button>
-                    <button class="control-btn" id="toggle-screen" onclick="meetingManager.toggleScreenShare()" title="画面共有">
+                    <button class="control-btn" id="toggle-screen" onclick="meetingManager.toggleScreenShare()" title="<?= __('toggle_screen') ?>">
                         <img id="screen-icon" src="assets/img/screen_share.svg" alt="">
                     </button>
-                    <button class="control-btn" id="hangup-btn" onclick="meetingManager.leave()" title="退席">
+                    <button class="control-btn" id="hangup-btn" onclick="meetingManager.leave()" title="<?= __('leave_meeting') ?>">
                         <img id="hangup-icon" src="assets/img/hangup.svg" alt="" color="white">
                     </button>
                 </div>
@@ -2691,11 +2715,11 @@ if ($isLoggedIn) {
             <dialog id="blocked-users-modal" class="modal"
                 style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
                 <div class="modal-content" style="min-width:400px;">
-                    <h3>ブロックしているユーザー</h3>
+                    <h3><?= __('blocked_users') ?></h3>
                     <div id="blocked-users-list" class="thread-list" style="max-height:300px; overflow-y:auto;"></div>
                     <div class="modal-actions" style="margin-top:10px; text-align:right;">
                         <button class="btn-secondary"
-                            onclick="document.getElementById('blocked-users-modal').close()">閉じる</button>
+                            onclick="document.getElementById('blocked-users-modal').close()"><?= __('close') ?></button>
                     </div>
                 </div>
             </dialog>
@@ -2707,12 +2731,12 @@ if ($isLoggedIn) {
                     <div style="padding:16px 20px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; background:var(--bg-secondary);">
                         <div style="display:flex; align-items:center; gap:8px;">
                             <span style="font-size:1.2rem;">📌</span>
-                            <h3 style="margin:0; font-size:1rem;">ピン留めメッセージ</h3>
+                            <h3 style="margin:0; font-size:1rem;"><?= __('pinned_messages') ?></h3>
                         </div>
                         <button class="close-btn" onclick="document.getElementById('pinned-messages-modal').close()" style="background:none; border:none; color:var(--text-primary); font-size:1.2rem; cursor:pointer;">✕</button>
                     </div>
                     <div id="pinned-messages-list" style="flex:1; overflow-y:auto; padding:16px;">
-                        <div style="text-align:center; color:var(--text-secondary); padding:40px 0;">読み込み中...</div>
+                        <div style="text-align:center; color:var(--text-secondary); padding:40px 0;"><?= __('loading') ?></div>
                     </div>
                 </div>
             </dialog>
@@ -2721,29 +2745,29 @@ if ($isLoggedIn) {
             <dialog id="keyboard-shortcuts-modal" class="modal"
                 style="border:none; border-radius:12px; padding:24px; background:var(--bg-secondary); color:var(--text-primary); width:90%; max-width:480px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h3 style="margin:0; display:flex; align-items:center; gap:8px;"><span>⌨️</span> キーボードショートカット</h3>
+                    <h3 style="margin:0; display:flex; align-items:center; gap:8px;"><span>⌨️</span> <?= __('keyboard_shortcuts') ?></h3>
                     <button onclick="document.getElementById('keyboard-shortcuts-modal').close()" style="background:none; border:none; color:var(--text-primary); font-size:1.2rem; cursor:pointer;">✕</button>
                 </div>
                 <div style="display:grid; gap:10px;">
                     <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
                         <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">Esc</kbd>
-                        <span style="font-size:0.9rem;">リプライ/検索結果を閉じる</span>
+                        <span style="font-size:0.9rem;"><?= __('shortcut_esc_desc') ?></span>
                     </div>
                     <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
                         <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">/</kbd>
-                        <span style="font-size:0.9rem;">メッセージ検索</span>
+                        <span style="font-size:0.9rem;"><?= __('search') ?></span>
                     </div>
                     <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
                         <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">Alt + P</kbd>
-                        <span style="font-size:0.9rem;">ピン留め一覧を表示</span>
+                        <span style="font-size:0.9rem;"><?= __('pinned_messages') ?></span>
                     </div>
                     <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
                         <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">Alt + Shift + ?</kbd>
-                        <span style="font-size:0.9rem;">ショートカット一覧</span>
+                        <span style="font-size:0.9rem;"><?= __('keyboard_shortcuts') ?></span>
                     </div>
                     <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
                         <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">Enter</kbd>
-                        <span style="font-size:0.9rem;">メッセージ送信 (Shift+Enterで改行)</span>
+                        <span style="font-size:0.9rem;"><?= __('shortcut_enter_desc') ?></span>
                     </div>
                 </div>
             </dialog>
@@ -2751,23 +2775,23 @@ if ($isLoggedIn) {
             <dialog id="thread-settings-modal" class="modal"
                 style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
                 <div class="modal-content" style="min-width:400px;">
-                    <h3>スレッド設定</h3>
+                    <h3><?= __('thread_settings') ?></h3>
                     <div class="form-group" style="margin-top:1rem;">
-                        <label>スレッド名</label>
-                        <input type="text" id="settings-thread-name" class="chat-input" style="width:100%;" placeholder="スレッド名">
+                        <label><?= __('thread_name') ?></label>
+                        <input type="text" id="settings-thread-name" class="chat-input" style="width:100%;" placeholder="<?= __('thread_name') ?>">
                     </div>
                     <div class="form-group" style="margin-top:1rem;">
-                        <label>カテゴリー</label>
-                        <input type="text" id="settings-thread-category" class="chat-input" style="width:100%;" placeholder="カテゴリー (General, 雑談など)">
+                        <label><?= __('category') ?></label>
+                        <input type="text" id="settings-thread-category" class="chat-input" style="width:100%;" placeholder="<?= __('category_placeholder') ?>">
                     </div>
                     <div class="form-group" style="margin-top:1rem;">
-                        <label>Discord Webhook URL</label>
+                        <label><?= __('discord_webhook') ?></label>
                         <input type="text" id="settings-thread-webhook" class="chat-input" style="width:100%;" placeholder="https://discord.com/api/webhooks/...">
-                        <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:5px;">このスレッドの書き込みをDiscordに転送します。</p>
+                        <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:5px;"><?= __('discord_webhook_desc') ?></p>
                     </div>
                     <div class="modal-actions" style="margin-top:20px; text-align:right;">
-                        <button class="btn-secondary" onclick="document.getElementById('thread-settings-modal').close()">キャンセル</button>
-                        <button class="btn-primary" onclick="saveThreadSettings()">保存</button>
+                        <button class="btn-secondary" onclick="document.getElementById('thread-settings-modal').close()"><?= __('cancel') ?></button>
+                        <button class="btn-primary" onclick="saveThreadSettings()"><?= __('save') ?></button>
                     </div>
                 </div>
             </dialog>
@@ -2775,7 +2799,7 @@ if ($isLoggedIn) {
             <dialog id="media-upload-modal" class="modal media-upload-modal">
                 <div class="modal-content" style="min-width: 450px; max-width: 600px;">
                     <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                        <h3 style="margin:0;">ファイルを送信</h3>
+                        <h3 style="margin:0;"><?= __('send_file') ?></h3>
                         <button class="close-btn" onclick="closeMediaUploadModal()">
                             <p style="font-size: 20px; color: #000000; font-weight: bold; margin:0; padding:0; cursor:pointer; background-color: transparent; border: none; outline: none;">✕</p>
                         </button>
@@ -2789,19 +2813,19 @@ if ($isLoggedIn) {
                                     <polyline points="17 8 12 3 7 8"></polyline>
                                     <line x1="12" y1="3" x2="12" y2="15"></line>
                                 </svg>
-                                <p style="margin:0; color:var(--text-secondary);">クリックまたはドラッグ＆ドロップで選択</p>
+                                <p style="margin:0; color:var(--text-secondary);"><?= __('click_or_drag_to_select') ?></p>
                             </div>
                         </div>
                         <input type="file" id="modal-file-input" hidden onchange="handleMediaUploadFiles(this.files)">
                     </div>
 
                     <div class="modal-form-group" style="margin-top:20px;">
-                        <label class="modal-label">メッセージ (任意)</label>
-                        <textarea id="modal-content-input" class="modal-textarea" placeholder="メッセージを入力..." rows="2" style="background:var(--input-bg); border:1px solid var(--border-color); color:white; border-radius:8px; padding:12px; width:100%; resize:none;"></textarea>
+                        <label class="modal-label"><?= __('message_optional') ?></label>
+                        <textarea id="modal-content-input" class="modal-textarea" placeholder="<?= __('bio_placeholder') ?>" rows="2" style="background:var(--input-bg); border:1px solid var(--border-color); color:white; border-radius:8px; padding:12px; width:100%; resize:none;"></textarea>
                     </div>
 
                     <div class="modal-actions" style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end;">
-                        <button class="btn-secondary" onclick="closeMediaUploadModal()" style="padding:10px 30px;">キャンセル</button>
+                        <button class="btn-secondary" onclick="closeMediaUploadModal()" style="padding:10px 30px;"><?= __('cancel') ?></button>
                     </div>
                 </div>
             </dialog>
@@ -2809,14 +2833,14 @@ if ($isLoggedIn) {
                 <aside class="thread-browser active"
                     style="margin-left:0; border-right:1px solid var(--border-color); display:block; position:relative;">
                     <div class="panel-header" style="justify-content: flex-start;">
-                        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="メニュー">
+                        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="<?= __('menu') ?>">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="3" y1="12" x2="21" y2="12"></line>
                                 <line x1="3" y1="6" x2="21" y2="6"></line>
                                 <line x1="3" y1="18" x2="21" y2="18"></line>
                             </svg>
                         </button>
-                        <div style="display:flex; align-items:center; margin-left:10px;">お気に入りスレッド</div>
+                        <div style="display:flex; align-items:center; margin-left:10px;"><?= __('fav_threads') ?></div>
                     </div>
                     <div id="fav-thread-list" class="thread-list"></div>
                 </aside>
@@ -2826,84 +2850,84 @@ if ($isLoggedIn) {
             <dialog id="profile-modal" class="profile-modal">
                 <div class="profile-content">
                     <div class="profile-edit-form">
-                        <h3 style="margin-bottom: 24px;">ユーザー設定</h3>
+                        <h3 style="margin-bottom: 24px;"><?= __('user_settings') ?></h3>
 
                         <div class="modal-form-group">
-                            <label class="modal-label">アバター画像</label>
+                            <label class="modal-label"><?= __('avatar_image') ?></label>
                             <input type="file" id="edit-avatar-input" accept="image/*" style="display:none" onchange="previewAvatar(this)">
                             <div style="display:flex; gap:8px;">
-                                <button class="btn-secondary" onclick="document.getElementById('edit-avatar-input').click()">画像を選択</button>
-                                <button class="btn-secondary" id="btn-remove-avatar" onclick="removeAvatarPreview()" style="color:#f87171; display: <?= $currentUserAvatar ? 'inline-block' : 'none' ?>;">削除</button>
+                                <button class="btn-secondary" onclick="document.getElementById('edit-avatar-input').click()"><?= __('select_image') ?></button>
+                                <button class="btn-secondary" id="btn-remove-avatar" onclick="removeAvatarPreview()" style="color:#f87171; display: <?= $currentUserAvatar ? 'inline-block' : 'none' ?>;"><?= __('delete') ?></button>
                             </div>
                         </div>
 
                         <div class="modal-form-group">
-                            <label class="modal-label">バナー色</label>
+                            <label class="modal-label"><?= __('banner_color') ?></label>
                             <input type="color" id="edit-banner-input" class="modal-input" style="height: 40px; padding: 5px;"
                                 oninput="updatePreviewBanner(this.value)" value="<?= htmlspecialchars($currentUserBanner) ?>">
                         </div>
 
                         <div class="modal-form-group">
-                            <label class="modal-label">Twitter/X ID (@抜き)</label>
+                            <label class="modal-label"><?= __('twitter_id') ?></label>
                             <input type="text" id="edit-twitter-input" class="modal-input" placeholder="example_user"
                                 value="<?= htmlspecialchars($currentUserSocialLinks['twitter'] ?? '') ?>">
                         </div>
 
                         <div class="modal-form-group">
-                            <label class="modal-label">テーマ設定</label>
+                            <label class="modal-label"><?= __('theme_settings') ?></label>
                             <div style="display:flex; gap:10px;">
-                                <button class="btn-secondary" onclick="setTheme('dark')" style="flex:1;">ダーク</button>
-                                <button class="btn-secondary" onclick="setTheme('light')" style="flex:1;">ライト</button>
+                                <button class="btn-secondary" onclick="setTheme('dark')" style="flex:1;"><?= __('dark') ?></button>
+                                <button class="btn-secondary" onclick="setTheme('light')" style="flex:1;"><?= __('light') ?></button>
                             </div>
                         </div>
 
                         <div class="modal-form-group">
-                            <label class="modal-label">アクセントカラー</label>
+                            <label class="modal-label"><?= __('accent_color') ?></label>
                             <input type="color" id="edit-accent-input" class="modal-input" style="height: 40px; padding: 5px;"
                                 oninput="updateAccentColor(this.value)" value="#6366f1">
                         </div>
 
                         <div class="modal-form-group">
-                            <label class="modal-label">GitHub Username</label>
+                            <label class="modal-label"><?= __('github_username') ?></label>
                             <input type="text" id="edit-github-input" class="modal-input" placeholder="example_git"
                                 value="<?= htmlspecialchars($currentUserSocialLinks['github'] ?? '') ?>">
                         </div>
 
                         <div class="modal-form-group">
-                            <label class="modal-label">自己紹介</label>
-                            <textarea id="edit-bio-input" class="modal-textarea" placeholder="自分について書こう"
+                            <label class="modal-label"><?= __('bio') ?></label>
+                            <textarea id="edit-bio-input" class="modal-textarea" placeholder="<?= __('bio_placeholder') ?>"
                                 oninput="updatePreviewBio(this.value)"><?= htmlspecialchars($currentUserBio) ?></textarea>
                         </div>
 
                         <div class="modal-form-group">
-                            <label class="modal-label">通知キーワード (カンマ区切り)</label>
-                            <input type="text" id="edit-keywords-input" class="modal-input" placeholder="メンション,緊急,重要"
+                            <label class="modal-label"><?= __('notification_keywords') ?></label>
+                            <input type="text" id="edit-keywords-input" class="modal-input" placeholder="<?= __('notification_keywords_placeholder') ?>"
                                 value="<?= htmlspecialchars($currentUserData['notification_keywords'] ?? '') ?>">
                             <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:5px;">
-                                指定した単語が含まれるメッセージを受信した際、ミュート設定に関わらず通知されます。
+                                <?= __('notification_keywords_desc') ?>
                             </p>
                         </div>
 
                         <div class="modal-form-group">
-                            <label class="modal-label">ステータス</label>
+                            <label class="modal-label"><?= __('status') ?></label>
                             <select id="modal-status-input" class="modal-input" onchange="updatePreviewStatus(this.value)">
-                                <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>>連絡可能</option>
-                                <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>>取り込み中</option>
-                                <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>>応答不可</option>
-                                <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>>一時退席中</option>
-                                <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>>退席中</option>
-                                <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>>オフライン表示</option>
-                                <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>>外出中</option>
+                                <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>><?= __('status_online') ?></option>
+                                <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>><?= __('status_busy') ?></option>
+                                <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>><?= __('status_not_allowed') ?></option>
+                                <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>><?= __('status_step_out') ?></option>
+                                <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>><?= __('status_away') ?></option>
+                                <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>><?= __('status_offline') ?></option>
+                                <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>><?= __('status_going_away') ?></option>
                             </select>
                         </div>
 
                         <div style="margin-top:32px; display:flex; flex-direction:column; gap:12px;">
                             <div style="display:flex; align-items:center; gap:10px;">
-                                <button class="btn-secondary" onclick="document.getElementById('profile-modal').close()" style="padding: 12px; flex: 1;">キャンセル</button>
-                                <button class="btn-primary" onclick="saveProfile()" style="padding: 12px; flex: 1; font-weight: 600;">保存</button>
+                                <button class="btn-secondary" onclick="document.getElementById('profile-modal').close()" style="padding: 12px; flex: 1;"><?= __('cancel') ?></button>
+                                <button class="btn-primary" onclick="saveProfile()" style="padding: 12px; flex: 1; font-weight: 600;"><?= __('save') ?></button>
                             </div>
                             <div style="display:flex; justify-content: flex-end;">
-                                <a href="delete_account.php" style="color:#f87171; font-size:0.8rem; text-decoration:none;">アカウント削除</a>
+                                <a href="delete_account.php" style="color:#f87171; font-size:0.8rem; text-decoration:none;"><?= __('delete_account') ?></a>
                             </div>
                         </div>
                     </div>
@@ -2925,12 +2949,12 @@ if ($isLoggedIn) {
                                 <div class="discord-username"><?= htmlspecialchars($currentUser) ?></div>
                                 <div class="discord-custom-status" id="preview-custom-status-text"></div>
                                 <div class="discord-divider"></div>
-                                <div class="discord-section-title">自己紹介</div>
+                                <div class="discord-section-title"><?= __('bio') ?></div>
                                 <div class="discord-bio" id="preview-bio"><?= nl2br(htmlspecialchars($currentUserBio)) ?></div>
 
                                 <section class="section2" id="gps-section">
                                     <h3>GPS</h3>
-                                    <div id="gps-status">位置取得待機中…</div>
+                                    <div id="gps-status"><?= __('gps_waiting') ?></div>
                                 </section>
                             </div>
                         </div>
@@ -2952,7 +2976,7 @@ if ($isLoggedIn) {
                                 <div class="discord-username" id="user-profile-username"></div>
                                 <div class="discord-custom-status" id="user-profile-custom-status"></div>
                                 <div class="discord-divider"></div>
-                                <div class="discord-section-title">自己紹介</div>
+                                <div class="discord-section-title"><?= __('bio') ?></div>
                                 <div class="discord-bio" id="user-profile-bio"></div>
                                 <div class="discord-divider"></div>
                                 <div class="discord-section-title">SNS</div>
@@ -2960,8 +2984,8 @@ if ($isLoggedIn) {
                             </div>
                         </div>
                         <div style="margin-top: 16px; display: flex; gap: 8px; margin-left: 15px;">
-                            <button class="btn-primary" onclick="document.getElementById('user-profile-modal').close()" style="flex: 1;">閉じる</button>
-                            <button class="btn-primary" id="user-profile-dm-btn" style="flex: 1;">DMを送る</button>
+                            <button class="btn-primary" onclick="document.getElementById('user-profile-modal').close()" style="flex: 1;"><?= __('close') ?></button>
+                            <button class="btn-primary" id="user-profile-dm-btn" style="flex: 1;"><?= __('send_dm') ?></button>
                         </div>
                     </div>
                 </div>
@@ -2979,8 +3003,17 @@ if ($isLoggedIn) {
 
     <!-- Offline Indicator -->
     <div id="offline-indicator" style="display:none; position:fixed; top:0; left:0; right:0; background:#ef4444; color:white; text-align:center; padding:6px; font-size:0.8rem; font-family:'Inter',sans-serif; z-index:10001; animation: slideDown 0.3s ease-out;">
-        ⚠️ オフラインです - 一部の機能が制限されます
+        <?= __('offline_msg') ?>
     </div>
+    <script>
+        async function changeLang(lang) {
+            const res = await fetch(`index.php?api=set_lang&lang=${lang}`);
+            if (res.ok) {
+                location.reload();
+            }
+        }
+    </script>
+    <script src="js/index.js"></script>
     <script src="js/widgets.js"></script>
 </body>
 

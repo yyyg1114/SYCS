@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/session_config.php';
+require_once __DIR__ . '/Session.php';
 require 'db.php';
 
 /**
@@ -7,7 +8,7 @@ require 'db.php';
  */
 function isLoggedIn()
 {
-    return isset($_SESSION['user_id']);
+    return Session::has('user_id');
 }
 
 /**
@@ -27,10 +28,11 @@ function requireLogin()
  */
 function getCurrentUser($mysqli)
 {
-    if (!isset($_SESSION['user_id'])) return null;
+    $userId = Session::get('user_id');
+    if (!$userId) return null;
 
     $stmt = $mysqli->prepare("SELECT id, username, email FROM users WHERE id=?");
-    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->bind_param("i", $userId);
     $stmt->execute();
     return $stmt->get_result()->fetch_assoc();
 }
@@ -40,8 +42,10 @@ function getCurrentUser($mysqli)
  */
 function logout()
 {
-    // セッション変数をすべてクリア
-    $_SESSION = [];
+    // Session ユーティリティを使用してセッションを破棄
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        $_SESSION = [];
+    }
 
     // セッションクッキーを明示的に削除
     if (ini_get("session.use_cookies")) {

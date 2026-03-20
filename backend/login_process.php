@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/session_config.php';
+require_once __DIR__ . '/Session.php';
 require_once __DIR__ . '/db.php';
 
 $username = $_POST['username'] ?? '';
@@ -70,9 +71,9 @@ if ($userId && $dbPassword !== null && password_verify($password, $dbPassword)) 
     // ログイン成功: セッションIDを再生成してセッション固定攻撃を防ぐ
     session_regenerate_id(true);
 
-    $_SESSION['user_id']        = $userId;
-    $_SESSION['user']           = $dbUsername;
-    $_SESSION['last_thread_id'] = $lastThreadId ?: 1;
+    Session::set('user_id', $userId);
+    Session::set('user', $dbUsername);
+    Session::set('last_thread_id', $lastThreadId ?: 1);
 
     // ログイン成功時: 該当ユーザー+IPの失敗記録をクリア
     $delStmt = $mysqli->prepare(
