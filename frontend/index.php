@@ -2327,7 +2327,7 @@ if ($isLoggedIn) {
                     </div>
                 </div>
                 <div class="sidebar-actions">
-                    <a href="javascript:void(0)" onclick="showProfileModal()" class="action-link"><?= __('settings') ?></a>
+                    <a href="javascript:void(0)" onclick="showProfileModal()" class="action-link" style="margin-top: 5px;"><?= __('settings') ?></a>
                     <div class="lang-switcher">
                         <select onchange="changeLang(this.value)" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 4px; padding: 2px 4px; font-size: 0.75rem; cursor: pointer; outline: none;">
                             <option value="ja" <?= I18n::getInstance()->getCurrentLang() === 'ja' ? 'selected' : '' ?>><?= __('lang_ja') ?></option>
@@ -2335,7 +2335,7 @@ if ($isLoggedIn) {
                             <option value="zh" <?= I18n::getInstance()->getCurrentLang() === 'zh' ? 'selected' : '' ?>><?= __('lang_zh') ?></option>
                         </select>
                     </div>
-                    <a href="?logout=1" class="action-link" style="color:#f87171;"><?= __('logout') ?></a>
+                    <a href="?logout=1" class="action-link" style="color:#f87171; margin-top: 5px;"><?= __('logout') ?></a>
                 </div>
             </div>
         </aside>

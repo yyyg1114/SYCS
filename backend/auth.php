@@ -8,7 +8,7 @@ require 'db.php';
  */
 function isLoggedIn()
 {
-    return Session::has('user_id');
+    return Session::getInstance()->has('user_id');
 }
 
 /**
@@ -26,9 +26,10 @@ function requireLogin()
 /**
  * 現在のログインユーザー情報を取得
  */
-function getCurrentUser($mysqli)
+function getCurrentUser()
 {
-    $userId = Session::get('user_id');
+    global $mysqli;
+    $userId = Session::getInstance()->get('user_id');
     if (!$userId) return null;
 
     $stmt = $mysqli->prepare("SELECT id, username, email FROM users WHERE id=?");
