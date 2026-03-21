@@ -64,6 +64,19 @@
         </ul>
       </div>
 
+      <div class="user-list">
+        <div class="user-list-header">
+          <h3>Members</h3>
+        </div>
+        <ul class="users">
+          <li v-for="u in users" :key="u.id" class="user-item">
+            <span class="status-indicator" :class="u.status || 'offline'"></span>
+            <span class="user-name">{{ u.username }}</span>
+            <span v-if="u.custom_status" class="custom-status" :title="u.custom_status">💬</span>
+          </li>
+        </ul>
+      </div>
+
       <div class="sidebar-footer">
         <button @click="handleLogout" class="btn-logout">
           <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
@@ -237,6 +250,7 @@ const authStore = useAuthStore();
 const router = useRouter();
 
 const threads = ref([]);
+const users = ref([]);
 const currentThread = ref(null);
 const messages = ref([]);
 const newMessage = ref('');
@@ -323,6 +337,17 @@ const safeFetch = async (url, options = {}) => {
       throw new Error("通信エラー: PHPサーバーが稼働しているか確認してください。");
     }
     throw err;
+  }
+};
+
+const loadUsers = async () => {
+  try {
+    const data = await safeFetch('/api/users.php');
+    if (data.success) {
+      users.value = data.users;
+    }
+  } catch (e) {
+    console.error("Failed to load users", e);
   }
 };
 
@@ -608,9 +633,11 @@ const formatDate = (dateStr) => {
 let pollInterval;
 onMounted(async () => {
   await loadThreads();
+  await loadUsers();
   pollInterval = setInterval(() => {
     if (currentThread.value) loadMessages();
     loadThreads();
+    loadUsers();
   }, 3000); // Polling every 3s
 });
 
@@ -721,6 +748,47 @@ onUnmounted(() => {
   align-items: center;
   width: 100%;
 }
+.user-list {
+  padding: 1rem;
+  flex: 1;
+  overflow-y: auto;
+  border-top: 1px solid #374151;
+}
+.user-list-header h3 {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+.users {
+  list-style: none;
+  padding: 0; margin: 0;
+}
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  color: #d1d5db;
+}
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.status-indicator.online { background: #10b981; }
+.status-indicator.busy { background: #ef4444; }
+.status-indicator.away { background: #f59e0b; }
+.status-indicator.offline { background: #6b7280; }
+.user-name {
+  font-size: 0.9rem;
+}
+.custom-status {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
 .thread-hover-actions {
   display: flex;
   gap: 0.25rem;
