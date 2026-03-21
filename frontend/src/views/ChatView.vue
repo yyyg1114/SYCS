@@ -49,6 +49,10 @@
     </aside>
 
     <main class="chat-area">
+      <div v-if="globalError" class="global-error-banner">
+        {{ globalError }}
+      </div>
+
       <template v-if="currentThread">
         <div class="chat-header">
           <h2><span class="hash">#</span> {{ currentThread.title }}</h2>
@@ -106,7 +110,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
 import '../assets/chat.css';
@@ -123,32 +127,64 @@ const messageListRef = ref(null);
 const isCreatingThread = ref(false);
 const newThreadTitle = ref('');
 const isSending = ref(false);
+const globalError = ref('');
 
 const handleLogout = async () => {
   await authStore.logout();
   router.push('/login');
 };
 
+const safeFetch = async (url, options = {}) => {
+  try {
+    const res = await fetch(url, options);
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw new Error(`サーバーエラー: 不正な応答 (${res.status})`);
+    }
+    return data;
+  } catch (err) {
+    if (err.name === 'TypeError') {
+      throw new Error("通信エラー: PHPサーバーが稼働しているか確認してください。");
+    }
+    throw err;
+  }
+};
+
 const loadThreads = async () => {
-  const res = await fetch('/api/threads.php');
-  const data = await res.json();
-  if (data.success) {
-    threads.value = data.threads;
+  try {
+    const data = await safeFetch('/api/threads.php');
+    if (data.success) {
+      threads.value = data.threads;
+      globalError.value = '';
+    } else {
+      globalError.value = data.error || "Failed to load threads";
+    }
+  } catch (e) {
+    globalError.value = e.message;
   }
 };
 
 const createThread = async () => {
   if (!newThreadTitle.value.trim()) return;
-  const res = await fetch('/api/threads.php', {
-    method: 'POST',
-    body: JSON.stringify({ title: newThreadTitle.value })
-  });
-  const data = await res.json();
-  if (data.success) {
-    newThreadTitle.value = '';
-    isCreatingThread.value = false;
-    await loadThreads();
-    selectThread(data.thread);
+  try {
+    const data = await safeFetch('/api/threads.php', {
+      method: 'POST',
+      body: JSON.stringify({ title: newThreadTitle.value })
+    });
+    if (data.success) {
+      newThreadTitle.value = '';
+      isCreatingThread.value = false;
+      await loadThreads();
+      selectThread(data.thread);
+      globalError.value = '';
+    } else {
+      globalError.value = data.error || "Failed to create thread";
+    }
+  } catch (e) {
+    globalError.value = e.message;
   }
 };
 
@@ -159,11 +195,15 @@ const selectThread = async (thread) => {
 
 const loadMessages = async () => {
   if (!currentThread.value) return;
-  const res = await fetch(`/api/messages.php?thread_id=${currentThread.value.id}`);
-  const data = await res.json();
-  if (data.success) {
-    messages.value = data.messages;
-    scrollToBottom();
+  try {
+    const data = await safeFetch(`/api/messages.php?thread_id=${currentThread.value.id}`);
+    if (data.success) {
+      messages.value = data.messages;
+      globalError.value = '';
+      scrollToBottom();
+    }
+  } catch (e) {
+    globalError.value = e.message;
   }
 };
 
@@ -171,19 +211,23 @@ const sendMessage = async () => {
   if (!newMessage.value.trim() || !currentThread.value || isSending.value) return;
   
   isSending.value = true;
+  globalError.value = '';
   try {
-    const res = await fetch('/api/messages.php', {
+    const data = await safeFetch('/api/messages.php', {
       method: 'POST',
       body: JSON.stringify({ 
         thread_id: currentThread.value.id, 
         content: newMessage.value 
       })
     });
-    const data = await res.json();
     if (data.success) {
       newMessage.value = '';
       await loadMessages();
+    } else {
+      globalError.value = data.error || "Failed to send message";
     }
+  } catch (e) {
+    globalError.value = e.message;
   } finally {
     isSending.value = false;
   }
@@ -208,6 +252,22 @@ onMounted(async () => {
   pollInterval = setInterval(() => {
     if (currentThread.value) loadMessages();
     loadThreads();
-  }, 3000); // Polling every 3s since we removed the Node.js websocket for purely PHP setup.
+  }, 3000); // Polling every 3s
+});
+
+onUnmounted(() => {
+  if (pollInterval) clearInterval(pollInterval);
 });
 </script>
+
+<style scoped>
+.global-error-banner {
+  background: var(--danger);
+  color: white;
+  padding: 0.75rem;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 500;
+  z-index: 100;
+}
+</style>
