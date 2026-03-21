@@ -1,5 +1,5 @@
 <?php
-// v1.2.23
+// v1.2.26
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -2189,11 +2189,11 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.23</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.26</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
-                        <a href="../release_notes/release_notes.html" style="font-size: 0.8rem; margin-left: 120px; align-items: end; text-decoration: none; color: var(--text-primary); background-color: var(--accent-hover); border-radius: 4px; padding: 2px 4px;"><?= __('release_notes') ?></a>
+                        <a href="../release_notes/release_notes.php" target="_blank" style="font-size: 0.8rem; margin-left: 120px; align-items: end; text-decoration: none; color: var(--text-primary); background-color: var(--accent-hover); border-radius: 4px; padding: 2px 4px;"><?= __('release_notes') ?></a>
                     </div>
                 </div>
                 <nav>
@@ -2224,7 +2224,7 @@ if ($isLoggedIn) {
                             </svg>
                             <span><?= __('favorites') ?></span>
                         </li>
-                        <li class="nav-item" onclick="window.location.href='meetings.php'" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;">
+                        <li class="nav-item" onclick="window.open('meetings.php', '_blank', 'noopener noreferrer')" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polygon points="23 7 16 12 23 17 23 7"></polygon>
                                 <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
@@ -2463,7 +2463,7 @@ if ($isLoggedIn) {
                             <span style="font-size:1.1rem;">📱</span>
                             <span style="font-weight:600; font-size:1.1rem;"><?= __('install_sycs') ?></span>
                         </div>
-                        <button onclick="installPWA()" style="background:white; color:#4f46e5; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;"><?= __('add') ?></button>
+                        <button onclick="installPWA()" style="background:white; color:#4f46e5; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;"><?= __('install') ?></button>
                         <button onclick="dismissInstallBanner()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.1rem; opacity:0.7; padding:4px;">✕</button>
                     </div>
 

@@ -6,6 +6,45 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v1.2.26 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.26</span>
+        <span class="release-title">システム基盤の強化と多言語対応の最適化</span>
+        <span class="release-date">2026-03-21</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善 & 修正 (Improvements & Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>セッション・Cookie管理の堅牢化</strong>
+                        <span class="detail">バックエンドのセッションとCookie処理を刷新し、セキュリティと接続の安定性を大幅に向上させました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌍</span>
+                    <div>
+                        <strong>多言語対応 (i18n) プロセスの最適化</strong>
+                        <span class="detail">言語切り替えロジックを改善し、よりスムーズなユーザー体験を提供します。また、中国語（簡体字）リソースを全面的に更新しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>フロントエンドのクリーンアップ</strong>
+                        <span class="detail">メイン画面の構造を整理し、不要なコードを削除することでパフォーマンスを最適化しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.23 ===== -->
 <article class="release">
     <div class="release-header">

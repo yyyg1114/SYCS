@@ -139,7 +139,7 @@
     "show_attachment_list": "添付ファイル一覧を表示",
     "add_to_favorites": "お気に入りに追加",
     "loading": "読み込み中...",
-    "add": "追加",
+    "install": "インストール",
     "clock": "時計",
     "notepad": "メモ帳",
     "filer": "ファイル",
@@ -157,5 +157,6 @@
     "toggle_mic": "マイク オン/オフ",
     "toggle_video": "カメラ オン/オフ",
     "toggle_screen": "画面共有",
-    "leave_meeting": "退席"
+    "leave_meeting": "退席",
+    "install_sycs": "SYCSをインストール"
 }

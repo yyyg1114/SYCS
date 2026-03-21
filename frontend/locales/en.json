@@ -139,7 +139,7 @@
     "show_attachment_list": "Show Attachment List",
     "add_to_favorites": "Add to Favorites",
     "loading": "Loading...",
-    "add": "Add",
+    "install": "Install",
     "clock": "Clock",
     "notepad": "Notepad",
     "filer": "File Explorer",
@@ -157,5 +157,6 @@
     "toggle_mic": "Toggle Mic",
     "toggle_video": "Toggle Video",
     "toggle_screen": "Toggle Screen Share",
-    "leave_meeting": "Leave Meeting"
+    "leave_meeting": "Leave Meeting",
+    "install_sycs": "Install SYCS"
 }

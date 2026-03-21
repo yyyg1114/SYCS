@@ -139,7 +139,7 @@
     "show_attachment_list": "顯示附件列表",
     "add_to_favorites": "加入我的最愛",
     "loading": "載入中...",
-    "add": "新增",
+    "install": "安裝",
     "clock": "時鐘",
     "notepad": "記事本",
     "filer": "檔案總管",
@@ -157,5 +157,6 @@
     "toggle_mic": "靜音/取消靜音",
     "toggle_video": "開啟/關閉攝像頭",
     "toggle_screen": "螢幕共享",
-    "leave_meeting": "離開會議"
+    "leave_meeting": "離開會議",
+    "install_sycs": "安裝SYCS"
 }

@@ -1,3 +1,42 @@
+<!-- ===== v1.2.26 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.26</span>
+        <span class="release-title">System Infrastructure Hardening & i18n Optimization</span>
+        <span class="release-date">2026-03-21</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Improvements & Fixes
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>Enhanced Session & Cookie Management</strong>
+                        <span class="detail">Refactored backend session and cookie handling for significantly improved security and connection stability.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌍</span>
+                    <div>
+                        <strong>i18n Process Optimization</strong>
+                        <span class="detail">Improved language switching logic and fully updated Simplified Chinese localized resources.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>Frontend Cleanup</strong>
+                        <span class="detail">Optimized performance by reorganizing structures and removing redundant code in the main application.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.23 ===== -->
 <article class="release">
     <div class="release-header">

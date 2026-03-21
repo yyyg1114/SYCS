@@ -7,6 +7,46 @@
  */
 ?>
 
+<!-- ===== v1.2.26 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.26</span>
+        <span class="release-title">系统基础强化与多语言支持优化</span>
+        <span class="release-date">2026-03-21</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善与修正 (Improvements & Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>强化会话与 Cookie 管理</strong>
+                        <span class="detail">刷新了后端会话和 Cookie 处理，大幅提升了安全性和连接稳定性。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌍</span>
+                    <div>
+                        <strong>多语言支持 (i18n) 流程优化</strong>
+                        <span class="detail">改善了语言切换逻辑，提供更顺畅的用户体验。此外，全面更新了简体中文资源。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>前端清理与优化</strong>
+                        <span class="detail">通过整理主界面结构并删除冗余代码，优化了整体性能。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+
 <!-- ===== v1.2.23 ===== -->
 <article class="release">
     <div class="release-header">
