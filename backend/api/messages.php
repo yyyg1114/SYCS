@@ -39,16 +39,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $stmt = $mysqli->prepare("SELECT m.id, m.content, m.created_at, u.username FROM messages m JOIN users u ON m.user_id = u.id WHERE m.thread_id = ? ORDER BY m.created_at ASC");
+    $stmt = $mysqli->prepare("SELECT m.id, m.content, m.created_at, m.is_pinned, u.username FROM messages m JOIN users u ON m.user_id = u.id WHERE m.thread_id = ? ORDER BY m.created_at ASC");
     $stmt->bind_param("i", $threadId);
     $stmt->execute();
     $result = $stmt->get_result();
 
     $messages = [];
     while ($row = $result->fetch_assoc()) {
-        $messages[] = $row;
+        $row['is_pinned'] = (bool)$row['is_pinned'];
+        $row['reactions'] = [];
+        $messages[$row['id']] = $row;
     }
-    echo json_encode(["success" => true, "messages" => $messages]);
+
+    if (!empty($messages)) {
+        $msgIds = array_keys($messages);
+        $in = str_repeat('?,', count($msgIds) - 1) . '?';
+        $rStmt = $mysqli->prepare("SELECT r.message_id, r.emoji, u.username FROM message_reactions r JOIN users u ON r.user_id = u.id WHERE r.message_id IN ($in)");
+        $rStmt->bind_param(str_repeat('i', count($msgIds)), ...$msgIds);
+        $rStmt->execute();
+        $rResult = $rStmt->get_result();
+        while ($rRow = $rResult->fetch_assoc()) {
+            $messages[$rRow['message_id']]['reactions'][] = [
+                'emoji' => $rRow['emoji'],
+                'username' => $rRow['username']
+            ];
+        }
+    }
+
+    echo json_encode(["success" => true, "messages" => array_values($messages)]);
 } else if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     $data = json_decode(file_get_contents('php://input'), true);
     $messageId = $data['message_id'] ?? null;

@@ -92,8 +92,9 @@
               <div class="message-meta" v-if="index === 0 || messages[index-1].username !== msg.username">
                 <span class="message-author">{{ msg.username }}</span>
                 <span class="message-time">{{ formatDate(msg.created_at) }}</span>
+                <span v-if="msg.is_pinned" class="pinned-badge" title="Pinned">📌</span>
               </div>
-              <div class="message-text">
+              <div class="message-text" :class="{ 'is-pinned': msg.is_pinned }">
                 <div v-if="editingMessageId === msg.id" class="edit-message-form">
                   <input 
                     v-model="editingContent" 
@@ -109,11 +110,29 @@
                 </div>
                 <div v-else>{{ msg.content }}</div>
               </div>
+              
+              <div class="reactions-list" v-if="msg.reactions && msg.reactions.length > 0">
+                <button 
+                  v-for="grp in groupReactions(msg.reactions)" 
+                  :key="grp.emoji"
+                  class="reaction-badge"
+                  :title="grp.title"
+                  @click="toggleReaction(msg.id, grp.emoji)"
+                >
+                  {{ grp.emoji }} <span class="reaction-count">{{ grp.count }}</span>
+                </button>
+              </div>
             </div>
 
-            <div class="message-actions" v-if="authStore.user && authStore.user.username === msg.username && editingMessageId !== msg.id">
-              <button @click="startEdit(msg)" class="btn-action" title="Edit">✎</button>
-              <button @click="deleteMessage(msg.id)" class="btn-action btn-danger" title="Delete">🗑</button>
+            <div class="message-actions">
+              <button v-if="authStore.user" @click="toggleReaction(msg.id, '👍')" class="btn-action" title="React 👍">👍</button>
+              <button v-if="authStore.user" @click="toggleReaction(msg.id, '❤️')" class="btn-action" title="React ❤️">❤️</button>
+              <button v-if="authStore.user" @click="togglePin(msg.id)" class="btn-action" :title="msg.is_pinned ? 'Unpin' : 'Pin'">📌</button>
+              
+              <template v-if="authStore.user && authStore.user.username === msg.username && editingMessageId !== msg.id">
+                <button @click="startEdit(msg)" class="btn-action" title="Edit">✎</button>
+                <button @click="deleteMessage(msg.id)" class="btn-action btn-danger" title="Delete">🗑</button>
+              </template>
             </div>
           </div>
         </div>
@@ -418,6 +437,49 @@ const saveEdit = async (msg) => {
   }
 };
 
+const togglePin = async (msgId) => {
+  try {
+    const data = await safeFetch('/api/pin.php', {
+      method: 'POST',
+      body: JSON.stringify({ message_id: msgId })
+    });
+    if (data.success) {
+      await loadMessages();
+    }
+  } catch (e) {
+    globalError.value = e.message;
+  }
+};
+
+const toggleReaction = async (msgId, emoji) => {
+  try {
+    const data = await safeFetch('/api/reactions.php', {
+      method: 'POST',
+      body: JSON.stringify({ message_id: msgId, emoji })
+    });
+    if (data.success) {
+      await loadMessages();
+    }
+  } catch (e) {
+    globalError.value = e.message;
+  }
+};
+
+const groupReactions = (reactions) => {
+  if (!reactions) return [];
+  const grouped = {};
+  reactions.forEach(r => {
+    if (!grouped[r.emoji]) grouped[r.emoji] = { count: 0, users: [] };
+    grouped[r.emoji].count++;
+    grouped[r.emoji].users.push(r.username);
+  });
+  return Object.entries(grouped).map(([emoji, data]) => ({
+    emoji,
+    count: data.count,
+    title: data.users.join(', ')
+  }));
+};
+
 const deleteMessage = async (msgId) => {
   if (!confirm('メッセージを削除してよろしいですか？')) return;
   globalError.value = '';
@@ -501,6 +563,42 @@ onUnmounted(() => {
   gap: 0.25rem;
   opacity: 0;
   transition: opacity 0.2s;
+  background: #1f2937;
+  padding: 0.2rem;
+  border-radius: 4px;
+}
+.pinned-badge {
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+  opacity: 0.8;
+}
+.is-pinned {
+  border-left: 2px solid #fbbf24;
+  padding-left: 0.5rem;
+}
+.reactions-list {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+.reaction-badge {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.75rem;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.reaction-badge:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.reaction-count {
+  font-weight: bold;
+  opacity: 0.8;
 }
 .message-item:hover .message-actions {
   opacity: 1;
