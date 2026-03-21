@@ -3,7 +3,7 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <h2 class="sycs-logo">SYCS</h2>
-        <div class="user-info" v-if="authStore.user">
+        <div class="user-info" v-if="authStore.user" @click="openProfileModal" title="Edit Profile">
           <div class="avatar">{{ authStore.user.username.charAt(0).toUpperCase() }}</div>
           <span>{{ authStore.user.username }}</span>
         </div>
@@ -140,6 +140,39 @@
         </div>
       </div>
     </main>
+
+    <!-- Profile Modal Overlays -->
+    <div v-if="showProfileModal" class="modal-overlay" @click="closeProfileModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Profile Settings</h3>
+          <button @click="closeProfileModal" class="btn-icon">❌</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Status</label>
+            <select v-model="profileForm.status" class="edit-input">
+              <option value="online">🟢 Online</option>
+              <option value="busy">🔴 Busy</option>
+              <option value="away">🟡 Away</option>
+              <option value="offline">⚪ Offline</option>
+            </select>
+          </div>
+          <div class="form-group mt-2">
+            <label>Custom Status</label>
+            <input v-model="profileForm.custom_status" class="edit-input" placeholder="What's on your mind?" />
+          </div>
+          <div class="form-group mt-2">
+            <label>Bio</label>
+            <textarea v-model="profileForm.bio" class="edit-input" rows="3" placeholder="Tell us about yourself..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <span v-if="profileSaveError" class="text-danger">{{ profileSaveError }}</span>
+          <button class="btn-primary" @click="saveProfile">Save Changes</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -156,6 +189,49 @@ const threads = ref([]);
 const currentThread = ref(null);
 const messages = ref([]);
 const newMessage = ref('');
+
+const showProfileModal = ref(false);
+const profileForm = ref({ status: 'online', custom_status: '', bio: '', banner_color: '#6366f1' });
+const profileSaveError = ref('');
+
+const openProfileModal = async () => {
+  showProfileModal.value = true;
+  profileSaveError.value = '';
+  try {
+    const data = await safeFetch('/api/profile.php');
+    if (data.success) {
+      profileForm.value = {
+        status: data.profile.status || 'online',
+        custom_status: data.profile.custom_status || '',
+        bio: data.profile.bio || '',
+        banner_color: data.profile.banner_color || '#6366f1'
+      };
+    }
+  } catch (e) {
+    profileSaveError.value = "Failed to load profile";
+  }
+};
+
+const closeProfileModal = () => {
+  showProfileModal.value = false;
+};
+
+const saveProfile = async () => {
+  profileSaveError.value = '';
+  try {
+    const data = await safeFetch('/api/profile.php', {
+      method: 'PUT',
+      body: JSON.stringify(profileForm.value)
+    });
+    if (data.success) {
+      closeProfileModal();
+    } else {
+      profileSaveError.value = data.error || "Failed to update profile";
+    }
+  } catch (e) {
+    profileSaveError.value = e.message;
+  }
+};
 const messageListRef = ref(null);
 
 const editingMessageId = ref(null);
@@ -524,4 +600,44 @@ onUnmounted(() => {
   font-weight: 500;
   z-index: 100;
 }
+.user-info {
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+.user-info:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-content {
+  background: #1f2937;
+  padding: 1.5rem;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.modal-body .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.mt-2 { margin-top: 1rem; }
+.text-danger { color: #ef4444; font-size: 0.8rem; margin-right: 1rem; }
+.modal-footer { margin-top: 1.5rem; display: flex; justify-content: flex-end; align-items: center; }
 </style>
