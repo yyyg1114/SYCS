@@ -11,22 +11,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = json_decode(file_get_contents('php://input'), true);
     $threadId = $data['thread_id'] ?? null;
     $content = $data['content'] ?? '';
+    $attachmentPath = $data['attachment_path'] ?? null;
 
-    if (!$threadId || !$content) {
+    if (!$threadId || ($content === '' && !$attachmentPath)) {
         http_response_code(400);
-        echo json_encode(["error" => "Thread ID and content are required"]);
+        echo json_encode(["error" => "Thread ID and content/attachment are required"]);
         exit;
     }
 
-    $stmt = $mysqli->prepare("INSERT INTO messages (thread_id, user_id, content) VALUES (?, ?, ?)");
+    $stmt = $mysqli->prepare("INSERT INTO messages (thread_id, user_id, content, attachment_path) VALUES (?, ?, ?, ?)");
     if (!$stmt) {
         http_response_code(500);
         echo json_encode(["error" => "Database error or missing table"]);
         exit;
     }
-    $stmt->bind_param("iis", $threadId, $currentUser['id'], $content);
+    $stmt->bind_param("iiss", $threadId, $currentUser['id'], $content, $attachmentPath);
     if ($stmt->execute()) {
-        echo json_encode(["success" => true, "message" => ["id" => $stmt->insert_id, "content" => $content]]);
+        echo json_encode(["success" => true, "message" => ["id" => $stmt->insert_id, "content" => $content, "attachment_path" => $attachmentPath]]);
     } else {
         http_response_code(500);
         echo json_encode(["error" => "Failed to send message"]);
@@ -39,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $stmt = $mysqli->prepare("SELECT m.id, m.content, m.created_at, m.is_pinned, u.username FROM messages m JOIN users u ON m.user_id = u.id WHERE m.thread_id = ? ORDER BY m.created_at ASC");
+    $stmt = $mysqli->prepare("SELECT m.id, m.content, m.attachment_path, m.created_at, m.is_pinned, u.username FROM messages m JOIN users u ON m.user_id = u.id WHERE m.thread_id = ? ORDER BY m.created_at ASC");
     $stmt->bind_param("i", $threadId);
     $stmt->execute();
     $result = $stmt->get_result();

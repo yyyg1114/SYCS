@@ -131,7 +131,13 @@
                     <button @click="cancelEdit" class="btn-text">Cancel</button>
                   </div>
                 </div>
-                <div v-else>{{ msg.content }}</div>
+                <div v-else>
+                  <div class="msg-content-text">{{ msg.content }}</div>
+                  <div v-if="msg.attachment_path" class="message-attachment">
+                    <img v-if="isImage(msg.attachment_path)" :src="msg.attachment_path" class="attachment-image" />
+                    <a v-else :href="msg.attachment_path" target="_blank" class="attachment-file">📎 Download Attachment</a>
+                  </div>
+                </div>
               </div>
               
               <div class="reactions-list" v-if="msg.reactions && msg.reactions.length > 0">
@@ -161,14 +167,22 @@
         </div>
 
         <div class="chat-input-area">
+          <div v-if="selectedFile" class="file-preview">
+            <span>📎 {{ selectedFile.name }}</span>
+            <button type="button" @click="clearFile" class="btn-icon">❌</button>
+          </div>
           <form @submit.prevent="sendMessage" class="message-form">
+            <label class="file-upload-btn" title="Attach file">
+              📎
+              <input type="file" @change="handleFileUpload" style="display: none;" />
+            </label>
             <input 
               type="text" 
               v-model="newMessage" 
               placeholder="Message #..." 
               autocomplete="off"
             />
-            <button type="submit" :disabled="!newMessage.trim() || isSending" class="btn-send">
+            <button type="submit" :disabled="(!newMessage.trim() && !selectedFile) || isSending" class="btn-send">
               <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
             </button>
           </form>
@@ -260,6 +274,36 @@ const lastSearchKeyword = ref('');
 const showSearchModal = ref(false);
 const isSearching = ref(false);
 const searchResults = ref([]);
+
+const selectedFile = ref(null);
+
+const handleFileUpload = (e) => {
+  const file = e.target.files[0];
+  if (file) selectedFile.value = file;
+};
+
+const clearFile = () => {
+  selectedFile.value = null;
+};
+
+const isImage = (path) => {
+  if (!path) return false;
+  return /\.(jpg|jpeg|png|gif|webp)$/i.test(path);
+};
+
+const handleFileUpload = (e) => {
+  const file = e.target.files[0];
+  if (file) selectedFile.value = file;
+};
+
+const clearFile = () => {
+  selectedFile.value = null;
+};
+
+const isImage = (path) => {
+  if (!path) return false;
+  return /\.(jpg|jpeg|png|gif|webp)$/i.test(path);
+};
 
 const showProfileModal = ref(false);
 const profileForm = ref({ status: 'online', custom_status: '', bio: '', banner_color: '#6366f1' });
@@ -592,20 +636,45 @@ const deleteMessage = async (msgId) => {
 };
 
 const sendMessage = async () => {
-  if (!newMessage.value.trim() || !currentThread.value || isSending.value) return;
+  if ((!newMessage.value.trim() && !selectedFile.value) || !currentThread.value || isSending.value) return;
   
   isSending.value = true;
   globalError.value = '';
+  
+  let attachmentUrl = null;
+  
+  if (selectedFile.value) {
+    const formData = new FormData();
+    formData.append('file', selectedFile.value);
+    
+    try {
+      const res = await fetch('/api/upload.php', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        globalError.value = data.error || 'Failed to upload file';
+        isSending.value = false;
+        return;
+      }
+      attachmentUrl = data.url;
+    } catch(e) {
+      globalError.value = "Upload error: " + e.message;
+      isSending.value = false;
+      return;
+    }
+  }
+
   try {
     const data = await safeFetch('/api/messages.php', {
       method: 'POST',
       body: JSON.stringify({ 
         thread_id: currentThread.value.id, 
-        content: newMessage.value 
+        content: newMessage.value,
+        attachment_path: attachmentUrl
       })
     });
     if (data.success) {
       newMessage.value = '';
+      selectedFile.value = null;
       await loadMessages();
     } else {
       globalError.value = data.error || "Failed to send message";
@@ -729,6 +798,46 @@ onUnmounted(() => {
   background: #374151;
   color: white;
 }
+.file-upload-btn {
+  cursor: pointer;
+  padding: 0.5rem;
+  color: #9ca3af;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.05);
+}
+.file-upload-btn:hover { color: white; background: rgba(255,255,255,0.1); }
+.file-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+  color: #fbbf24;
+}
+.attachment-image {
+  max-width: 300px;
+  max-height: 300px;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+  display: block;
+}
+.attachment-file {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #60a5fa;
+  text-decoration: none;
+}
+
 .edit-actions {
   display: flex;
   gap: 0.5rem;
