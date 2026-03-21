@@ -49,4 +49,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $messages[] = $row;
     }
     echo json_encode(["success" => true, "messages" => $messages]);
+} else if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $messageId = $data['message_id'] ?? null;
+    $content = $data['content'] ?? '';
+
+    if (!$messageId || !$content) {
+        http_response_code(400);
+        echo json_encode(["error" => "Message ID and content are required"]);
+        exit;
+    }
+
+    $stmt = $mysqli->prepare("UPDATE messages SET content = ? WHERE id = ? AND user_id = ?");
+    $stmt->bind_param("sii", $content, $messageId, $currentUser['id']);
+    if ($stmt->execute() && $stmt->affected_rows > 0) {
+        echo json_encode(["success" => true]);
+    } else {
+        http_response_code(403);
+        echo json_encode(["error" => "Failed to edit message or unauthorized"]);
+    }
+} else if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    $data = json_decode(file_get_contents('php://input'), true);
+    // DELETE requests can contain a body in some configurations, but we can also check GET parameters if preferred.
+    // Assuming JSON body for simplicity.
+    $messageId = $data['message_id'] ?? null;
+    
+    if (!$messageId) {
+        http_response_code(400);
+        echo json_encode(["error" => "Message ID is required"]);
+        exit;
+    }
+
+    $stmt = $mysqli->prepare("DELETE FROM messages WHERE id = ? AND user_id = ?");
+    $stmt->bind_param("ii", $messageId, $currentUser['id']);
+    if ($stmt->execute() && $stmt->affected_rows > 0) {
+        echo json_encode(["success" => true]);
+    } else {
+        http_response_code(403);
+        echo json_encode(["error" => "Failed to delete message or unauthorized"]);
+    }
 }

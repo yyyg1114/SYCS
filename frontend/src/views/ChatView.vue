@@ -34,8 +34,22 @@
             :key="thread.id" 
             :class="{ active: currentThread && currentThread.id === thread.id }"
             @click="selectThread(thread)"
+            class="thread-item"
           >
-            <span class="hash">#</span> {{ thread.title }}
+            <div v-if="editingThreadId === thread.id" class="edit-thread-form" @click.stop>
+              <input v-model="editingThreadTitle" @keyup.enter="saveThreadEdit(thread)" @keyup.esc="cancelThreadEdit" class="edit-input-small" autoFocus />
+              <div class="thread-actions">
+                <button @click="saveThreadEdit(thread)" class="btn-text btn-save" title="Save">✔️</button>
+                <button @click="cancelThreadEdit" class="btn-text" title="Cancel">❌</button>
+              </div>
+            </div>
+            <div v-else class="thread-content-wrapper">
+              <span><span class="hash">#</span> {{ thread.title }}</span>
+              <div class="thread-hover-actions" v-if="authStore.user && thread.creator_name === authStore.user.username">
+                <button @click.stop="startThreadEdit(thread)" class="btn-icon-small" title="Edit">✎</button>
+                <button @click.stop="deleteThread(thread.id)" class="btn-icon-small btn-danger" title="Delete">🗑</button>
+              </div>
+            </div>
           </li>
         </ul>
       </div>
@@ -79,7 +93,27 @@
                 <span class="message-author">{{ msg.username }}</span>
                 <span class="message-time">{{ formatDate(msg.created_at) }}</span>
               </div>
-              <div class="message-text">{{ msg.content }}</div>
+              <div class="message-text">
+                <div v-if="editingMessageId === msg.id" class="edit-message-form">
+                  <input 
+                    v-model="editingContent" 
+                    @keyup.enter="saveEdit(msg)" 
+                    @keyup.esc="cancelEdit" 
+                    class="edit-input" 
+                    autoFocus 
+                  />
+                  <div class="edit-actions">
+                    <button @click="saveEdit(msg)" class="btn-text btn-save">Save</button>
+                    <button @click="cancelEdit" class="btn-text">Cancel</button>
+                  </div>
+                </div>
+                <div v-else>{{ msg.content }}</div>
+              </div>
+            </div>
+
+            <div class="message-actions" v-if="authStore.user && authStore.user.username === msg.username && editingMessageId !== msg.id">
+              <button @click="startEdit(msg)" class="btn-action" title="Edit">✎</button>
+              <button @click="deleteMessage(msg.id)" class="btn-action btn-danger" title="Delete">🗑</button>
             </div>
           </div>
         </div>
@@ -123,6 +157,12 @@ const currentThread = ref(null);
 const messages = ref([]);
 const newMessage = ref('');
 const messageListRef = ref(null);
+
+const editingMessageId = ref(null);
+const editingContent = ref('');
+
+const editingThreadId = ref(null);
+const editingThreadTitle = ref('');
 
 const isCreatingThread = ref(false);
 const newThreadTitle = ref('');
@@ -188,6 +228,66 @@ const createThread = async () => {
   }
 };
 
+const startThreadEdit = (thread) => {
+  editingThreadId.value = thread.id;
+  editingThreadTitle.value = thread.title;
+};
+
+const cancelThreadEdit = () => {
+  editingThreadId.value = null;
+  editingThreadTitle.value = '';
+};
+
+const saveThreadEdit = async (thread) => {
+  if (!editingThreadTitle.value.trim() || editingThreadTitle.value === thread.title) {
+    cancelThreadEdit();
+    return;
+  }
+  globalError.value = '';
+  try {
+    const data = await safeFetch('/api/threads.php', {
+      method: 'PUT',
+      body: JSON.stringify({
+        thread_id: thread.id,
+        title: editingThreadTitle.value
+      })
+    });
+    if (data.success) {
+      if (currentThread.value && currentThread.value.id === thread.id) {
+        currentThread.value.title = editingThreadTitle.value;
+      }
+      cancelThreadEdit();
+      await loadThreads();
+    } else {
+      globalError.value = data.error || "Failed to edit thread";
+    }
+  } catch (e) {
+    globalError.value = e.message;
+  }
+};
+
+const deleteThread = async (threadId) => {
+  if (!confirm('チャンネルを削除してよろしいですか？')) return;
+  globalError.value = '';
+  try {
+    const data = await safeFetch('/api/threads.php', {
+      method: 'DELETE',
+      body: JSON.stringify({ thread_id: threadId })
+    });
+    if (data.success) {
+      if (currentThread.value && currentThread.value.id === threadId) {
+        currentThread.value = null;
+        messages.value = [];
+      }
+      await loadThreads();
+    } else {
+      globalError.value = data.error || "Failed to delete thread";
+    }
+  } catch (e) {
+    globalError.value = e.message;
+  }
+};
+
 const selectThread = async (thread) => {
   currentThread.value = thread;
   await loadMessages();
@@ -201,6 +301,59 @@ const loadMessages = async () => {
       messages.value = data.messages;
       globalError.value = '';
       scrollToBottom();
+    }
+  } catch (e) {
+    globalError.value = e.message;
+  }
+};
+
+const startEdit = (msg) => {
+  editingMessageId.value = msg.id;
+  editingContent.value = msg.content;
+};
+
+const cancelEdit = () => {
+  editingMessageId.value = null;
+  editingContent.value = '';
+};
+
+const saveEdit = async (msg) => {
+  if (!editingContent.value.trim() || editingContent.value === msg.content) {
+    cancelEdit();
+    return;
+  }
+  globalError.value = '';
+  try {
+    const data = await safeFetch('/api/messages.php', {
+      method: 'PUT',
+      body: JSON.stringify({
+        message_id: msg.id,
+        content: editingContent.value
+      })
+    });
+    if (data.success) {
+      cancelEdit();
+      await loadMessages();
+    } else {
+      globalError.value = data.error || "Failed to edit message";
+    }
+  } catch (e) {
+    globalError.value = e.message;
+  }
+};
+
+const deleteMessage = async (msgId) => {
+  if (!confirm('メッセージを削除してよろしいですか？')) return;
+  globalError.value = '';
+  try {
+    const data = await safeFetch('/api/messages.php', {
+      method: 'DELETE',
+      body: JSON.stringify({ message_id: msgId })
+    });
+    if (data.success) {
+      await loadMessages();
+    } else {
+      globalError.value = data.error || "Failed to delete message";
     }
   } catch (e) {
     globalError.value = e.message;
@@ -261,6 +414,107 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.message-item {
+  position: relative;
+}
+.message-actions {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.message-item:hover .message-actions {
+  opacity: 1;
+}
+.btn-action {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #ccc;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.8rem;
+}
+.btn-action:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+.btn-danger:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+.edit-message-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+.edit-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  background: #374151;
+  color: white;
+}
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.btn-save {
+  color: #10b981;
+}
+
+.thread-item {
+  position: relative;
+  display: flex !important;
+  align-items: center;
+}
+.thread-content-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+.thread-hover-actions {
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.thread-item:hover .thread-hover-actions {
+  opacity: 1;
+}
+.btn-icon-small {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  padding: 0 0.2rem;
+  font-size: 0.8rem;
+}
+.btn-icon-small:hover {
+  color: white;
+}
+.edit-thread-form {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+}
+.edit-input-small {
+  flex: 1;
+  padding: 0.2rem;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  background: #374151;
+  color: white;
+  min-width: 0;
+}
+
 .global-error-banner {
   background: var(--danger);
   color: white;

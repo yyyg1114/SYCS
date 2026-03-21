@@ -40,4 +40,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $threads[] = $row;
     }
     echo json_encode(["success" => true, "threads" => $threads]);
+} else if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $threadId = $data['thread_id'] ?? null;
+    $title = $data['title'] ?? '';
+
+    if (!$threadId || !$title) {
+        http_response_code(400);
+        echo json_encode(["error" => "Thread ID and title are required"]);
+        exit;
+    }
+
+    $stmt = $mysqli->prepare("UPDATE threads SET title = ? WHERE id = ? AND creator_id = ?");
+    $stmt->bind_param("sii", $title, $threadId, $currentUser['id']);
+    if ($stmt->execute() && $stmt->affected_rows > 0) {
+        echo json_encode(["success" => true]);
+    } else {
+        http_response_code(403);
+        echo json_encode(["error" => "Failed to edit thread or unauthorized"]);
+    }
+} else if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $threadId = $data['thread_id'] ?? null;
+
+    if (!$threadId) {
+        http_response_code(400);
+        echo json_encode(["error" => "Thread ID is required"]);
+        exit;
+    }
+
+    $stmt = $mysqli->prepare("DELETE FROM threads WHERE id = ? AND creator_id = ?");
+    $stmt->bind_param("ii", $threadId, $currentUser['id']);
+    if ($stmt->execute() && $stmt->affected_rows > 0) {
+        $mysqli->query("DELETE FROM messages WHERE thread_id = " . intval($threadId));
+        echo json_encode(["success" => true]);
+    } else {
+        http_response_code(403);
+        echo json_encode(["error" => "Failed to delete thread or unauthorized"]);
+    }
 }
