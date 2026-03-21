@@ -55,6 +55,9 @@
             </div>
             <div v-else class="thread-content-wrapper">
               <span><span class="hash">#</span> {{ thread.title }}</span>
+              <span v-if="unreadCounts[thread.id] && (!currentThread || currentThread.id !== thread.id)" class="unread-badge">
+                {{ unreadCounts[thread.id] > 99 ? '99+' : unreadCounts[thread.id] }}
+              </span>
               <div class="thread-hover-actions" v-if="authStore.user && thread.creator_name === authStore.user.username">
                 <button @click.stop="startThreadEdit(thread)" class="btn-icon-small" title="Edit">✎</button>
                 <button @click.stop="deleteThread(thread.id)" class="btn-icon-small btn-danger" title="Delete">🗑</button>
@@ -265,6 +268,7 @@ const router = useRouter();
 
 const threads = ref([]);
 const users = ref([]);
+const unreadCounts = ref({});
 const currentThread = ref(null);
 const messages = ref([]);
 const newMessage = ref('');
@@ -381,6 +385,30 @@ const safeFetch = async (url, options = {}) => {
       throw new Error("通信エラー: PHPサーバーが稼働しているか確認してください。");
     }
     throw err;
+  }
+};
+
+const loadUnreadCounts = async () => {
+  try {
+    const data = await safeFetch('/api/unread_counts.php');
+    if (data.success) {
+      unreadCounts.value = data.counts || {};
+    }
+  } catch (e) {
+    // silent fail
+  }
+};
+
+const markAsRead = async (threadId) => {
+  if (!threadId) return;
+  try {
+    await safeFetch('/api/read_receipt.php', {
+      method: 'POST',
+      body: JSON.stringify({ thread_id: threadId })
+    });
+    unreadCounts.value[threadId] = 0;
+  } catch (e) {
+    // silent fail
   }
 };
 
@@ -523,6 +551,7 @@ const jumpToResult = async (res) => {
 const selectThread = async (thread) => {
   currentThread.value = thread;
   await loadMessages();
+  await markAsRead(thread.id);
 };
 
 const loadMessages = async () => {
@@ -530,9 +559,13 @@ const loadMessages = async () => {
   try {
     const data = await safeFetch(`/api/messages.php?thread_id=${currentThread.value.id}`);
     if (data.success) {
+      const isNewMessages = messages.value.length !== data.messages.length;
       messages.value = data.messages;
       globalError.value = '';
-      scrollToBottom();
+      if (isNewMessages) {
+        scrollToBottom();
+        markAsRead(currentThread.value.id);
+      }
     }
   } catch (e) {
     globalError.value = e.message;
@@ -703,10 +736,12 @@ let pollInterval;
 onMounted(async () => {
   await loadThreads();
   await loadUsers();
+  await loadUnreadCounts();
   pollInterval = setInterval(() => {
     if (currentThread.value) loadMessages();
     loadThreads();
     loadUsers();
+    loadUnreadCounts();
   }, 3000); // Polling every 3s
 });
 
@@ -856,6 +891,16 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   width: 100%;
+}
+.unread-badge {
+  background: #ef4444;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 0.1rem 0.4rem;
+  border-radius: 12px;
+  margin-left: auto;
+  margin-right: 0.5rem;
 }
 .user-list {
   padding: 1rem;
