@@ -9,6 +9,16 @@
         </div>
       </div>
 
+      <div class="search-bar">
+        <input 
+          v-model="searchKeyword" 
+          @keyup.enter="executeSearch" 
+          placeholder="Search messages..." 
+          class="search-input"
+        />
+        <button class="btn-icon" @click="executeSearch" title="Search">🔍</button>
+      </div>
+
       <div class="thread-list">
         <div class="thread-list-header">
           <h3>Channels</h3>
@@ -160,6 +170,28 @@
       </div>
     </main>
 
+    <!-- Search Results Modal -->
+    <div v-if="showSearchModal" class="modal-overlay" @click="closeSearchModal">
+      <div class="modal-content search-modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Search Results for "{{ lastSearchKeyword }}"</h3>
+          <button @click="closeSearchModal" class="btn-icon">❌</button>
+        </div>
+        <div class="modal-body search-results-body">
+          <div v-if="isSearching" class="text-center">Searching...</div>
+          <div v-else-if="searchResults.length === 0" class="text-center">No results found.</div>
+          <div class="search-result-item" v-for="res in searchResults" :key="res.id" @click="jumpToResult(res)">
+            <div class="search-result-meta">
+              <span class="search-result-author">{{ res.author_name }}</span>
+              <span class="search-result-thread">in #{{ res.thread_title }}</span>
+              <span class="search-result-time">{{ formatDate(res.created_at) }}</span>
+            </div>
+            <div class="search-result-content">{{ res.content }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Profile Modal Overlays -->
     <div v-if="showProfileModal" class="modal-overlay" @click="closeProfileModal">
       <div class="modal-content" @click.stop>
@@ -208,6 +240,12 @@ const threads = ref([]);
 const currentThread = ref(null);
 const messages = ref([]);
 const newMessage = ref('');
+
+const searchKeyword = ref('');
+const lastSearchKeyword = ref('');
+const showSearchModal = ref(false);
+const isSearching = ref(false);
+const searchResults = ref([]);
 
 const showProfileModal = ref(false);
 const profileForm = ref({ status: 'online', custom_status: '', bio: '', banner_color: '#6366f1' });
@@ -381,6 +419,36 @@ const deleteThread = async (threadId) => {
   } catch (e) {
     globalError.value = e.message;
   }
+};
+
+const executeSearch = async () => {
+  if (!searchKeyword.value.trim()) return;
+  lastSearchKeyword.value = searchKeyword.value;
+  showSearchModal.value = true;
+  isSearching.value = true;
+  searchResults.value = [];
+  try {
+    const data = await safeFetch(`/api/search.php?keyword=${encodeURIComponent(searchKeyword.value)}`);
+    if (data.success) {
+      searchResults.value = data.results;
+    }
+  } catch (e) {
+    globalError.value = "Search failed: " + e.message;
+  } finally {
+    isSearching.value = false;
+  }
+};
+
+const closeSearchModal = () => {
+  showSearchModal.value = false;
+};
+
+const jumpToResult = async (res) => {
+  const foundThread = threads.value.find(t => t.id === res.thread_id);
+  if (foundThread) {
+    await selectThread(foundThread);
+  }
+  closeSearchModal();
 };
 
 const selectThread = async (thread) => {
@@ -698,6 +766,53 @@ onUnmounted(() => {
   font-weight: 500;
   z-index: 100;
 }
+.search-bar {
+  display: flex;
+  padding: 0.5rem 1rem;
+  gap: 0.5rem;
+  border-bottom: 1px solid #374151;
+}
+.search-input {
+  flex: 1;
+  background: #374151;
+  border: 1px solid #4b5563;
+  color: white;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  min-width: 0;
+}
+.search-modal-content {
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+.search-results-body {
+  overflow-y: auto;
+  flex: 1;
+}
+.search-result-item {
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.search-result-item:hover {
+  background: rgba(255,255,255,0.1);
+}
+.search-result-meta {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+  color: #9ca3af;
+}
+.search-result-author { font-weight: bold; color: #fff; }
+.search-result-thread { color: #60a5fa; }
+.text-center { text-align: center; }
+
 .user-info {
   cursor: pointer;
   padding: 0.25rem 0.5rem;
