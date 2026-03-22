@@ -156,6 +156,7 @@
             v-for="(msg, index) in messages" 
             :key="msg.id" 
             class="message-item"
+            :data-id="msg.id"
             :class="{ 'mt-4': index === 0 || messages[index-1].username !== msg.username }"
           >
             <div class="message-avatar" v-if="index === 0 || messages[index-1].username !== msg.username">
@@ -169,6 +170,13 @@
                 <span class="message-time">{{ formatDate(msg.created_at) }}</span>
                 <span v-if="msg.is_pinned" class="pinned-badge" title="Pinned">📌</span>
               </div>
+              
+              <!-- Reply Quote -->
+              <div v-if="msg.reply_to" class="reply-quote" @click="scrollToMessage(msg.reply_to.id)">
+                <span class="reply-quote-user">@{{ msg.reply_to.username }}</span>
+                <span class="reply-quote-content">{{ msg.reply_to.content }}</span>
+              </div>
+
               <div class="message-text" :class="{ 'is-pinned': msg.is_pinned }">
                 <div v-if="editingMessageId === msg.id" class="edit-message-form">
                   <input 
@@ -186,7 +194,12 @@
                 <div v-else>
                   <div class="msg-content-text">{{ msg.content }}</div>
                   <div v-if="msg.attachment_path" class="message-attachment">
-                    <img v-if="isImage(msg.attachment_path)" :src="msg.attachment_path" class="attachment-image" />
+                    <img 
+                      v-if="isImage(msg.attachment_path)" 
+                      :src="msg.attachment_path" 
+                      class="attachment-image clickable-image" 
+                      @click="openImageModal(msg.attachment_path)"
+                    />
                     <a v-else :href="msg.attachment_path" target="_blank" class="attachment-file">📎 Download Attachment</a>
                   </div>
                 </div>
@@ -208,6 +221,7 @@
             <div class="message-actions">
               <button v-if="authStore.user" @click="toggleReaction(msg.id, '👍')" class="btn-action" title="React 👍">👍</button>
               <button v-if="authStore.user" @click="toggleReaction(msg.id, '❤️')" class="btn-action" title="React ❤️">❤️</button>
+              <button v-if="authStore.user" @click="startReply(msg)" class="btn-action" title="Reply">↩️</button>
               <button v-if="authStore.user" @click="togglePin(msg.id)" class="btn-action" :title="msg.is_pinned ? 'Unpin' : 'Pin'">📌</button>
               
               <template v-if="authStore.user && authStore.user.username === msg.username && editingMessageId !== msg.id">
@@ -219,6 +233,13 @@
         </div>
 
         <div class="chat-input-area">
+          <div v-if="replyingTo" class="reply-preview">
+            <div class="reply-preview-info">
+              <span class="reply-preview-label">Replying to <strong>@{{ replyingTo.username }}</strong></span>
+              <div class="reply-preview-content">{{ replyingTo.content }}</div>
+            </div>
+            <button @click="cancelReply" class="btn-icon" title="Cancel Reply">❌</button>
+          </div>
           <div v-if="typingUsers.length > 0" class="typing-indicator-chat">
             <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
             {{ typingUsers.join(', ') }} {{ typingUsers.length > 1 ? 'are' : 'is' }} typing
@@ -363,6 +384,13 @@
         </button>
       </div>
     </div>
+    <!-- Image Lightbox Modal -->
+    <div v-if="enlargedImage" class="lightbox-overlay" @click="closeImageModal">
+      <div class="lightbox-content" @click.stop>
+        <img :src="enlargedImage" class="lightbox-image" />
+        <button class="lightbox-close" @click="closeImageModal">✕</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -406,6 +434,8 @@ const lastSearchKeyword = ref('');
 const showSearchModal = ref(false);
 const isSearching = ref(false);
 const searchResults = ref([]);
+const replyingTo = ref(null);
+const enlargedImage = ref(null);
 
 const typingUsers = ref([]);
 const lastTypingNotify = ref(0);
@@ -486,6 +516,22 @@ const globalError = ref('');
 const handleLogout = async () => {
   await authStore.logout();
   router.push('/login');
+};
+
+const startReply = (msg) => {
+  replyingTo.value = msg;
+};
+
+const cancelReply = () => {
+  replyingTo.value = null;
+};
+
+const openImageModal = (url) => {
+  enlargedImage.value = url;
+};
+
+const closeImageModal = () => {
+  enlargedImage.value = null;
 };
 
 const safeFetch = async (url, options = {}) => {
@@ -1017,8 +1063,8 @@ const sendMessage = async () => {
   try {
     const url = currentThread.value ? '/api/messages.php' : '/api/dm.php';
     const payload = currentThread.value
-      ? { thread_id: currentThread.value.id, content: newMessage.value, attachment_path: attachmentUrl }
-      : { receiver_id: currentDM.value.id, content: newMessage.value, attachment_path: attachmentUrl };
+      ? { thread_id: currentThread.value.id, content: newMessage.value, attachment_path: attachmentUrl, reply_to_id: replyingTo.value ? replyingTo.value.id : null }
+      : { receiver_id: currentDM.value.id, content: newMessage.value, attachment_path: attachmentUrl, reply_to_id: replyingTo.value ? replyingTo.value.id : null };
 
     const data = await safeFetch(url, {
       method: 'POST',
@@ -1027,6 +1073,7 @@ const sendMessage = async () => {
     if (data.success) {
       newMessage.value = '';
       selectedFile.value = null;
+      replyingTo.value = null;
       await loadMessages();
       if (!currentThread.value) await loadDMPartners(); // Refresh DM list order
     } else {
@@ -1036,6 +1083,17 @@ const sendMessage = async () => {
     globalError.value = e.message;
   } finally {
     isSending.value = false;
+  }
+};
+
+const scrollToMessage = (msgId) => {
+  const el = document.querySelector(`.message-item[data-id="${msgId}"]`);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('highlight-message');
+    setTimeout(() => el.classList.remove('highlight-message'), 2000);
+  } else {
+    alert('メッセージが見つかりません。過去の履歴にある可能性があります。');
   }
 };
 
@@ -1637,6 +1695,96 @@ onUnmounted(() => {
 }
 .clickable { cursor: pointer; }
 .clickable:hover { text-decoration: underline; }
+
+.reply-quote {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 2px solid #4f46e5;
+  padding: 0.25rem 0.75rem;
+  margin-bottom: 0.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  max-width: fit-content;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reply-quote:hover { background: rgba(255, 255, 255, 0.1); }
+.reply-quote-user { font-weight: bold; color: #818cf8; margin-right: 0.5rem; }
+
+.reply-preview {
+  background: #1e1e1e;
+  border-left: 4px solid #4f46e5;
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 4px 4px 0 0;
+  margin-bottom: -1px;
+}
+.reply-preview-label { font-size: 0.8rem; color: #9ca3af; }
+.reply-preview-content {
+  font-size: 0.9rem;
+  color: #e5e7eb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+}
+
+.highlight-message {
+  animation: highlight-pulse 2s ease-out;
+}
+@keyframes highlight-pulse {
+  0% { background-color: rgba(79, 70, 229, 0.3); }
+  100% { background-color: transparent; }
+}
+
+/* Lightbox Styles */
+.clickable-image {
+  cursor: zoom-in;
+  transition: opacity 0.2s;
+}
+.clickable-image:hover { opacity: 0.9; }
+
+.lightbox-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  cursor: zoom-out;
+}
+.lightbox-content {
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+}
+.lightbox-image {
+  max-width: 100%;
+  max-height: 90vh;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+.lightbox-close {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 10px;
+}
+.lightbox-close:hover { color: #818cf8; }
 
 .text-danger { color: #ef4444; font-size: 0.8rem; margin-right: 1rem; }
 .modal-footer { margin-top: 1.5rem; display: flex; justify-content: flex-end; align-items: center; }

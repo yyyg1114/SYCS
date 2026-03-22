@@ -12,6 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $threadId = $data['thread_id'] ?? null;
     $content = $data['content'] ?? '';
     $attachmentPath = $data['attachment_path'] ?? null;
+    $replyToId = $data['reply_to_id'] ?? null;
 
     if (!$threadId || ($content === '' && !$attachmentPath)) {
         http_response_code(400);
@@ -19,18 +20,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $stmt = $mysqli->prepare("INSERT INTO messages (thread_id, user_id, content, attachment_path) VALUES (?, ?, ?, ?)");
+    $stmt = $mysqli->prepare("INSERT INTO messages (thread_id, user_id, content, attachment_path, reply_to_id) VALUES (?, ?, ?, ?, ?)");
     if (!$stmt) {
         http_response_code(500);
         echo json_encode(["error" => "Database error or missing table"]);
         exit;
     }
-    $stmt->bind_param("iiss", $threadId, $currentUser['id'], $content, $attachmentPath);
+    $stmt->bind_param("iissi", $threadId, $currentUser['id'], $content, $attachmentPath, $replyToId);
     if ($stmt->execute()) {
-        echo json_encode(["success" => true, "message" => ["id" => $stmt->insert_id, "content" => $content, "attachment_path" => $attachmentPath]]);
+        echo json_encode(["success" => true, "message" => ["id" => $stmt->insert_id, "content" => $content, "attachment_path" => $attachmentPath, "reply_to_id" => $replyToId]]);
     } else {
         http_response_code(500);
-        echo json_encode(["error" => "Failed to send message"]);
+        echo json_encode(["error" => "Failed to send message: " . $stmt->error]);
     }
 } else if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $threadId = $_GET['thread_id'] ?? null;
@@ -40,7 +41,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $stmt = $mysqli->prepare("SELECT m.id, m.content, m.attachment_path, m.created_at, m.is_pinned, u.username FROM messages m JOIN users u ON m.user_id = u.id WHERE m.thread_id = ? ORDER BY m.created_at ASC");
+    $stmt = $mysqli->prepare("
+        SELECT m.id, m.content, m.attachment_path, m.created_at, m.is_pinned, m.reply_to_id, u.username,
+               p.content as parent_content, pu.username as parent_username
+        FROM messages m 
+        JOIN users u ON m.user_id = u.id 
+        LEFT JOIN messages p ON m.reply_to_id = p.id
+        LEFT JOIN users pu ON p.user_id = pu.id
+        WHERE m.thread_id = ? 
+        ORDER BY m.created_at ASC
+    ");
     $stmt->bind_param("i", $threadId);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -49,6 +59,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     while ($row = $result->fetch_assoc()) {
         $row['is_pinned'] = (bool)$row['is_pinned'];
         $row['reactions'] = [];
+        if ($row['reply_to_id']) {
+            $row['reply_to'] = [
+                'id' => $row['reply_to_id'],
+                'content' => $row['parent_content'] ?? '削除されたメッセージ',
+                'username' => $row['parent_username'] ?? '不明'
+            ];
+        }
+        unset($row['parent_content'], $row['parent_username']);
         $messages[$row['id']] = $row;
     }
 
