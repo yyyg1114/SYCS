@@ -7,7 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit(0);
 requireLogin();
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $stmt = $mysqli->prepare("SELECT id, username, status, custom_status, avatar_url, banner_color FROM users ORDER BY username ASC");
+    $stmt = $mysqli->prepare("SELECT id, username, status, custom_status, bio, avatar_url, banner_color, social_links FROM users ORDER BY username ASC");
     $stmt->execute();
     $result = $stmt->get_result();
     $users = [];

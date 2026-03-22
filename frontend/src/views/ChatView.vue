@@ -19,6 +19,29 @@
         <button class="btn-icon" @click="executeSearch" title="Search">🔍</button>
       </div>
 
+      <!-- Favorites Section -->
+      <div v-if="favorites.threads.length > 0 || favorites.dms.length > 0" class="thread-list">
+        <div class="thread-list-header">
+          <h3>⭐ Favorites</h3>
+        </div>
+        <ul class="threads">
+          <li v-for="thread in favorites.threads" :key="'fav_t_'+thread.id" 
+              class="thread-item" :class="{ active: currentThread && currentThread.id === thread.id }"
+              @click="selectThread(thread)">
+            <div class="thread-content-wrapper">
+              <span><span class="hash">#</span> {{ thread.title }}</span>
+            </div>
+          </li>
+          <li v-for="partner in favorites.dms" :key="'fav_dm_'+partner.id" 
+              class="thread-item" :class="{ active: currentDM && currentDM.id === partner.id }"
+              @click="selectDM(partner)">
+            <div class="thread-content-wrapper">
+              <span><span class="status-indicator-small" :class="partner.status || 'offline'"></span> {{ partner.username }}</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
       <div class="thread-list">
         <div class="thread-list-header">
           <h3>Channels</h3>
@@ -141,8 +164,14 @@
             <span class="creator-info" v-if="currentThread">Created by {{ currentThread.creator_name }}</span>
             <span class="creator-info" v-else>{{ currentDM.status }} - {{ currentDM.custom_status || 'Direct Message' }}</span>
           </div>
-          <div class="header-actions" v-if="currentThread">
-            <button @click="initiateMeeting" class="btn-primary btn-sm" title="Start Video Call">
+          <div class="header-actions">
+            <button @click="toggleFavorite(currentThread ? currentThread.id : currentDM.id, !!currentDM)" 
+                    class="btn-icon btn-favorite" 
+                    :class="{ 'is-fav': isFavorite(currentThread ? currentThread.id : currentDM.id, !!currentDM) }"
+                    title="Toggle Favorite">
+              {{ isFavorite(currentThread ? currentThread.id : currentDM.id, !!currentDM) ? '⭐' : '☆' }}
+            </button>
+            <button v-if="currentThread" @click="initiateMeeting" class="btn-primary btn-sm" title="Start Video Call">
               📹 Video Call
             </button>
           </div>
@@ -172,9 +201,9 @@
               </div>
               
               <!-- Reply Quote -->
-              <div v-if="msg.reply_to" class="reply-quote" @click="scrollToMessage(msg.reply_to.id)">
+              <div v-if="msg.reply_to" class="reply-quote" @click="scrollToMessage(msg.reply_to.id)" @click.stop="handleContentClick">
                 <span class="reply-quote-user">@{{ msg.reply_to.username }}</span>
-                <span class="reply-quote-content">{{ msg.reply_to.content }}</span>
+                <span class="reply-quote-content" v-html="formatContent(msg.reply_to.content)"></span>
               </div>
 
               <div class="message-text" :class="{ 'is-pinned': msg.is_pinned }">
@@ -191,8 +220,8 @@
                     <button @click="cancelEdit" class="btn-text">Cancel</button>
                   </div>
                 </div>
-                <div v-else>
-                  <div class="msg-content-text">{{ msg.content }}</div>
+                <div v-else @click="handleContentClick">
+                  <div class="msg-content-text" v-html="formatContent(msg.content)"></div>
                   <div v-if="msg.attachment_path" class="message-attachment">
                     <img 
                       v-if="isImage(msg.attachment_path)" 
@@ -385,6 +414,53 @@
         </button>
       </div>
     </div>
+    <!-- Other User Profile Modal -->
+    <div v-if="showOtherProfile && selectedUser" class="modal-overlay" @click="showOtherProfile = false">
+      <div class="modal-content profile-modal" @click.stop :style="{ borderTop: '8px solid ' + (selectedUser.banner_color || '#6366f1') }">
+        <div class="modal-header">
+          <h3>User Profile</h3>
+          <button @click="showOtherProfile = false" class="btn-icon">❌</button>
+        </div>
+        <div class="modal-body">
+          <div class="profile-header-main">
+            <div class="profile-avatar-large">{{ selectedUser.username.charAt(0).toUpperCase() }}</div>
+            <div class="profile-names">
+              <h2 class="profile-username">{{ selectedUser.username }}</h2>
+              <div class="profile-status-box">
+                <span class="status-indicator" :class="selectedUser.status"></span>
+                <span class="status-text">{{ selectedUser.status }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-if="selectedUser.custom_status" class="profile-section">
+            <label>Status</label>
+            <div class="profile-custom-status-view">💬 {{ selectedUser.custom_status }}</div>
+          </div>
+          <div class="profile-section">
+            <label>Bio</label>
+            <div class="profile-bio-view">{{ selectedUser.bio || 'No bio provided.' }}</div>
+          </div>
+          <div class="profile-section" v-if="selectedUser.social_links && Object.values(selectedUser.social_links).some(v => v)">
+            <label>Social Links</label>
+            <div class="social-links-grid">
+              <div v-if="selectedUser.social_links.discord" class="social-item">
+                <span class="social-icon">Discord:</span> {{ selectedUser.social_links.discord }}
+              </div>
+              <div v-if="selectedUser.social_links.github" class="social-item">
+                <span class="social-icon">GitHub:</span> {{ selectedUser.social_links.github }}
+              </div>
+              <div v-if="selectedUser.social_links.twitter" class="social-item">
+                <span class="social-icon">Twitter:</span> {{ selectedUser.social_links.twitter }}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button v-if="authStore.user && selectedUser.id !== authStore.user.id" class="btn-primary" @click="selectDM(selectedUser); showOtherProfile = false">Send Message</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Image Lightbox Modal -->
     <div v-if="enlargedImage" class="lightbox-overlay" @click="closeImageModal">
       <div class="lightbox-content" @click.stop>
@@ -437,6 +513,7 @@ const isSearching = ref(false);
 const searchResults = ref([]);
 const replyingTo = ref(null);
 const enlargedImage = ref(null);
+const favorites = ref({ threads: [], dms: [] });
 
 const typingUsers = ref([]);
 const lastTypingNotify = ref(0);
@@ -459,8 +536,11 @@ const isImage = (path) => {
 
 
 const showProfileModal = ref(false);
-const profileForm = ref({ status: 'online', custom_status: '', bio: '', banner_color: '#6366f1' });
+const profileForm = ref({ status: 'online', custom_status: '', bio: '', banner_color: '#6366f1', social_links: {} });
 const profileSaveError = ref('');
+
+const showOtherProfile = ref(false);
+const selectedUser = ref(null);
 
 const openProfileModal = async () => {
   showProfileModal.value = true;
@@ -533,6 +613,64 @@ const openImageModal = (url) => {
 
 const closeImageModal = () => {
   enlargedImage.value = null;
+};
+
+const loadFavorites = async () => {
+  try {
+    const data = await safeFetch('/api/favorites.php');
+    if (data.success) {
+      favorites.value = { threads: data.threads, dms: data.dms };
+    }
+  } catch (e) { /* silent */ }
+};
+
+const toggleFavorite = async (id, isDM = false) => {
+  try {
+    const payload = isDM ? { dm_user_id: id } : { thread_id: id };
+    const data = await safeFetch('/api/favorites.php', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    if (data.success) {
+      await loadFavorites();
+    }
+  } catch (e) { globalError.value = e.message; }
+};
+
+const isFavorite = (id, isDM = false) => {
+  if (isDM) return favorites.value.dms.some(u => u.id === id);
+  return favorites.value.threads.some(t => t.id === id);
+};
+
+const formatContent = (content) => {
+  if (!content) return '';
+  const myName = authStore.user?.username;
+  // Escape HTML simply for safety
+  let safe = content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // Wrap mentions - Pass username in data attribute for click handling
+  return safe.replace(/@([^\s!@#$%^&*()=+\[\]{};':"\\|,.<>\/?]+)/gu, (match, username) => {
+    const isMe = username === myName ? 'is-me' : '';
+    return `<span class="mention ${isMe}" data-username="${username}">${match}</span>`;
+  });
+};
+
+const handleContentClick = (e) => {
+  const mention = e.target.closest('.mention');
+  if (mention) {
+    const username = mention.dataset.username;
+    openOtherProfile(username);
+  }
+};
+
+const openOtherProfile = (username) => {
+  const user = users.value.find(u => u.username === username);
+  if (user) {
+    selectedUser.value = {
+      ...user,
+      social_links: user.social_links ? JSON.parse(user.social_links) : {}
+    };
+    showOtherProfile.value = true;
+  }
 };
 
 const safeFetch = async (url, options = {}) => {
@@ -1200,6 +1338,7 @@ const handleGlobalKeyDown = (e) => {
   if (e.key === 'Escape') {
     if (enlargedImage.value) closeImageModal();
     else if (showProfileModal.value) closeProfileModal();
+    else if (showOtherProfile.value) showOtherProfile.value = false;
     else if (showSearchModal.value) closeSearchModal();
     else if (replyingTo.value) cancelReply();
     else if (editingMessageId.value) cancelEdit();
@@ -1224,6 +1363,7 @@ onMounted(async () => {
   await loadDMPartners();
   await loadFriends();
   await loadPendingRequests();
+  await loadFavorites();
   
   pollInterval = setInterval(() => {
     if (currentThread.value || currentDM.value) {
@@ -1236,6 +1376,7 @@ onMounted(async () => {
     loadDMPartners();
     loadFriends();
     loadPendingRequests();
+    loadFavorites();
   }, 3000); // Polling every 3s
   
   window.addEventListener('keydown', handleGlobalKeyDown);
@@ -1811,6 +1952,66 @@ onUnmounted(() => {
   padding: 10px;
 }
 .lightbox-close:hover { color: #818cf8; }
+
+/* Mentions & Favorites Styles */
+:deep(.mention) {
+  background: rgba(79, 70, 229, 0.15);
+  color: #818cf8;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+}
+:deep(.mention:hover) { text-decoration: underline; background: rgba(79, 70, 229, 0.3); }
+:deep(.mention.is-me) {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.btn-favorite {
+  color: #9ca3af;
+  font-size: 1.25rem;
+  transition: transform 0.2s, color 0.2s;
+}
+.btn-favorite:hover { transform: scale(1.2); color: #fbbf24; }
+.btn-favorite.is-fav { color: #fbbf24; }
+
+.favorites-list {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem !important;
+}
+
+/* Other User Profile Styles */
+.profile-modal {
+  max-width: 450px;
+  width: 90%;
+  overflow: hidden;
+}
+.profile-header-main {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.profile-avatar-large {
+  width: 80px;
+  height: 80px;
+  background: #4f46e5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.profile-names h2 { margin: 0; font-size: 1.5rem; }
+.profile-status-box { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem; font-size: 0.9rem; color: #9ca3af; }
+.profile-section { margin-top: 1.25rem; }
+.profile-section label { display: block; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #9ca3af; margin-bottom: 0.5rem; }
+.profile-custom-status-view { background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 8px; font-style: italic; }
+.profile-bio-view { background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 8px; line-height: 1.5; white-space: pre-wrap; }
 
 .text-danger { color: #ef4444; font-size: 0.8rem; margin-right: 1rem; }
 .modal-footer { margin-top: 1.5rem; display: flex; justify-content: flex-end; align-items: center; }
