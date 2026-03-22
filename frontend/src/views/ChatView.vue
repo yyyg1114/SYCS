@@ -3,9 +3,15 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <h2 class="sycs-logo">SYCS</h2>
-        <div class="user-info" v-if="authStore.user" @click="openProfileModal" title="Edit Profile">
-          <div class="avatar">{{ authStore.user.username.charAt(0).toUpperCase() }}</div>
-          <span>{{ authStore.user.username }}</span>
+        <div class="user-info" v-if="authStore.user">
+          <div class="user-info-main" @click="openProfileModal" title="Edit Profile">
+            <div class="avatar">{{ authStore.user.username.charAt(0).toUpperCase() }}</div>
+            <div class="user-details-sidebar">
+              <span class="username">{{ authStore.user.username }}</span>
+              <span class="status-indicator-small" :class="profileForm.status"></span>
+            </div>
+          </div>
+          <button class="btn-icon-small btn-settings" @click="openProfileModal" title="Settings">⚙️</button>
         </div>
       </div>
 
@@ -308,7 +314,7 @@
     <!-- Search Results Modal -->
     <div v-if="showSearchModal" class="modal-overlay" @click="closeSearchModal">
       <div class="modal-content search-modal-content" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-compact">
           <h3>Search Results for "{{ lastSearchKeyword }}"</h3>
           <button @click="closeSearchModal" class="btn-icon">❌</button>
         </div>
@@ -327,56 +333,72 @@
       </div>
     </div>
 
-    <!-- Profile Modal Overlays -->
+    <!-- Profile Settings Modal -->
     <div v-if="showProfileModal" class="modal-overlay" @click="closeProfileModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
+      <div class="modal-content profile-modal" @click.stop :style="{ borderTop: '8px solid ' + (profileForm.banner_color || '#6366f1') }">
+        <div class="modal-header-compact">
           <h3>Profile Settings</h3>
           <button @click="closeProfileModal" class="btn-icon">❌</button>
         </div>
         <div class="modal-body">
-          <div class="form-group">
-            <label>Status</label>
-            <select v-model="profileForm.status" class="edit-input">
-              <option value="online">Online</option>
-              <option value="busy">Busy</option>
-              <option value="away">Away</option>
-              <option value="offline">Offline</option>
-            </select>
-          </div>
-          <div class="form-group mt-2">
-            <label>Custom Status</label>
-            <input v-model="profileForm.custom_status" class="edit-input" placeholder="What's on your mind?" />
-          </div>
-          <div class="form-group mt-2">
-            <label>Bio</label>
-            <textarea v-model="profileForm.bio" class="edit-input" rows="3" placeholder="Tell us about yourself..."></textarea>
-          </div>
-          <div class="form-group mt-2">
-            <label>Social Links</label>
-            <div class="social-links-grid">
-              <div class="social-item">
-                <span class="social-icon">Discord</span>
-                <input v-model="profileForm.social_links.discord" class="edit-input-small" placeholder="user#1234" />
-              </div>
-              <div class="social-item">
-                <span class="social-icon">GitHub</span>
-                <input v-model="profileForm.social_links.github" class="edit-input-small" placeholder="Username" />
-              </div>
-              <div class="social-item">
-                <span class="social-icon">Twitter</span>
-                <input v-model="profileForm.social_links.twitter" class="edit-input-small" placeholder="@username" />
+          <div class="profile-header-main">
+            <div class="profile-avatar-large" :style="{ background: profileForm.banner_color }">
+              {{ authStore.user?.username.charAt(0).toUpperCase() }}
+            </div>
+            <div class="profile-names">
+              <h2 class="profile-username">{{ authStore.user?.username }}</h2>
+              <div class="form-group-inline">
+                <select v-model="profileForm.status" class="edit-input-minimal">
+                  <option value="online">Online</option>
+                  <option value="busy">Busy</option>
+                  <option value="away">Away</option>
+                  <option value="offline">Offline</option>
+                </select>
               </div>
             </div>
           </div>
-          <div class="form-group mt-2">
-            <label>Banner Color</label>
-            <input type="color" v-model="profileForm.banner_color" class="edit-input" />
+
+          <div class="profile-edit-grid">
+            <div class="form-group">
+              <label>Custom Status</label>
+              <input v-model="profileForm.custom_status" class="edit-input-dark" placeholder="What's on your mind?" />
+            </div>
+            <div class="form-group">
+              <label>Bio</label>
+              <textarea v-model="profileForm.bio" class="edit-input-dark" rows="3" placeholder="Tell us about yourself..."></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label>Social Links</label>
+              <div class="social-input-grid">
+                <div class="social-input-item">
+                  <span class="social-icon-small">Discord</span>
+                  <input v-model="profileForm.social_links.discord" class="edit-input-minimal" placeholder="user#1234" />
+                </div>
+                <div class="social-input-item">
+                  <span class="social-icon-small">GitHub</span>
+                  <input v-model="profileForm.social_links.github" class="edit-input-minimal" placeholder="Username" />
+                </div>
+                <div class="social-input-item">
+                  <span class="social-icon-small">Twitter</span>
+                  <input v-model="profileForm.social_links.twitter" class="edit-input-minimal" placeholder="@username" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Banner Color</label>
+              <div class="banner-color-picker">
+                <input type="color" v-model="profileForm.banner_color" class="color-dot-input" />
+                <span class="color-value-text">{{ profileForm.banner_color }}</span>
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
           <span v-if="profileSaveError" class="text-danger">{{ profileSaveError }}</span>
-          <button class="btn-primary" @click="saveProfile">Save Changes</button>
+          <button class="btn-text" @click="closeProfileModal" style="margin-right: 1rem;">Cancel</button>
+          <button class="btn-primary" @click="saveProfile">Save</button>
         </div>
       </div>
     </div>
@@ -417,7 +439,7 @@
     <!-- Other User Profile Modal -->
     <div v-if="showOtherProfile && selectedUser" class="modal-overlay" @click="showOtherProfile = false">
       <div class="modal-content profile-modal" @click.stop :style="{ borderTop: '8px solid ' + (selectedUser.banner_color || '#6366f1') }">
-        <div class="modal-header">
+        <div class="modal-header-compact">
           <h3>User Profile</h3>
           <button @click="showOtherProfile = false" class="btn-icon">❌</button>
         </div>
@@ -1390,28 +1412,101 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.chat-layout {
+  display: flex;
+  height: 100vh;
+  background: #000000; /* Deep black background */
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+  color: #fff;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 260px;
+  background: rgba(28, 28, 30, 0.7); /* System Gray 6 with transparency */
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-right: 0.5px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  margin: 0.5rem;
+  transition: background 0.2s;
+}
+.user-info-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  flex: 1;
+}
+.user-details-sidebar {
+  display: flex;
+  flex-direction: column;
+}
+.username {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+}
+.btn-settings {
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.btn-settings:hover {
+  opacity: 1;
+  transform: rotate(45deg);
+}
+
 .chat-header {
   padding: 1rem 1.5rem;
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(28, 28, 30, 0.6);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
+
 .header-main {
   display: flex;
   flex-direction: column;
 }
-.chat-header h2 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #f3f4f6;
-  margin: 0;
+
+.chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #000; /* Pure black to let glass layers pop */
+  position: relative;
 }
+
+.messages-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* Tight, OS-like spacing */
+}
+
 .creator-info {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  margin-top: 0.1rem;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
 }
 
 .meeting-overlay {
@@ -1488,18 +1583,28 @@ onUnmounted(() => {
 
 .message-item {
   position: relative;
+  transition: background 0.2s cubic-bezier(0.2, 0, 0, 1);
+  padding: 0.5rem 1rem;
 }
+.message-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
 .message-actions {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: 0.25rem;
+  right: 1.5rem;
   display: flex;
-  gap: 0.25rem;
+  gap: 0.35rem;
   opacity: 0;
-  transition: opacity 0.2s;
-  background: #1f2937;
-  padding: 0.2rem;
-  border-radius: 4px;
+  transition: opacity 0.15s ease-out;
+  background: rgba(44, 44, 46, 0.95); /* System Gray 4 equivalent */
+  backdrop-filter: blur(10px);
+  padding: 0.3rem;
+  border-radius: 10px;
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  z-index: 10;
 }
 .pinned-badge {
   font-size: 0.75rem;
@@ -1538,35 +1643,74 @@ onUnmounted(() => {
   opacity: 1;
 }
 .btn-action {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  color: #ccc;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  padding: 0.2rem 0.4rem;
-  font-size: 0.8rem;
+  padding: 0.4rem;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.1s;
 }
 .btn-action:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  transform: scale(1.1);
 }
-.btn-danger:hover {
-  background: #ef4444;
-  border-color: #ef4444;
+.chat-input-area {
+  padding: 1rem 1.5rem 2rem;
+  background: transparent;
 }
-.edit-message-form {
+.message-form {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
+  align-items: flex-end;
+  gap: 0.75rem;
+  background: rgba(44, 44, 46, 0.7); /* System Gray 4 */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 0.6rem 1rem;
+  border-radius: 24px; /* Capsule shape */
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
 }
-.edit-input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #4b5563;
-  border-radius: 4px;
-  background: #374151;
+.chat-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1rem;
+  padding: 0.4rem 0;
+  outline: none;
+  resize: none;
+  max-height: 200px;
+  line-height: 1.4;
+}
+.btn-send {
+  background: #007aff;
   color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+.btn-send:hover {
+  background: #0062cc;
+  transform: scale(1.05);
+}
+.btn-send:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
 }
 .file-upload-btn {
   cursor: pointer;
@@ -1616,55 +1760,82 @@ onUnmounted(() => {
   color: #10b981;
 }
 
-.thread-item {
-  position: relative;
-  display: flex !important;
-  align-items: center;
+.sidebar-header {
+  padding: 1.5rem 1rem 1rem;
 }
-.thread-content-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
+.sycs-logo {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #fff, #8e8e93);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
-.unread-badge {
-  background: #ef4444;
-  color: white;
+.sidebar-section-header {
+  padding: 0 1rem;
+  margin-bottom: 0.5rem;
+  color: rgba(255, 255, 255, 0.4);
   font-size: 0.7rem;
-  font-weight: bold;
-  padding: 0.1rem 0.4rem;
-  border-radius: 12px;
-  margin-left: auto;
-  margin-right: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.thread-item {
+  margin: 1px 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.thread-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.thread-item.active {
+  background: #007aff; /* Apple System Blue */
+  color: #fff;
+}
+.thread-item.active .hash, .thread-item.active .dm-icon {
+  color: rgba(255, 255, 255, 0.8);
+}
+.hash, .dm-icon {
+  color: rgba(255, 255, 255, 0.3);
+  margin-right: 4px;
+  font-weight: 600;
 }
 .user-list {
-  padding: 1rem;
+  padding: 1.5rem 1rem;
   flex: 1;
   overflow-y: auto;
-  border-top: 1px solid #374151;
+  background: rgba(0,0,0,0.2);
 }
 .user-list-header h3 {
-  font-size: 0.8rem;
-  color: #9ca3af;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
   text-transform: uppercase;
-  margin-bottom: 0.5rem;
-}
-.users {
-  list-style: none;
-  padding: 0; margin: 0;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
 }
 .user-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0;
-  color: #d1d5db;
+  gap: 0.75rem;
+  padding: 0.5rem 0.5rem;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.user-item:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 .status-indicator {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  display: inline-block;
+  flex-shrink: 0;
 }
 .status-indicator.online { background: #10b981; }
 .status-indicator.busy { background: #ef4444; }
@@ -1725,18 +1896,24 @@ onUnmounted(() => {
 }
 .search-bar {
   display: flex;
-  padding: 0.5rem 1rem;
-  gap: 0.5rem;
-  border-bottom: 1px solid #374151;
+  padding: 0.75rem 1rem;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
 }
 .search-input {
   flex: 1;
-  background: #374151;
-  border: 1px solid #4b5563;
-  color: white;
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
-  min-width: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  outline: none;
+}
+.search-input:focus {
+  border-color: #007aff;
+  background: rgba(255, 255, 255, 0.08);
 }
 .search-modal-content {
   max-width: 600px;
@@ -1780,27 +1957,28 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.1);
 }
 .modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
 }
 .modal-content {
-  background: #1f2937;
-  padding: 1.5rem;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  background: rgba(44, 44, 46, 0.95);
+  backdrop-filter: blur(25px);
+  border-radius: 14px;
+  padding: 2rem;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  border: 0.5px solid rgba(255,255,255,0.1);
 }
-.modal-header {
+.modal-header-compact {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.modal-header h3, .modal-header-compact h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 .modal-body .form-group {
   display: flex;
@@ -1921,36 +2099,39 @@ onUnmounted(() => {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999;
-  cursor: zoom-out;
-}
-.lightbox-content {
-  position: relative;
-  max-width: 90%;
-  max-height: 90%;
 }
 .lightbox-image {
-  max-width: 100%;
+  max-width: 95%;
   max-height: 90vh;
-  border-radius: 8px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-  cursor: default;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
 }
 .lightbox-close {
   position: absolute;
-  top: -40px;
-  right: -40px;
-  background: none;
+  top: 2rem;
+  right: 2rem;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
   color: white;
-  font-size: 2rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 1.25rem;
   cursor: pointer;
-  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  transition: background 0.2s;
 }
+.lightbox-close:hover { background: rgba(255, 255, 255, 0.2); }
 .lightbox-close:hover { color: #818cf8; }
 
 /* Mentions & Favorites Styles */
@@ -2011,8 +2192,112 @@ onUnmounted(() => {
 .profile-section { margin-top: 1.25rem; }
 .profile-section label { display: block; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #9ca3af; margin-bottom: 0.5rem; }
 .profile-custom-status-view { background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 8px; font-style: italic; }
-.profile-bio-view { background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 8px; line-height: 1.5; white-space: pre-wrap; }
+.profile-edit-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.edit-input-dark {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: #fff;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.edit-input-dark:focus { border-color: #007aff; }
 
-.text-danger { color: #ef4444; font-size: 0.8rem; margin-right: 1rem; }
-.modal-footer { margin-top: 1.5rem; display: flex; justify-content: flex-end; align-items: center; }
+.edit-input-minimal {
+  background: transparent;
+  border: none;
+  color: #007aff;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+.social-input-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.75rem;
+  border-radius: 10px;
+}
+.social-input-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.social-icon-small {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: bold;
+}
+
+.banner-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+}
+.color-dot-input {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  background: none;
+}
+.color-dot-input::-webkit-color-swatch-wrapper { padding: 0; }
+.color-dot-input::-webkit-color-swatch { border: none; border-radius: 50%; }
+
+.color-value-text {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.modal-footer {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+}
+.modal-footer button {
+  min-width: 120px;
+  flex: 1;
+  max-width: 160px;
+  height: 40px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-primary {
+  background: #007aff;
+  color: #fff;
+  border: none;
+}
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+
+.modal-footer .btn-text {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+}
+.modal-footer .btn-text:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
 </style>
