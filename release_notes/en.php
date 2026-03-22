@@ -1,3 +1,28 @@
+<!-- ===== v1.2.27 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.27</span>
+        <span class="release-title">Major Analog Clock Widget Enhancement</span>
+        <span class="release-date">2026-03-22</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> New Features
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⌚</span>
+                    <div>
+                        <strong>Sweep Seconds Hand & Functional Sub-dials</strong>
+                        <span class="detail">Implemented <code>requestAnimationFrame</code> for smooth, sweeping second hand movement. Additionally, the 24-hour, Day of the Week, and constant seconds sub-dials are now fully functional.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.26 ===== -->
 <article class="release">
     <div class="release-header">

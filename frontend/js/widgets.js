@@ -41,13 +41,53 @@ function initClock() {
             index.style.setProperty('--i', i);
             face.appendChild(index);
         }
-        // Minute markers (60-12=48)
+        // Minute markers (60)
         for (let i = 1; i <= 60; i++) {
             if (i % 5 === 0) continue;
             const index = document.createElement('div');
             index.className = 'clock-index minute';
             index.style.setProperty('--i', i);
             face.appendChild(index);
+        }
+        // 1/5 second markers (300)
+        for (let i = 1; i <= 300; i++) {
+            if (i % 5 === 0) continue;
+            const index = document.createElement('div');
+            index.className = 'clock-index fifth';
+            index.style.setProperty('--i', i);
+            face.appendChild(index);
+        }
+
+        // Sub-dial indices
+        const sub9 = face.querySelector('.sub-9');
+        if (sub9) {
+            for (let i = 0; i < 12; i++) {
+                const index = document.createElement('div');
+                index.className = 'sub-index' + (i % 3 === 0 ? ' major' : '');
+                index.style.setProperty('--si', i);
+                index.style.setProperty('--sa', '30deg');
+                sub9.appendChild(index);
+            }
+        }
+        const sub3 = face.querySelector('.sub-3');
+        if (sub3) {
+            for (let i = 0; i < 7; i++) {
+                const index = document.createElement('div');
+                index.className = 'sub-index major';
+                index.style.setProperty('--si', i);
+                index.style.setProperty('--sa', (360/7) + 'deg');
+                sub3.appendChild(index);
+            }
+        }
+        const sub6 = face.querySelector('.sub-6');
+        if (sub6) {
+            for (let i = 0; i < 12; i++) {
+                const index = document.createElement('div');
+                index.className = 'sub-index' + (i % 3 === 0 ? ' major' : '');
+                index.style.setProperty('--si', i);
+                index.style.setProperty('--sa', '30deg');
+                sub6.appendChild(index);
+            }
         }
     }
 
@@ -77,37 +117,63 @@ function initClock() {
 
     function updateClock() {
         const now = new Date();
-        const seconds = now.getSeconds();
-        const minutes = now.getMinutes();
-        const hours = now.getHours();
+        const ms = now.getMilliseconds();
+        const seconds = now.getSeconds() + ms / 1000;
+        const minutes = now.getMinutes() + seconds / 60;
+        const hours = now.getHours() + minutes / 60;
 
-        // Digital
-        if (digital) {
+        // Digital (Update once per second)
+        if (digital && ms < 50) {
             digital.textContent = now.toLocaleTimeString('ja-JP', { hour12: false });
         }
 
         // Analog Hands
-        const secDeg = (seconds / 60) * 360;
-        const minDeg = (minutes / 60) * 360 + (seconds / 60) * 6;
-        const hourDeg = (hours / 12) * 360 + (minutes / 60) * 30;
+        const steppedSeconds = Math.floor(seconds * 5) / 5;
+        const secDeg = steppedSeconds * 6;
+        const minDeg = minutes * 6;
+        const hourDeg = (hours % 12) * 30;
 
-        const secHand = document.querySelector('.second-hand');
-        const minHand = document.querySelector('.minute-hand');
-        const hourHand = document.querySelector('.hour-hand');
+        const secHand = face.querySelector('.second-hand');
+        const minHand = face.querySelector('.minute-hand');
+        const hourHand = face.querySelector('.hour-hand');
 
         if (secHand) secHand.style.transform = `rotate(${secDeg}deg)`;
         if (minHand) minHand.style.transform = `rotate(${minDeg}deg)`;
         if (hourHand) hourHand.style.transform = `rotate(${hourDeg}deg)`;
 
-        // Date
-        const dateSpan = document.querySelector('.date-window span');
-        if (dateSpan) {
-            dateSpan.textContent = now.getDate();
+        // Sub-dials
+        const sub9Hand = face.querySelector('.sub-9 .sub-hand');
+        const sub3Hand = face.querySelector('.sub-3 .sub-hand');
+        const sub6Hand = face.querySelector('.sub-6 .sub-hand');
+
+        if (sub9Hand) {
+            // 24h dial - step by hour
+            const sub9Deg = (Math.floor(hours) / 24) * 360;
+            sub9Hand.style.setProperty('--sub-angle', `${sub9Deg}deg`);
         }
+        if (sub3Hand) {
+            // Day of week dial - step by day
+            const sub3Deg = (now.getDay() / 7) * 360;
+            sub3Hand.style.setProperty('--sub-angle', `${sub3Deg}deg`);
+        }
+        if (sub6Hand) {
+            // Constant seconds dial - step by second
+            const sub6Deg = Math.floor(seconds) * 6;
+            sub6Hand.style.setProperty('--sub-angle', `${sub6Deg}deg`);
+        }
+
+        // Date (Update once per day/hour)
+        if (ms < 50) {
+            const dateSpan = document.querySelector('.date-window span');
+            if (dateSpan) {
+                dateSpan.textContent = now.getDate();
+            }
+        }
+
+        requestAnimationFrame(updateClock);
     }
 
-    setInterval(updateClock, 1000);
-    updateClock();
+    requestAnimationFrame(updateClock);
 }
 
 function initNotepad() {

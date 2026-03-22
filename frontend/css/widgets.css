@@ -128,30 +128,88 @@
     transform: rotate(calc(var(--i) * 6deg));
 }
 
+.clock-index.fifth {
+    width: 0.5px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    margin-left: -0.25px;
+    transform: rotate(calc(var(--i) * 1.2deg));
+}
+
 /* Sub-dials */
 .sub-dial {
     position: absolute;
-    width: 45px;
-    height: 45px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(139, 92, 246, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box !important;
 }
 
 .sub-9 { top: 50%; left: 25%; transform: translate(-50%, -50%); }
 .sub-3 { top: 50%; right: 25%; transform: translate(50%, -50%); }
-.sub-6 { bottom: 25%; left: 50%; transform: translate(-50%, 50%); }
+.sub-6 { top: 75%; left: 50%; transform: translate(-50%, -50%); }
 
-.sub-dial::after {
-    content: '';
+.sub-hand {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 7px;
+    left: calc(50% - 1px);
     width: 2px;
-    height: 12px;
+    height: 18px;
     background: #8b5cf6;
-    transform-origin: bottom center;
-    transform: translate(-50%, -100%) rotate(0deg);
+    transform-origin: 1px 15px;
+    transform: rotate(var(--sub-angle, 0deg));
+    z-index: 5;
+    border-radius: 1px;
+    box-shadow: 0 0 5px rgba(139, 92, 246, 0.5);
+}
+
+.sub-index {
+    position: absolute;
+    left: calc(50% - 0.5px);
+    top: 2px;
+    width: 1px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.4);
+    transform-origin: 0.5px 20px;
+    transform: rotate(calc(var(--si) * var(--sa)));
+}
+
+.sub-index.major {
+    width: 1.5px;
+    left: calc(50% - 0.75px);
+    height: 6px;
+    background: #8b5cf6;
+    transform-origin: 0.75px 20px;
+}
+
+.sub-label {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 7px;
+    font-weight: 700;
+    color: rgba(139, 92, 246, 0.5);
+    pointer-events: none;
+    z-index: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sub-center-dot {
+    position: relative;
+    width: 4px;
+    height: 4px;
+    background: #111;
+    border: 1px solid #8b5cf6;
+    border-radius: 50%;
+    z-index: 10;
+    flex-shrink: 0;
 }
 
 /* Date Window */

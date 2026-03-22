@@ -7,6 +7,31 @@
  */
 ?>
 
+<!-- ===== v1.2.27 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.27</span>
+        <span class="release-title">模拟时钟小部件重大增强</span>
+        <span class="release-date">2026-03-22</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 新功能 (New Features)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⌚</span>
+                    <div>
+                        <strong>平滑秒针与功能性子表盘</strong>
+                        <span class="detail">采用 <code>requestAnimationFrame</code> 实现了秒针的平滑扫秒。此外，24小时计、星期计和独立秒计的子表盘现在已完全实现功能。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.26 ===== -->
 <article class="release">
     <div class="release-header">

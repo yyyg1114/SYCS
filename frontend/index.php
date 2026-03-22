@@ -1,5 +1,5 @@
 <?php
-// v1.2.26
+// v1.2.27
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -2189,7 +2189,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.26</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.27</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
@@ -2265,9 +2265,18 @@ if ($isLoggedIn) {
                         <div class="clock-display">
                             <div id="analog-clock" class="analog-clock">
                                 <div class="clock-face">
-                                    <div class="sub-dial sub-9"></div>
-                                    <div class="sub-dial sub-3"></div>
-                                    <div class="sub-dial sub-6"></div>
+                                    <div class="sub-dial sub-9">
+                                        <div class="sub-hand"></div><span class="sub-label">24H</span>
+                                        <div class="sub-center-dot"></div>
+                                    </div>
+                                    <div class="sub-dial sub-3">
+                                        <div class="sub-hand"></div><span class="sub-label">DAY</span>
+                                        <div class="sub-center-dot"></div>
+                                    </div>
+                                    <div class="sub-dial sub-6">
+                                        <div class="sub-hand"></div><span class="sub-label">SEC</span>
+                                        <div class="sub-center-dot"></div>
+                                    </div>
                                     <div class="date-window"><span>19</span></div>
                                     <img src="./assets/img/SYCS_Logo.svg" alt="Logo" class="clock-logo">
                                     <div class="hand hour-hand"></div>

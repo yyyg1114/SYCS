@@ -6,6 +6,31 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v1.2.27 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.27</span>
+        <span class="release-title">アナログ時計ウィジェットの大幅な機能強化</span>
+        <span class="release-date">2026-03-22</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 新機能 (New Features)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⌚</span>
+                    <div>
+                        <strong>アナログ時計のスイープ運針とサブダイヤルの実装</strong>
+                        <span class="detail"><code>requestAnimationFrame</code> を採用し、秒針のスムーズな動きを実現しました。また、24時間計、曜日計、独立秒計のサブダイヤルを実機能として実装し、より本格的な時計体験を提供します。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.26 ===== -->
 <article class="release">
     <div class="release-header">
