@@ -239,9 +239,11 @@
     top: 20%;
     left: 50%;
     transform: translateX(-50%);
-    width: 24px;
-    height: auto;
+    width: 55px;
+    height: 22px;
     opacity: 0.8;
+    background-color: #8b5cf6;
+    border-radius: 5px;
 }
 
 .hand {
