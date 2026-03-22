@@ -257,6 +257,7 @@
               type="text" 
               v-model="newMessage" 
               @input="notifyTyping"
+              @keydown="handleInputKeyDown"
               :placeholder="currentThread ? `Message #${currentThread.title}` : `Message @${currentDM.username}`" 
               autocomplete="off"
             />
@@ -1195,6 +1196,27 @@ const loadTypingUsers = async () => {
   } catch (e) { /* silent */ }
 };
 
+const handleGlobalKeyDown = (e) => {
+  if (e.key === 'Escape') {
+    if (enlargedImage.value) closeImageModal();
+    else if (showProfileModal.value) closeProfileModal();
+    else if (showSearchModal.value) closeSearchModal();
+    else if (replyingTo.value) cancelReply();
+    else if (editingMessageId.value) cancelEdit();
+  }
+};
+
+const handleInputKeyDown = (e) => {
+  if (e.key === 'ArrowUp' && !newMessage.value && messages.value.length > 0) {
+    // Edit last message by current user
+    const lastMyMsg = [...messages.value].reverse().find(m => m.username === authStore.user?.username);
+    if (lastMyMsg) {
+      startEdit(lastMyMsg);
+      e.preventDefault();
+    }
+  }
+};
+
 onMounted(async () => {
   await loadThreads();
   await loadUsers();
@@ -1215,10 +1237,14 @@ onMounted(async () => {
     loadFriends();
     loadPendingRequests();
   }, 3000); // Polling every 3s
+  
+  window.addEventListener('keydown', handleGlobalKeyDown);
 });
 
 onUnmounted(() => {
   if (pollInterval) clearInterval(pollInterval);
+  if (signalPolling.value) clearInterval(signalPolling.value);
+  window.removeEventListener('keydown', handleGlobalKeyDown);
 });
 </script>
 
