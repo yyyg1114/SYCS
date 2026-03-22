@@ -67,6 +67,40 @@
         </ul>
       </div>
 
+      <template v-if="pendingRequests.length > 0">
+        <div class="thread-list-header mt-4">
+          <h3>Friend Requests</h3>
+        </div>
+        <ul class="threads">
+          <li v-for="req in pendingRequests" :key="req.request_id" class="thread-item">
+            <div class="thread-content-wrapper">
+              <span class="user-name-request">{{ req.username }}</span>
+              <div class="thread-hover-actions" style="opacity: 1">
+                <button @click="handleFriendRequest(req.request_id, 'accept')" class="btn-icon-small" title="Accept">✔️</button>
+                <button @click="handleFriendRequest(req.request_id, 'reject')" class="btn-icon-small btn-danger" title="Reject">❌</button>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </template>
+
+      <div class="thread-list-header mt-4">
+        <h3>Direct Messages</h3>
+      </div>
+      <ul class="threads">
+        <li 
+          v-for="partner in dmPartners" 
+          :key="partner.id" 
+          :class="{ active: currentDM && currentDM.id === partner.id }"
+          @click="selectDM(partner)"
+          class="thread-item"
+        >
+          <div class="thread-content-wrapper">
+            <span><span class="status-indicator-small" :class="partner.status || 'offline'"></span> {{ partner.username }}</span>
+          </div>
+        </li>
+      </ul>
+
       <div class="user-list">
         <div class="user-list-header">
           <h3>Members</h3>
@@ -74,8 +108,14 @@
         <ul class="users">
           <li v-for="u in users" :key="u.id" class="user-item">
             <span class="status-indicator" :class="u.status || 'offline'"></span>
-            <span class="user-name">{{ u.username }}</span>
+            <span class="user-name clickable" @click="selectDM(u)">{{ u.username }}</span>
             <span v-if="u.custom_status" class="custom-status" :title="u.custom_status">💬</span>
+            <button 
+              v-if="authStore.user && u.id !== authStore.user.id" 
+              @click="sendFriendRequest(u.id)" 
+              class="btn-icon-small ml-auto" 
+              title="Add Friend"
+            >👤+</button>
           </li>
         </ul>
       </div>
@@ -93,15 +133,24 @@
         {{ globalError }}
       </div>
 
-      <template v-if="currentThread">
+      <template v-if="currentThread || currentDM">
         <div class="chat-header">
-          <h2><span class="hash">#</span> {{ currentThread.title }}</h2>
-          <span class="creator-info">Created by {{ currentThread.creator_name }}</span>
+          <div class="header-main">
+            <h2 v-if="currentThread"><span class="hash">#</span> {{ currentThread.title }}</h2>
+            <h2 v-else>@ {{ currentDM.username }}</h2>
+            <span class="creator-info" v-if="currentThread">Created by {{ currentThread.creator_name }}</span>
+            <span class="creator-info" v-else>{{ currentDM.status }} - {{ currentDM.custom_status || 'Direct Message' }}</span>
+          </div>
+          <div class="header-actions" v-if="currentThread">
+            <button @click="initiateMeeting" class="btn-primary btn-sm" title="Start Video Call">
+              📹 Video Call
+            </button>
+          </div>
         </div>
 
         <div class="message-list" ref="messageListRef">
           <div v-if="messages.length === 0" class="empty-state">
-            Start the conversation in #{{ currentThread.title }}
+            {{ currentThread ? `Start the conversation in #${currentThread.title}` : `This is the beginning of your direct message history with @${currentDM.username}` }}
           </div>
           <div 
             v-for="(msg, index) in messages" 
@@ -170,6 +219,10 @@
         </div>
 
         <div class="chat-input-area">
+          <div v-if="typingUsers.length > 0" class="typing-indicator-chat">
+            <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
+            {{ typingUsers.join(', ') }} {{ typingUsers.length > 1 ? 'are' : 'is' }} typing
+          </div>
           <div v-if="selectedFile" class="file-preview">
             <span>📎 {{ selectedFile.name }}</span>
             <button type="button" @click="clearFile" class="btn-icon">❌</button>
@@ -182,7 +235,8 @@
             <input 
               type="text" 
               v-model="newMessage" 
-              placeholder="Message #..." 
+              @input="notifyTyping"
+              :placeholder="currentThread ? `Message #${currentThread.title}` : `Message @${currentDM.username}`" 
               autocomplete="off"
             />
             <button type="submit" :disabled="(!newMessage.trim() && !selectedFile) || isSending" class="btn-send">
@@ -233,10 +287,10 @@
           <div class="form-group">
             <label>Status</label>
             <select v-model="profileForm.status" class="edit-input">
-              <option value="online">🟢 Online</option>
-              <option value="busy">🔴 Busy</option>
-              <option value="away">🟡 Away</option>
-              <option value="offline">⚪ Offline</option>
+              <option value="online">Online</option>
+              <option value="busy">Busy</option>
+              <option value="away">Away</option>
+              <option value="offline">Offline</option>
             </select>
           </div>
           <div class="form-group mt-2">
@@ -247,11 +301,66 @@
             <label>Bio</label>
             <textarea v-model="profileForm.bio" class="edit-input" rows="3" placeholder="Tell us about yourself..."></textarea>
           </div>
+          <div class="form-group mt-2">
+            <label>Social Links</label>
+            <div class="social-links-grid">
+              <div class="social-item">
+                <span class="social-icon">Discord</span>
+                <input v-model="profileForm.social_links.discord" class="edit-input-small" placeholder="user#1234" />
+              </div>
+              <div class="social-item">
+                <span class="social-icon">GitHub</span>
+                <input v-model="profileForm.social_links.github" class="edit-input-small" placeholder="Username" />
+              </div>
+              <div class="social-item">
+                <span class="social-icon">Twitter</span>
+                <input v-model="profileForm.social_links.twitter" class="edit-input-small" placeholder="@username" />
+              </div>
+            </div>
+          </div>
+          <div class="form-group mt-2">
+            <label>Banner Color</label>
+            <input type="color" v-model="profileForm.banner_color" class="edit-input" />
+          </div>
         </div>
         <div class="modal-footer">
           <span v-if="profileSaveError" class="text-danger">{{ profileSaveError }}</span>
           <button class="btn-primary" @click="saveProfile">Save Changes</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Meeting Overlay -->
+    <div v-if="activeMeeting" class="meeting-overlay">
+      <div class="meeting-header">
+        <div class="meeting-info-top">
+          <h4>Meeting in #{{ currentThread?.title }}</h4>
+          <div class="id-pass">ID: {{ activeMeeting.meeting_id }} | PASS: {{ activeMeeting.password }}</div>
+        </div>
+        <button @click="leaveMeeting" class="btn-danger btn-sm">Leave</button>
+      </div>
+
+      <div class="video-grid" id="video-grid">
+        <div class="video-wrapper local-video">
+          <video ref="localVideoRef" autoplay muted playsinline></video>
+          <div class="video-label">You ({{ authStore.user?.username }})</div>
+        </div>
+        <div v-for="(peer, uid) in peers" :key="uid" class="video-wrapper remote-video">
+          <video :ref="el => { if(el) remoteVideoRefs[uid] = el }" autoplay playsinline></video>
+          <div class="video-label">{{ peer.username }}</div>
+        </div>
+      </div>
+
+      <div class="meeting-controls">
+        <button @click="toggleMic" :class="{ 'btn-muted': isMuted }" class="control-btn" title="Toggle Mic">
+          {{ isMuted ? '🔇' : '🎤' }}
+        </button>
+        <button @click="toggleVideo" :class="{ 'btn-muted': isVideoOff }" class="control-btn" title="Toggle Video">
+          {{ isVideoOff ? '📷' : '📹' }}
+        </button>
+        <button @click="toggleScreenShare" :class="{ 'btn-active': isScreenSharing }" class="control-btn" title="Screen Share">
+          🖥️
+        </button>
       </div>
     </div>
   </div>
@@ -270,14 +379,36 @@ const threads = ref([]);
 const users = ref([]);
 const unreadCounts = ref({});
 const currentThread = ref(null);
+const currentDM = ref(null);
 const messages = ref([]);
 const newMessage = ref('');
+
+const dmPartners = ref([]);
+const friendsList = ref([]);
+const pendingRequests = ref([]);
+
+// Meeting State
+const activeMeeting = ref(null);
+const localStream = ref(null);
+const localVideoRef = ref(null);
+const remoteVideoRefs = ref({});
+const peers = ref({}); // { userId: { pc, username, stream } }
+const lastSignalId = ref(0);
+const signalPolling = ref(null);
+const isMuted = ref(false);
+const isVideoOff = ref(false);
+const isScreenSharing = ref(false);
+const screenStream = ref(null);
+const iceServers = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
 const searchKeyword = ref('');
 const lastSearchKeyword = ref('');
 const showSearchModal = ref(false);
 const isSearching = ref(false);
 const searchResults = ref([]);
+
+const typingUsers = ref([]);
+const lastTypingNotify = ref(0);
 
 const selectedFile = ref(null);
 
@@ -295,19 +426,6 @@ const isImage = (path) => {
   return /\.(jpg|jpeg|png|gif|webp)$/i.test(path);
 };
 
-const handleFileUpload = (e) => {
-  const file = e.target.files[0];
-  if (file) selectedFile.value = file;
-};
-
-const clearFile = () => {
-  selectedFile.value = null;
-};
-
-const isImage = (path) => {
-  if (!path) return false;
-  return /\.(jpg|jpeg|png|gif|webp)$/i.test(path);
-};
 
 const showProfileModal = ref(false);
 const profileForm = ref({ status: 'online', custom_status: '', bio: '', banner_color: '#6366f1' });
@@ -323,7 +441,8 @@ const openProfileModal = async () => {
         status: data.profile.status || 'online',
         custom_status: data.profile.custom_status || '',
         bio: data.profile.bio || '',
-        banner_color: data.profile.banner_color || '#6366f1'
+        banner_color: data.profile.banner_color || '#6366f1',
+        social_links: data.profile.social_links ? JSON.parse(data.profile.social_links) : { discord: '', github: '', twitter: '' }
       };
     }
   } catch (e) {
@@ -370,14 +489,24 @@ const handleLogout = async () => {
 };
 
 const safeFetch = async (url, options = {}) => {
+  const defaultHeaders = {
+    'Content-Type': 'application/json'
+  };
+  const finalOptions = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers
+    }
+  };
   try {
-    const res = await fetch(url, options);
+    const res = await fetch(url, finalOptions);
     const text = await res.text();
     let data;
     try {
       data = JSON.parse(text);
     } catch (e) {
-      throw new Error(`サーバーエラー: 不正な応答 (${res.status})`);
+      throw new Error(`サーバーエラー: 不正な応答 (${res.status}) - ${text.substring(0, 100)}`);
     }
     return data;
   } catch (err) {
@@ -448,7 +577,8 @@ const createThread = async () => {
       newThreadTitle.value = '';
       isCreatingThread.value = false;
       await loadThreads();
-      selectThread(data.thread);
+      const fullThread = threads.value.find(t => t.id === data.thread.id);
+      selectThread(fullThread || data.thread);
       globalError.value = '';
     } else {
       globalError.value = data.error || "Failed to create thread";
@@ -549,22 +679,26 @@ const jumpToResult = async (res) => {
 };
 
 const selectThread = async (thread) => {
+  currentDM.value = null;
   currentThread.value = thread;
   await loadMessages();
   await markAsRead(thread.id);
 };
 
 const loadMessages = async () => {
-  if (!currentThread.value) return;
+  if (!currentThread.value && !currentDM.value) return;
+  const url = currentThread.value 
+    ? `/api/messages.php?thread_id=${currentThread.value.id}`
+    : `/api/dm.php?partner_id=${currentDM.value.id}`;
   try {
-    const data = await safeFetch(`/api/messages.php?thread_id=${currentThread.value.id}`);
+    const data = await safeFetch(url);
     if (data.success) {
       const isNewMessages = messages.value.length !== data.messages.length;
       messages.value = data.messages;
       globalError.value = '';
       if (isNewMessages) {
         scrollToBottom();
-        markAsRead(currentThread.value.id);
+        if (currentThread.value) markAsRead(currentThread.value.id);
       }
     }
   } catch (e) {
@@ -650,6 +784,190 @@ const groupReactions = (reactions) => {
   }));
 };
 
+// --- Meeting Methods ---
+const initiateMeeting = async () => {
+  if (!currentThread.value) return;
+  try {
+    const data = await safeFetch('/api/meetings.php?action=create', { method: 'POST' });
+    if (data.success) {
+      await startMeeting(data);
+    }
+  } catch (e) {
+    globalError.value = "Failed to start meeting: " + e.message;
+  }
+};
+
+const startMeeting = async (meetingData) => {
+  activeMeeting.value = meetingData;
+  try {
+    localStream.value = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    await nextTick();
+    if (localVideoRef.value) {
+      localVideoRef.value.srcObject = localStream.value;
+    }
+    
+    // Start Signaling Polling
+    startSignalPolling();
+    
+    // Notify current members (for now we just check signaling activity)
+    const membersData = await safeFetch(`/api/meetings.php?action=get_members&room_id=${activeMeeting.value.room_id}`);
+    if (membersData.success) {
+      membersData.members.forEach(m => {
+        initiatePeerConnection(m.sender_id, m.username);
+      });
+    }
+  } catch (e) {
+    globalError.value = "Media error: " + e.message;
+    leaveMeeting();
+  }
+};
+
+const startSignalPolling = () => {
+  signalPolling.value = setInterval(async () => {
+    if (!activeMeeting.value) return;
+    try {
+      const data = await safeFetch(`/api/meetings.php?action=get_signaling&room_id=${activeMeeting.value.room_id}&last_id=${lastSignalId.value}`);
+      if (data.success && data.signals.length > 0) {
+        for (const sig of data.signals) {
+          lastSignalId.value = Math.max(lastSignalId.value, sig.id);
+          await handleSignal(sig);
+        }
+      }
+    } catch (e) { console.error("Signal poll error", e); }
+  }, 2000);
+};
+
+const handleSignal = async (sig) => {
+  const from = sig.sender_id;
+  const content = JSON.parse(sig.content);
+  if (sig.type === 'offer') {
+    const pc = getOrCreatePeer(from, sig.sender_username);
+    await pc.setRemoteDescription(new RTCSessionDescription(content));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    sendSignal(from, 'answer', answer);
+  } else if (sig.type === 'answer') {
+    const peer = peers.value[from];
+    if (peer) await peer.pc.setRemoteDescription(new RTCSessionDescription(content));
+  } else if (sig.type === 'candidate') {
+    const peer = peers.value[from];
+    if (peer) await peer.pc.addIceCandidate(new RTCIceCandidate(content));
+  }
+};
+
+const initiatePeerConnection = async (targetId, username) => {
+  const pc = getOrCreatePeer(targetId, username);
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  sendSignal(targetId, 'offer', offer);
+};
+
+const getOrCreatePeer = (targetId, username) => {
+  if (peers.value[targetId]) return peers.value[targetId].pc;
+  
+  const pc = new RTCPeerConnection(iceServers);
+  const activeStream = isScreenSharing.value ? screenStream.value : localStream.value;
+  activeStream.getTracks().forEach(track => pc.addTrack(track, activeStream));
+  
+  pc.onicecandidate = e => {
+    if (e.candidate) sendSignal(targetId, 'candidate', e.candidate);
+  };
+  
+  pc.ontrack = e => {
+    const stream = e.streams[0];
+    peers.value[targetId].stream = stream;
+    nextTick(() => {
+      const videoEl = remoteVideoRefs.value[targetId];
+      if (videoEl) videoEl.srcObject = stream;
+    });
+  };
+  
+  pc.onconnectionstatechange = () => {
+    if (['disconnected', 'closed', 'failed'].includes(pc.connectionState)) {
+      delete peers.value[targetId];
+    }
+  };
+  
+  peers.value[targetId] = { pc, username, stream: null };
+  return pc;
+};
+
+const sendSignal = async (receiverId, type, content) => {
+  if (!activeMeeting.value) return;
+  await safeFetch(`/api/meetings.php?action=send_signaling`, {
+    method: 'POST',
+    body: JSON.stringify({
+      room_id: activeMeeting.value.room_id,
+      receiver_id: receiverId,
+      type,
+      content: JSON.stringify(content)
+    })
+  });
+};
+
+const leaveMeeting = () => {
+  if (signalPolling.value) clearInterval(signalPolling.value);
+  if (localStream.value) localStream.value.getTracks().forEach(t => t.stop());
+  if (screenStream.value) screenStream.value.getTracks().forEach(t => t.stop());
+  Object.values(peers.value).forEach(p => p.pc.close());
+  
+  activeMeeting.value = null;
+  localStream.value = null;
+  peers.value = {};
+  isScreenSharing.value = false;
+};
+
+const toggleMic = () => {
+  isMuted.value = !isMuted.value;
+  if (localStream.value) {
+    localStream.value.getAudioTracks().forEach(t => t.enabled = !isMuted.value);
+  }
+};
+
+const toggleVideo = () => {
+  isVideoOff.value = !isVideoOff.value;
+  if (localStream.value) {
+    localStream.value.getVideoTracks().forEach(t => t.enabled = !isVideoOff.value);
+  }
+};
+
+const toggleScreenShare = async () => {
+  if (isScreenSharing.value) {
+    stopScreenShare();
+  } else {
+    await startScreenShare();
+  }
+};
+
+const startScreenShare = async () => {
+  try {
+    screenStream.value = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    isScreenSharing.value = true;
+    const screenTrack = screenStream.value.getVideoTracks()[0];
+    
+    // Replace track for all peers
+    Object.values(peers.value).forEach(p => {
+      const sender = p.pc.getSenders().find(s => s.track && s.track.kind === 'video');
+      if (sender) sender.replaceTrack(screenTrack);
+    });
+    
+    if (localVideoRef.value) localVideoRef.value.srcObject = screenStream.value;
+    screenTrack.onended = stopScreenShare;
+  } catch (e) { console.error("Screen share failed", e); }
+};
+
+const stopScreenShare = () => {
+  if (!isScreenSharing.value) return;
+  if (screenStream.value) screenStream.value.getTracks().forEach(t => t.stop());
+  isScreenSharing.value = false;
+  const videoTrack = localStream.value.getVideoTracks()[0];
+  Object.values(peers.value).forEach(p => {
+    const sender = p.pc.getSenders().find(s => s.track && s.track.kind === 'video');
+    if (sender) sender.replaceTrack(videoTrack);
+  });
+  if (localVideoRef.value) localVideoRef.value.srcObject = localStream.value;
+};
+
 const deleteMessage = async (msgId) => {
   if (!confirm('メッセージを削除してよろしいですか？')) return;
   globalError.value = '';
@@ -669,7 +987,7 @@ const deleteMessage = async (msgId) => {
 };
 
 const sendMessage = async () => {
-  if ((!newMessage.value.trim() && !selectedFile.value) || !currentThread.value || isSending.value) return;
+  if ((!newMessage.value.trim() && !selectedFile.value) || (!currentThread.value && !currentDM.value) || isSending.value) return;
   
   isSending.value = true;
   globalError.value = '';
@@ -697,18 +1015,20 @@ const sendMessage = async () => {
   }
 
   try {
-    const data = await safeFetch('/api/messages.php', {
+    const url = currentThread.value ? '/api/messages.php' : '/api/dm.php';
+    const payload = currentThread.value
+      ? { thread_id: currentThread.value.id, content: newMessage.value, attachment_path: attachmentUrl }
+      : { receiver_id: currentDM.value.id, content: newMessage.value, attachment_path: attachmentUrl };
+
+    const data = await safeFetch(url, {
       method: 'POST',
-      body: JSON.stringify({ 
-        thread_id: currentThread.value.id, 
-        content: newMessage.value,
-        attachment_path: attachmentUrl
-      })
+      body: JSON.stringify(payload)
     });
     if (data.success) {
       newMessage.value = '';
       selectedFile.value = null;
       await loadMessages();
+      if (!currentThread.value) await loadDMPartners(); // Refresh DM list order
     } else {
       globalError.value = data.error || "Failed to send message";
     }
@@ -733,15 +1053,109 @@ const formatDate = (dateStr) => {
 };
 
 let pollInterval;
+
+const loadDMPartners = async () => {
+  try {
+    const data = await safeFetch('/api/dm.php');
+    if (data.success) dmPartners.value = data.partners;
+  } catch (e) { /* silent */ }
+};
+
+const loadFriends = async () => {
+  try {
+    const data = await safeFetch('/api/friends.php?action=list');
+    if (data.success) friendsList.value = data.friends;
+  } catch (e) { /* silent */ }
+};
+
+const loadPendingRequests = async () => {
+  try {
+    const data = await safeFetch('/api/friends.php?action=pending');
+    if (data.success) pendingRequests.value = data.requests;
+  } catch (e) { /* silent */ }
+};
+
+const selectDM = async (partner) => {
+  currentThread.value = null;
+  currentDM.value = partner;
+  await loadMessages();
+};
+
+const sendFriendRequest = async (userId) => {
+  try {
+    const data = await safeFetch('/api/friends.php', {
+      method: 'POST',
+      body: JSON.stringify({ receiver_id: userId })
+    });
+    if (data.success) {
+      alert('Friend request sent!');
+    } else {
+      alert(data.error || 'Failed to send request');
+    }
+  } catch (e) { alert(e.message); }
+};
+
+const handleFriendRequest = async (requestId, action) => {
+  try {
+    const data = await safeFetch('/api/friends.php', {
+      method: 'PUT',
+      body: JSON.stringify({ request_id: requestId, action })
+    });
+    if (data.success) {
+      await loadPendingRequests();
+      await loadFriends();
+    }
+  } catch (e) { alert(e.message); }
+};
+
+const notifyTyping = async () => {
+  const now = Date.now();
+  if (now - lastTypingNotify.value < 3000) return; // Throttle to every 3s
+  lastTypingNotify.value = now;
+  
+  const threadId = currentThread.value ? currentThread.value.id.toString() : (currentDM.value ? `dm_${currentDM.value.id}` : null);
+  if (!threadId) return;
+  
+  try {
+    await safeFetch('/api/typing.php', {
+      method: 'POST',
+      body: JSON.stringify({ thread_id: threadId })
+    });
+  } catch (e) { /* silent */ }
+};
+
+const loadTypingUsers = async () => {
+  const threadId = currentThread.value ? currentThread.value.id.toString() : (currentDM.value ? `dm_${currentDM.value.id}` : null);
+  if (!threadId) {
+    typingUsers.value = [];
+    return;
+  }
+  
+  try {
+    const data = await safeFetch(`/api/typing.php?thread_id=${threadId}`);
+    if (data.success) typingUsers.value = data.typing_users;
+  } catch (e) { /* silent */ }
+};
+
 onMounted(async () => {
   await loadThreads();
   await loadUsers();
   await loadUnreadCounts();
+  await loadDMPartners();
+  await loadFriends();
+  await loadPendingRequests();
+  
   pollInterval = setInterval(() => {
-    if (currentThread.value) loadMessages();
+    if (currentThread.value || currentDM.value) {
+      loadMessages();
+      loadTypingUsers();
+    }
     loadThreads();
     loadUsers();
     loadUnreadCounts();
+    loadDMPartners();
+    loadFriends();
+    loadPendingRequests();
   }, 3000); // Polling every 3s
 });
 
@@ -751,6 +1165,102 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.chat-header {
+  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.header-main {
+  display: flex;
+  flex-direction: column;
+}
+.chat-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin: 0;
+}
+.creator-info {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.1rem;
+}
+
+.meeting-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #000;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+}
+.meeting-header {
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.9);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.meeting-info-top h4 { margin: 0; color: #fff; }
+.id-pass { font-size: 0.8rem; color: #94a3b8; font-family: monospace; }
+.video-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  overflow-y: auto;
+}
+.video-wrapper {
+  position: relative;
+  background: #1f2937;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16/9;
+}
+.video-wrapper video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.video-label {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  background: rgba(0,0,0,0.5);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+.meeting-controls {
+  padding: 1.5rem;
+  background: rgba(15, 23, 42, 0.9);
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+.control-btn {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: none;
+  background: #374151;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.control-btn:hover { background: #4b5563; }
+.btn-muted { background: #ef4444 !important; }
+.btn-active { background: #6366f1 !important; }
+
 .message-item {
   position: relative;
 }
@@ -1073,6 +1583,61 @@ onUnmounted(() => {
   gap: 0.25rem;
 }
 .mt-2 { margin-top: 1rem; }
+.mt-4 { margin-top: 1.5rem; }
+.ml-auto { margin-left: auto; }
+.status-indicator-small {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+}
+.status-indicator-small.online { background: #10b981; }
+.status-indicator-small.busy { background: #ef4444; }
+.status-indicator-small.away { background: #f59e0b; }
+.status-indicator-small.offline { background: #6b7280; }
+.user-name-request { font-size: 0.9rem; font-weight: 500; }
+
+.typing-indicator-chat {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-bottom: 0.5rem;
+  padding: 0 1rem;
+  animation: fadeIn 0.3s;
+}
+.typing-dots span {
+  animation: blink 1.4s infinite both;
+  font-weight: bold;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes blink {
+  0% { opacity: .2; }
+  20% { opacity: 1; }
+  100% { opacity: .2; }
+}
+
+.social-links-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.social-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.social-icon {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #9ca3af;
+  width: 60px;
+}
+.clickable { cursor: pointer; }
+.clickable:hover { text-decoration: underline; }
+
 .text-danger { color: #ef4444; font-size: 0.8rem; margin-right: 1rem; }
 .modal-footer { margin-top: 1.5rem; display: flex; justify-content: flex-end; align-items: center; }
 </style>

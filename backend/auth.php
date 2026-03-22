@@ -15,6 +15,14 @@ function requireLogin()
         echo json_encode(["error" => "Unauthorized"]);
         exit();
     }
+    
+    // session_user_id exists, but is the user in DB?
+    if (getCurrentUser() === null) {
+        session_destroy(); // Invalid session, clear it
+        http_response_code(401);
+        echo json_encode(["error" => "Session invalid. Please login again."]);
+        exit();
+    }
 }
 
 function getCurrentUser()

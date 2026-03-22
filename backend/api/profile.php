@@ -28,20 +28,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $custom_status = $data['custom_status'] ?? null;
     $bio = $data['bio'] ?? null;
     $bannerColor = $data['banner_color'] ?? '#6366f1';
+    $socialLinks = isset($data['social_links']) ? json_encode($data['social_links']) : null;
 
     $allowedStatuses = ['online', 'busy', 'away', 'offline'];
     if (!in_array($status, $allowedStatuses)) {
         $status = 'online';
     }
 
-    $stmt = $mysqli->prepare("UPDATE users SET status = ?, custom_status = ?, bio = ?, banner_color = ? WHERE id = ?");
-    $stmt->bind_param("ssssi", $status, $custom_status, $bio, $bannerColor, $userId);
+    $stmt = $mysqli->prepare("UPDATE users SET status = ?, custom_status = ?, bio = ?, banner_color = ?, social_links = ? WHERE id = ?");
+    $stmt->bind_param("sssssi", $status, $custom_status, $bio, $bannerColor, $socialLinks, $userId);
     
     if ($stmt->execute()) {
         echo json_encode(["success" => true]);
     } else {
         http_response_code(500);
-        echo json_encode(["error" => "Failed to update profile"]);
+        echo json_encode(["error" => "Failed to update profile: " . $stmt->error]);
     }
 } else {
     http_response_code(405);

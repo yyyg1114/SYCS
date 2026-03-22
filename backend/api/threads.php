@@ -8,17 +8,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit(0);
 
 requireLogin();
 $currentUser = getCurrentUser();
+if (!$currentUser) {
+    http_response_code(401);
+    echo json_encode(["error" => "User context lost. Please log in again."]);
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = json_decode(file_get_contents('php://input'), true);
     $title = $data['title'] ?? '';
-    
+
     if (!$title) {
         http_response_code(400);
         echo json_encode(["error" => "Title is required"]);
         exit;
     }
-    
+
     $stmt = $mysqli->prepare("INSERT INTO threads (title, creator_id) VALUES (?, ?)");
     if (!$stmt) {
         http_response_code(500);
@@ -31,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(["success" => true, "thread" => ["id" => $threadId, "title" => $title]]);
     } else {
         http_response_code(500);
-        echo json_encode(["error" => "Failed to create thread"]);
+        echo json_encode(["error" => "Failed to create thread: " . $stmt->error]);
     }
 } else if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $result = $mysqli->query("SELECT t.id, t.title, t.created_at, u.username as creator_name FROM threads t JOIN users u ON t.creator_id = u.id ORDER BY t.created_at DESC");
