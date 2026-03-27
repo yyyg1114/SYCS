@@ -533,6 +533,7 @@ if (isset($_GET['api'])) {
             constructor() {
                 this.localStream = null;
                 this.peers = {}; // peerUserId -> PC
+                this.pendingCandidates = {}; // userId -> [candidates]
                 this.roomId = null;
                 this.lastSignalingId = 0;
                 this.pollingInterval = null;
@@ -593,16 +594,37 @@ if (isset($_GET['api'])) {
                 if (msg.type === 'offer') {
                     const pc = this.getOrCreatePeer(from);
                     await pc.setRemoteDescription(new RTCSessionDescription(content));
+                    await this.flushPendingCandidates(from);
                     const answer = await pc.createAnswer();
                     await pc.setLocalDescription(answer);
                     this.sendSignaling(from, 'answer', answer);
                 } else if (msg.type === 'answer') {
                     const pc = this.peers[from];
-                    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(content));
+                    if (pc) {
+                        await pc.setRemoteDescription(new RTCSessionDescription(content));
+                        await this.flushPendingCandidates(from);
+                    }
                 } else if (msg.type === 'candidate') {
                     const pc = this.peers[from];
-                    if (pc) await pc.addIceCandidate(new RTCIceCandidate(content));
+                    if (!pc || !pc.remoteDescription) {
+                        if (!this.pendingCandidates[from]) this.pendingCandidates[from] = [];
+                        this.pendingCandidates[from].push(content);
+                    } else {
+                        await pc.addIceCandidate(new RTCIceCandidate(content));
+                    }
                 }
+            }
+
+            async flushPendingCandidates(userId) {
+                const pc = this.peers[userId];
+                const candidates = this.pendingCandidates[userId] || [];
+                if (!pc || !pc.remoteDescription) return;
+
+                while (candidates.length > 0) {
+                    const candidate = candidates.shift();
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                }
+                delete this.pendingCandidates[userId];
             }
 
             async initiateCall(targetId) {

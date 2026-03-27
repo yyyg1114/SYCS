@@ -1,5 +1,5 @@
 <?php
-// v1.2.28
+// v1.2.29
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -2209,7 +2209,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.28</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.29</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">

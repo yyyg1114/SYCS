@@ -213,8 +213,8 @@ if (!peer || !peer.connection.remoteDescription) {
   return;
 }
 
-while (queued.length > 0) {
-  const candidate = queued.shift();
+while (candidates.length > 0) {
+  const candidate = candidates.shift();
   await peer.connection.addIceCandidate(new RTCIceCandidate(candidate));
 }
 
