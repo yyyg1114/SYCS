@@ -70,8 +70,9 @@ class MeetingManager {
     }
   }
     setupSocketEvents() {
-    if (!socket) {
-      console.error("Socket.io is not initialized");
+    if (!socket || !socket.connected) {
+      console.warn("Socket.io is not connected. Falling back to HTTP polling.");
+      this.startPolling();
       return;
     }
 
@@ -91,6 +92,43 @@ class MeetingManager {
       if (data.senderId == currentUserId) return;
       await this.handleSignaling(data);
     });
+  }
+
+  startPolling() {
+    if (this.pollingInterval) clearInterval(this.pollingInterval);
+    this.pollingInterval = setInterval(async () => {
+      if (!this.roomId) return;
+      const msgs = await api(`get_signaling&room_id=${this.roomId}&last_id=${this.lastSignalingId}`);
+      if (msgs && msgs.length > 0) {
+        for (const msg of msgs) {
+          this.lastSignalingId = Math.max(this.lastSignalingId, msg.id);
+          const formattedMsg = {
+            senderId: msg.sender_id,
+            type: msg.type,
+            content: typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content
+          };
+          if (formattedMsg.senderId == (typeof currentUserId !== 'undefined' ? currentUserId : window.SYCS_CONFIG.currentUserId)) continue;
+          await this.handleSignaling(formattedMsg);
+        }
+      }
+
+      // Knock logic for members already in room if we missed socket events
+      const members = await api(`get_room_members&room_id=${this.roomId}`);
+      if (members) {
+        members.forEach(m => {
+          if (m.sender_id != (typeof currentUserId !== 'undefined' ? currentUserId : window.SYCS_CONFIG.currentUserId)) {
+            this.initiateCall(m.sender_id);
+          }
+        });
+      }
+    }, 2000);
+  }
+
+  stopPolling() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
   }
 
   async handleSignaling(msg) {
@@ -193,7 +231,7 @@ class MeetingManager {
 
   async sendSignaling(receiverId, type, content) {
     const finalTargetId = receiverId;
-    if (socket) {
+    if (socket && socket.connected) {
       socket.emit("webrtc_signal", {
         roomId: this.roomId,
         targetId: finalTargetId,
@@ -403,6 +441,7 @@ delete this.pendingCandidates[userId];
       this.localStream.getTracks().forEach((track) => track.stop());
     }
 
+    this.stopPolling();
     this.removeVideoTrack(currentUserId);
     this.peers = {};
     this.roomId = null;

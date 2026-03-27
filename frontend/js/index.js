@@ -2184,7 +2184,8 @@ let socket = null;
 
 function initRealtime() {
   if (typeof io === "undefined") return;
-  socket = io("http://localhost:3000");
+  const hostname = window.location.hostname || "localhost";
+  socket = io(`http://${hostname}:3000`);
 
   socket.on("connect", () => {
     console.log("Connected to realtime server");
