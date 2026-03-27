@@ -6,6 +6,45 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v1.2.28 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.28</span>
+        <span class="release-title">WebRTC 接続の安定化と通知システムの堅牢化</span>
+        <span class="release-date">2026-03-27</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善 & 修正 (Improvements & Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎥</span>
+                    <div>
+                        <strong>WebRTC シグナリングの安定性向上</strong>
+                        <span class="detail">ICE candidate の保留キューを実装しました。これにより、ビデオ会議の接続確立時に candidate が取りこぼされる問題を解消し、より確実な接続を可能にしました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>通知エンジンのエラーハンドリング強化</strong>
+                        <span class="detail">リアルタイム通知およびプッシュ通知の送信処理に HTTP ステータスコードチェックを導入しました。バックエンド連携の失敗を正確に検知し、ログに出力します。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>設定の堅牢化とコード整理</strong>
+                        <span class="detail">シークレットキーの参照ロジックを最適化し、環境設定の不備に対処しました。また、不要なファイル読み込みを削除しパフォーマンスを向上させました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.27 ===== -->
 <article class="release">
     <div class="release-header">

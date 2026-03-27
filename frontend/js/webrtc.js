@@ -7,6 +7,7 @@ class MeetingManager {
   constructor() {
     this.localStream = null;
     this.peers = {}; // peerUserId -> { connection, stream }
+    this.pendingCandidates = {}; // userId -> [candidate1, candidate2, ...]
     this.roomId = null;
     this.lastSignalingId = 0;
     this.isMuted = false;
@@ -122,6 +123,7 @@ class MeetingManager {
 
     const pc = this.createPeerConnection(fromUser);
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    await this.flushPendingCandidates(fromUser);
 
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
@@ -135,13 +137,19 @@ class MeetingManager {
       await peer.connection.setRemoteDescription(
         new RTCSessionDescription(answer),
       );
+      await this.flushPendingCandidates(fromUser);
     }
   }
 
   async handleCandidate(fromUser, candidate) {
     const peer = this.peers[fromUser];
-    if (peer) {
+    if (peer && peer.connection.remoteDescription) {
       await peer.connection.addIceCandidate(new RTCIceCandidate(candidate));
+    } else {
+      if (!this.pendingCandidates[fromUser]) {
+        this.pendingCandidates[fromUser] = [];
+      }
+      this.pendingCandidates[fromUser].push(candidate);
     }
   }
 
@@ -197,6 +205,22 @@ class MeetingManager {
     }
   }
 
+  async flushPendingCandidates(userId) {
+const peer = this.peers[userId];
+const candidates = this.pendingCandidates[userId] || [];
+
+if (!peer || !peer.connection.remoteDescription) {
+  return;
+}
+
+while (queued.length > 0) {
+  const candidate = queued.shift();
+  await peer.connection.addIceCandidate(new RTCIceCandidate(candidate));
+}
+
+delete this.pendingCandidates[userId];
+  }
+
   addVideoTrack(userId, stream, isLocal) {
     const grid = document.getElementById("video-grid");
     let wrapper = document.getElementById(`video-wrap-${userId}`);
@@ -238,6 +262,9 @@ class MeetingManager {
     if (wrapper) wrapper.remove();
     if (this.peers[userId]) {
       delete this.peers[userId];
+    }
+    if (this.pendingCandidates[userId]) {
+      delete this.pendingCandidates[userId];
     }
   }
 

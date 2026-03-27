@@ -7,6 +7,45 @@
  */
 ?>
 
+<!-- ===== v1.2.28 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge canvas-badge">v1.2.28</span>
+        <span class="release-title">WebRTC 连接稳定性与通知系统强化</span>
+        <span class="release-date">2026-03-27</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善与修正 (Improvements & Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎥</span>
+                    <div>
+                        <strong>提高 WebRTC 信令稳定性</strong>
+                        <span class="detail">实现了 ICE candidate 保留队列。这解决了视频会议连接过程中 candidate 丢失的问题，确保连接更加可靠。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>强化通知引擎错误处理</strong>
+                        <span class="detail">在实时通知和推送通知处理中引入了 HTTP 状态码检查。能够更准确地检测后端协作故障并记录日志。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>优化安全逻辑与代码整理</strong>
+                        <span class="detail">优化了密钥引用逻辑，增强了环境配置缺失时的鲁棒性。同时删除了冗余的文件引用。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.27 ===== -->
 <article class="release">
     <div class="release-header">

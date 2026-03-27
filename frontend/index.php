@@ -1,5 +1,5 @@
 <?php
-// v1.2.27
+// v1.2.28
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -18,8 +18,6 @@ I18n::getInstance();
 // 2. HTTP Security Headers
 SecurityUtil::sendSecurityHeaders();
 
-require_once __DIR__ . '/../backend/db.php';
-require_once __DIR__ . '/../backend/SecurityUtil.php';
 
 // 3. CSRF Token Generation
 if (empty($_SESSION['csrf_token'])) {
@@ -398,11 +396,29 @@ function sendDiscordWebhook($webhookUrl, $username, $content, $avatarUrl = null,
     }
 }
 
+function get_http_status_code_from_headers($headers)
+{
+    if (!is_array($headers) || empty($headers[0])) {
+        return null;
+    }
+
+    if (preg_match('/\s(\d{3})\s/', $headers[0], $matches)) {
+        return (int)$matches[1];
+    }
+
+    return null;
+}
+
+
 // Helper to notify Realtime Server
 function notifyRealtimeServer($type, $data)
 {
     require_once __DIR__ . '/../backend/EnvLoader.php';
-    $secret = getenv('REALTIME_SECRET_KEY') ?: 'SYCS_REALTIME_SECRET_TOKEN';
+    $secret = getenv('REALTIME_SECRET_KEY') ?: getenv('SECRET_KEY');
+    if ($secret === false || $secret === '') {
+        error_log('REALTIME_SECRET_KEY/SECRET_KEY is not set. Skipping realtime notify call.');
+        return;
+    }
     $url = 'http://localhost:3000/api/notify';
     $payload = [
         'secret' => $secret,
@@ -420,8 +436,9 @@ function notifyRealtimeServer($type, $data)
     ];
     $context  = stream_context_create($options);
     $result = file_get_contents($url, false, $context);
-    if ($result === false) {
-        error_log("Realtime Server notification failed: $url");
+    $statusCode = get_http_status_code_from_headers($http_response_header ?? null);
+    if ($result === false || $statusCode === null || $statusCode >= 400) {
+        error_log("Realtime Server notification failed: $url (status=" . ($statusCode ?? 'unknown') . ")");
     }
 }
 
@@ -430,7 +447,11 @@ function sendPushNotification($userId, $payload)
 {
     global $mysqli;
     require_once __DIR__ . '/../backend/EnvLoader.php';
-    $secret = getenv('REALTIME_SECRET_KEY') ?: 'SYCS_REALTIME_SECRET_TOKEN';
+    $secret = getenv('REALTIME_SECRET_KEY') ?: getenv('SECRET_KEY');
+    if ($secret === false || $secret === '') {
+        error_log('REALTIME_SECRET_KEY/SECRET_KEY is not set. Skipping push notification call.');
+        return;
+    }
     $url = 'http://localhost:3000/api/push';
 
     $stmt = $mysqli->prepare("SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?");
@@ -461,8 +482,9 @@ function sendPushNotification($userId, $payload)
         ];
         $context  = stream_context_create($options);
         $result = file_get_contents($url, false, $context);
-        if ($result === false) {
-            error_log("Push Notification failed: $url");
+        $statusCode = get_http_status_code_from_headers($http_response_header ?? null);
+        if ($result === false || $statusCode === null || $statusCode >= 400) {
+            error_log("Push Notification failed: $url (status=" . ($statusCode ?? 'unknown') . ")");
         }
     }
 }
@@ -477,10 +499,8 @@ function verify_csrf(?string $token, ?string $sessionToken)
 }
 function verify_token(?string $token, ?string $sessionToken)
 {
-    if (!$token || !$sessionToken || !hash_equals($sessionToken, $token)) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Invalid CSRF Token']);
-    }
+    // Backward-compatible alias for legacy call sites
+    verify_csrf($token, $sessionToken);
 }
 
 // --- API Logic (AJAX Handlers) ---
@@ -2189,7 +2209,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.27</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.28</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">

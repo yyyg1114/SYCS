@@ -1,3 +1,42 @@
+<!-- ===== v1.2.28 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.28</span>
+        <span class="release-title">WebRTC Stability & Notification Engine Hardening</span>
+        <span class="release-date">2026-03-27</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Improvements & Fixes
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎥</span>
+                    <div>
+                        <strong>Improved WebRTC Connection Reliability</strong>
+                        <span class="detail">Implemented an ICE candidate queue to prevent signaling race conditions. This ensures consistent video conferencing connections by handling candidates only after the remote description is set.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Enhanced Error Handling for Notifications</strong>
+                        <span class="detail">Introduced HTTP status code verification for real-time and push notification delivery, enabling precise error detection and logging for backend integrations.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>Security Logic Optimization</strong>
+                        <span class="detail">Refined secret key fallback mechanisms and removed redundant file includes to improve system robustness and efficiency.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.27 ===== -->
 <article class="release">
     <div class="release-header">
