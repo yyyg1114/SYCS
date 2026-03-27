@@ -71,12 +71,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("webrtc_signal", (data) => {
-    const { roomId, targetId, type, content, senderId } = data;
-    // We can send to a specific room or a specific user-socket if we tracked them better.
-    // For Mesh, we often broadcast or send to the specific target room/user.
-    // If targetId is provided, we try to find their socket.
-    if (targetId) {
-      const targetSocketId = users.get(targetId.toString());
+    const { roomId, targetId, receiverId, type, content, senderId } = data;
+    const finalTargetId = targetId || receiverId;
+
+    if (finalTargetId) {
+      const targetSocketId = users.get(finalTargetId.toString());
       if (targetSocketId) {
         io.to(targetSocketId).emit("webrtc_signal", {
           senderId,

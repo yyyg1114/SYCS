@@ -29,7 +29,8 @@ class MeetingManager {
         video: true,
         audio: true,
       });
-      this.addVideoTrack(currentUserId, this.localStream, true);
+    const myId = (typeof currentUserId !== 'undefined' ? currentUserId : window.SYCS_CONFIG.currentUserId);
+    this.addVideoTrack(myId, this.localStream, true);
     } catch (err) {
       console.error("Error accessing media devices:", err);
       alert("カメラまたはマイクにアクセスできませんでした。");
@@ -117,8 +118,13 @@ class MeetingManager {
 
   async handleOffer(fromUser, offer) {
     if (this.peers[fromUser]) {
-      // Re-negotiation or duplicate? For simplicity, we recreate if needed
+      // Unhook the connection state listener so it doesn't destroy our NEW UI and peer state
+      this.peers[fromUser].connection.onconnectionstatechange = null;
       this.peers[fromUser].connection.close();
+      
+      // Safely remove only the wrapper directly, instead of using removeVideoTrack which deletes this.peers entry
+      const wrapper = document.getElementById(`video-wrap-${fromUser}`);
+      if (wrapper) wrapper.remove();
     }
 
     const pc = this.createPeerConnection(fromUser);
@@ -186,19 +192,20 @@ class MeetingManager {
   }
 
   async sendSignaling(receiverId, type, content) {
-      if (socket) {
+    const finalTargetId = receiverId;
+    if (socket) {
       socket.emit("webrtc_signal", {
         roomId: this.roomId,
-        targetId: receiverId,
-        senderId: currentUserId,
-        type: type,
-        content: content,
+        targetId: finalTargetId,
+        receiverId: finalTargetId,
+        senderId: (typeof currentUserId !== 'undefined' ? currentUserId : window.SYCS_CONFIG.currentUserId),
+        type,
+        content,
       });
     } else {
-      // Fallback to legacy API if socket is unavailable (optional)
       const body = new FormData();
       body.append("room_id", this.roomId);
-      body.append("receiver_id", receiverId);
+      body.append("receiver_id", finalTargetId);
       body.append("type", type);
       body.append("content", JSON.stringify(content));
       await api("send_signaling", "POST", body);
