@@ -1,5 +1,5 @@
 <?php
-// v1.2.29.7
+// v1.2.29.8
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -2209,7 +2209,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.29.7</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.29.8</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
@@ -2244,7 +2244,7 @@ if ($isLoggedIn) {
                             </svg>
                             <span><?= __('favorites') ?></span>
                         </li>
-                        <li class="nav-item" onclick="window.open('meetings.php', '_blank', 'noopener noreferrer')" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;">
+                        <li class="nav-item" onclick="window.open('meetings.php', '_blank', 'noopener noreferrer')" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px; display: none">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polygon points="23 7 16 12 23 17 23 7"></polygon>
                                 <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
@@ -2400,7 +2400,7 @@ if ($isLoggedIn) {
                             </svg>
                         </div>
                         <div class="thread-actions" id="thread-actions-block" style="display:flex; margin-left: auto; align-items:center; gap:8px;">
-                            <div class="search-input-wrapper" style="position:relative; display:flex; align-items:center; background:rgba(0,0,0,0.2); border-radius:4px; padding:2px 8px; margin-right:8px;">
+                            <div class="search-input-wrapper" style="position:relative; display:flex; align-items:center; background:rgba(156, 156, 156, 0.2); border-radius:4px; padding:2px 8px; margin-right:8px;">
                                 <input type="text" id="search-input" placeholder="<?= __('search_placeholder') ?>" style="background:transparent; border:none; color:white; font-size:0.85rem; outline:none; width:120px;" onkeydown="if(event.key==='Enter') searchMessages()">
                                 <button class="icon-btn" onclick="toggleAdvancedSearch()" style="padding:2px; height:auto; background:transparent;" title="<?= __('search_filter') ?>">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -2416,9 +2416,9 @@ if ($isLoggedIn) {
                                     </svg>
                                 </button>
                                 <button class="icon-btn" onclick="searchMessages()" style="padding:2px; height:auto; background:transparent;">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <circle cx="11" cy="11" r="8"></circle>
-                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                        <line x1="24" y1="24" x2="16.65" y2="16.65"></line>
                                     </svg>
                                 </button>
                                 <!-- Advanced Search Panel -->
@@ -2445,7 +2445,7 @@ if ($isLoggedIn) {
                                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                                 </svg>
                             </button>
-                            <button class="icon-btn" onclick="startMeeting()" title="<?= __('start_video_meeting') ?>">
+                            <button class="icon-btn" onclick="startMeeting()" title="<?= __('start_video_meeting') ?>" style="display: none;">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <polygon points="23 7 16 12 23 17 23 7"></polygon>
                                     <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
@@ -2455,7 +2455,7 @@ if ($isLoggedIn) {
                                 <img src="assets/img/files.svg" alt="<?= __('gallery') ?>" style="width:16px; height:16px; filter: grayscale(1) invert(1);">
                             </button>
                             <button class="icon-btn" onclick="showPinnedMessages()" title="<?= __('pinned_messages_list') ?>">
-                                <span style="font-size:14px;">📌</span>
+                                <img src="assets/img/pin.svg" alt="<?= __('pinned_messages_list') ?>" style="width:16px; height:16px;">
                             </button>
                             <button class="icon-btn" onclick="editCurrentThread()" title="<?= __('edit') ?>">
                                 <img src="assets/img/edit.svg" alt="<?= __('edit') ?>" style="width:16px; height:16px;">
