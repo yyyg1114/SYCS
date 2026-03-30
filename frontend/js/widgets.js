@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initClock();
     initNotepad();
     initFiler();
+    initTodo();
 });
 
 function initWidgets() {
@@ -21,6 +22,9 @@ function initWidgets() {
 
             if (target === 'filer') {
                 loadFiles();
+            }
+            if (target === 'todo') {
+                renderTodos();
             }
         });
     });
@@ -245,4 +249,103 @@ async function loadFiles() {
         console.error('Failed to load files:', err);
         list.innerHTML = '<div class="empty-files">読み込み失敗</div>';
     }
+}
+
+// --- Todo Widget ---
+let todos = [];
+
+function initTodo() {
+    const input = document.getElementById('todo-input');
+    if (!input) return;
+
+    // Load from localStorage
+    const saved = localStorage.getItem('sycs_todos');
+    if (saved) {
+        try {
+            todos = JSON.parse(saved);
+        } catch (e) {
+            todos = [];
+        }
+    }
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            addTodo();
+        }
+    });
+
+    renderTodos();
+}
+
+function addTodo() {
+    const input = document.getElementById('todo-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const newTodo = {
+        id: Date.now(),
+        text: text,
+        completed: false
+    };
+
+    todos.push(newTodo);
+    saveTodos();
+    input.value = '';
+    renderTodos();
+}
+
+function toggleTodo(id) {
+    todos = todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+    saveTodos();
+    renderTodos();
+}
+
+function deleteTodo(id) {
+    todos = todos.filter(t => t.id !== id);
+    saveTodos();
+    renderTodos();
+}
+
+function saveTodos() {
+    localStorage.setItem('sycs_todos', JSON.stringify(todos));
+}
+
+function renderTodos() {
+    const list = document.getElementById('todo-list');
+    if (!list) return;
+
+    if (todos.length === 0) {
+        list.innerHTML = `<div class="empty-files" style="padding-top:20px;">${window.SYCS_CONFIG.translations.no_tasks || 'タスクはありません'}</div>`;
+        return;
+    }
+
+    list.innerHTML = '';
+    // Sort: Uncompleted first, then by id descending
+    const sorted = [...todos].sort((a, b) => {
+        if (a.completed !== b.completed) return a.completed ? 1 : -1;
+        return b.id - a.id;
+    });
+
+    sorted.forEach(todo => {
+        const item = document.createElement('div');
+        item.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+        
+        item.innerHTML = `
+            <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(${todo.id})">
+            <span class="todo-text">${escapeHTML(todo.text)}</span>
+            <button class="todo-delete" onclick="deleteTodo(${todo.id})" title="削除">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </button>
+        `;
+        list.appendChild(item);
+    });
+}
+
+function escapeHTML(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
 }

@@ -676,6 +676,10 @@ async function deleteCurrentThread() {
 // --- Profile Logic ---
 function showProfileModal() {
   document.getElementById("profile-modal").showModal();
+  if (typeof locationManager !== "undefined") {
+    locationManager.updateDisplay();
+    locationManager.getCurrentLocation();
+  }
 }
 
 function updatePreviewBanner(color) {
@@ -691,7 +695,37 @@ function updatePreviewStatus(status) {
   indicator.className = `discord-status-indicator status-${status}`;
 }
 
+function updatePreviewLayout(layout) {
+  const card = document.getElementById("profile-preview-card");
+  if (card) {
+    card.setAttribute("data-layout", layout);
+  }
+}
+
 let shouldRemoveAvatar = false;
+let shouldRemoveBanner = false;
+
+function previewBannerImage(input) {
+  if (input.files && input.files[0]) {
+    shouldRemoveBanner = false;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const banner = document.getElementById("preview-banner");
+      banner.style.background = `url('${e.target.result}') center/cover`;
+      document.getElementById("btn-remove-banner").style.display = "inline-block";
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function removeBannerPreview() {
+  shouldRemoveBanner = true;
+  document.getElementById("edit-banner-img-input").value = "";
+  const banner = document.getElementById("preview-banner");
+  const defaultColor = document.getElementById("edit-banner-input").value;
+  banner.style.background = defaultColor;
+  document.getElementById("btn-remove-banner").style.display = "none";
+}
 
 function previewAvatar(input) {
   if (input.files && input.files[0]) {
@@ -724,51 +758,48 @@ function removeAvatarPreview() {
 }
 
 async function saveProfile() {
-  const bio = document.getElementById("edit-bio-input").value;
-  const banner = document.getElementById("edit-banner-input").value;
-  const twitter = document.getElementById("edit-twitter-input").value;
-  const github = document.getElementById("edit-github-input").value;
-  const status = document.getElementById("modal-status-input").value;
-  const avatarFile = document.getElementById("edit-avatar-input").files[0];
+  try {
+    console.log("[Profile] Saving profile...");
+    const bannerColor = document.getElementById("edit-banner-input")?.value || "";
+    const twitter = document.getElementById("edit-twitter-input")?.value || "";
+    const github = document.getElementById("edit-github-input")?.value || "";
+    const status = document.getElementById("modal-status-input")?.value || "online";
+    const avatarInput = document.getElementById("edit-avatar-input");
+    const bannerImgInput = document.getElementById("edit-banner-img-input");
+    const avatarFile = avatarInput?.files?.[0];
+    const bannerFile = bannerImgInput?.files?.[0];
+    const profileLayout = document.getElementById("edit-layout-input")?.value || "classic";
+    const accentColor = document.getElementById("edit-accent-input")?.value || "#6366f1";
+    const keywords = document.getElementById("edit-keywords-input")?.value || "";
+    const bio = document.getElementById("edit-bio-input")?.value || "";
 
-  const accentColor = document.getElementById("edit-accent-input").value;
-  const theme = document.body.classList.contains("light-theme")
-    ? "light"
-    : "dark";
+    const theme = document.body.classList.contains("light-theme") ? "light" : "dark";
 
-  const keywords = document.getElementById("edit-keywords-input").value;
+    const body = new FormData();
+    body.append("csrf_token", window.SYCS_CONFIG?.csrfToken || "");
+    body.append("bio", bio);
+    body.append("banner_color", bannerColor);
+    body.append("status", status);
+    body.append("notification_keywords", keywords);
+    body.append("profile_layout", profileLayout);
+    body.append("social_links", JSON.stringify({ twitter, github }));
+    body.append("theme_preference", JSON.stringify({ theme, accentColor }));
+    body.append("remove_avatar", !!shouldRemoveAvatar);
+    body.append("remove_banner", !!shouldRemoveBanner);
 
-  const body = new FormData();
-  body.append("csrf_token", window.SYCS_CONFIG.csrfToken);
-  body.append("bio", bio);
-  body.append("banner_color", banner);
-  body.append("status", status);
-  body.append("notification_keywords", keywords);
-  body.append(
-    "social_links",
-    JSON.stringify({
-      twitter,
-      github,
-    }),
-  );
-  body.append(
-    "theme_preference",
-    JSON.stringify({
-      theme,
-      accentColor,
-    }),
-  );
-  body.append("remove_avatar", shouldRemoveAvatar);
-  if (avatarFile) {
-    body.append("avatar", avatarFile);
-  }
+    if (avatarFile) body.append("avatar", avatarFile);
+    if (bannerFile) body.append("banner", bannerFile);
 
-  const res = await api("update_profile", "POST", body);
-  if (res.success) {
-    alert(t("profile_updated", "プロフィールを更新しました"));
-    location.reload(); // Simplest to reflect all changes
-  } else {
-    alert(t("update_failed", "更新に失敗しました") + ": " + (res.error || t("unknown_error", "不明なエラー")));
+    const res = await api("update_profile", "POST", body);
+    if (res.success) {
+      alert(t("profile_updated", "プロフィールを更新しました"));
+      location.reload();
+    } else {
+      alert(t("update_failed", "更新に失敗しました") + ": " + (res.error || t("unknown_error", "不明なエラー")));
+    }
+  } catch (err) {
+    console.error("[Profile] Save error:", err);
+    alert("エラーが発生しました: " + err.message);
   }
 }
 
@@ -788,9 +819,18 @@ async function showUserProfile(userId, username) {
     return;
   }
 
+  const card = document.getElementById("user-profile-card");
+  if (card) {
+    card.setAttribute("data-layout", res.profile_layout || "classic");
+  }
+
   // バナー
-  document.getElementById("user-profile-banner").style.background =
-    res.banner_color || "#6366f1";
+  const bannerEl = document.getElementById("user-profile-banner");
+  if (res.banner_url) {
+    bannerEl.style.background = `url('${res.banner_url}') center/cover`;
+  } else {
+    bannerEl.style.background = res.banner_color || "#6366f1";
+  }
 
   // アバター
   const avatarContainer = document.getElementById(

@@ -52,9 +52,22 @@ class LocationManager {
   }
 
   /**
+   * 初期化メソッド (index.js からの呼び出し用)
+   * @param {string} statusElementId
+   * @param {number} updateInterval
+   */
+  init(statusElementId, updateInterval) {
+    if (statusElementId) {
+      this.statusElement = document.getElementById(statusElementId);
+    }
+    this.start(updateInterval);
+  }
+
+  /**
    * 現在地を取得
    */
   getCurrentLocation() {
+    if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (position) => this.handleSuccess(position),
       (error) => this.handleError(error),
@@ -118,48 +131,72 @@ class LocationManager {
    * UI に位置情報を表示
    */
   updateDisplay() {
-    if (!this.statusElement) return;
-
     const { lat, lon, accuracy, altitude, timestamp } = this.gpsData;
     const timeStr = timestamp ? timestamp.toLocaleTimeString("ja-JP") : "---";
 
-    this.statusElement.textContent = "";
+    // 更新対象の要素をすべて取得
+    const targets = [];
+    if (this.statusElement) targets.push(this.statusElement);
+    // すべての gps-status クラスまたは ID を持つ要素を対象にする
+    const profileGps = document.getElementById("gps-status");
+    if (profileGps && !targets.includes(profileGps)) targets.push(profileGps);
+    
+    document.querySelectorAll(".gps-status-target").forEach(el => {
+      if (!targets.includes(el)) targets.push(el);
+    });
 
-    const wrapper = document.createElement("div");
-    wrapper.className = "gps-info";
+    if (targets.length === 0) return;
 
-    const createRow = (label, value) => {
-      const row = document.createElement("div");
-      row.className = "gps-row";
-      const labelSpan = document.createElement("span");
-      labelSpan.className = "gps-label";
-      labelSpan.textContent = label;
-      const valueSpan = document.createElement("span");
-      valueSpan.className = "gps-value";
-      valueSpan.textContent = value;
-      row.appendChild(labelSpan);
-      row.appendChild(valueSpan);
-      return row;
+    const createDisplay = (isCompact = false) => {
+      const wrapper = document.createElement("div");
+      wrapper.className = isCompact ? "gps-info compact" : "gps-info";
+
+      if (!lat || !lon) {
+        wrapper.innerHTML = `<div class="gps-waiting"><span class="status-dot error"></span> 位置情報を取得中...</div>`;
+        return wrapper;
+      }
+
+      const createRow = (label, value) => {
+        const row = document.createElement("div");
+        row.className = "gps-row";
+        const labelSpan = document.createElement("span");
+        labelSpan.className = "gps-label";
+        labelSpan.textContent = label;
+        const valueSpan = document.createElement("span");
+        valueSpan.className = "gps-value";
+        valueSpan.textContent = value;
+        row.appendChild(labelSpan);
+        row.appendChild(valueSpan);
+        return row;
+      };
+
+      wrapper.appendChild(createRow("緯度:", lat.toFixed(6)));
+      wrapper.appendChild(createRow("経度:", lon.toFixed(6)));
+      wrapper.appendChild(
+        createRow("精度:", accuracy ? accuracy.toFixed(2) + "m" : "---"),
+      );
+      wrapper.appendChild(
+        createRow("高度:", altitude ? altitude.toFixed(2) + "m" : "取得不可"),
+      );
+      wrapper.appendChild(createRow("更新:", timeStr));
+
+      return wrapper;
     };
 
-    wrapper.appendChild(createRow("緯度:", lat ? lat.toFixed(6) : "取得中..."));
-    wrapper.appendChild(createRow("経度:", lon ? lon.toFixed(6) : "取得中..."));
-    wrapper.appendChild(
-      createRow("精度:", accuracy ? accuracy.toFixed(2) + "m" : "---"),
-    );
-    wrapper.appendChild(
-      createRow("高度:", altitude ? altitude.toFixed(2) + "m" : "取得不可"),
-    );
-    wrapper.appendChild(createRow("更新時刻:", timeStr));
+    targets.forEach(target => {
+      const isCompact = target.classList.contains("compact-gps") || target.id === "gps-status";
+      target.textContent = "";
+      target.appendChild(createDisplay(isCompact));
+    });
 
-    const indicator = document.createElement("div");
-    indicator.className = "gps-status-indicator";
-    const dot = document.createElement("span");
-    dot.className = "status-dot active";
-    indicator.appendChild(dot);
-    wrapper.appendChild(indicator);
-
-    this.statusElement.appendChild(wrapper);
+    // ヘッダーのステータスドットを更新
+    const headerDots = document.querySelectorAll(".gps-status-indicator");
+    headerDots.forEach(dotContainer => {
+      dotContainer.textContent = "";
+      const dot = document.createElement("span");
+      dot.className = "status-dot active";
+      dotContainer.appendChild(dot);
+    });
   }
 
   /**
@@ -167,16 +204,30 @@ class LocationManager {
    * @param {string} message
    */
   displayError(message) {
-    if (!this.statusElement) return;
+    const targets = [];
+    if (this.statusElement) targets.push(this.statusElement);
+    const profileGps = document.getElementById("gps-status");
+    if (profileGps) targets.push(profileGps);
 
-    this.statusElement.textContent = "";
-    const errorDiv = document.createElement("div");
-    errorDiv.className = "gps-error";
-    const dot = document.createElement("span");
-    dot.className = "status-dot error";
-    errorDiv.appendChild(dot);
-    errorDiv.appendChild(document.createTextNode(" " + message));
-    this.statusElement.appendChild(errorDiv);
+    targets.forEach(target => {
+      target.textContent = "";
+      const errorDiv = document.createElement("div");
+      errorDiv.className = "gps-error";
+      const dot = document.createElement("span");
+      dot.className = "status-dot error";
+      errorDiv.appendChild(dot);
+      errorDiv.appendChild(document.createTextNode(" " + message));
+      target.appendChild(errorDiv);
+    });
+
+    // ヘッダーのステータスドットもエラー表示に更新
+    const headerDots = document.querySelectorAll(".gps-status-indicator");
+    headerDots.forEach(dotContainer => {
+      dotContainer.textContent = "";
+      const dot = document.createElement("span");
+      dot.className = "status-dot error";
+      dotContainer.appendChild(dot);
+    });
   }
 
   /**

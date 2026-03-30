@@ -1,5 +1,5 @@
 <?php
-// v1.2.29.8
+// v1.2.32
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -258,6 +258,21 @@ if ($res->num_rows === 0) {
 $res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'banner_color'");
 if ($res->num_rows === 0) {
     $mysqli->query("ALTER TABLE users ADD COLUMN banner_color VARCHAR(20) DEFAULT '#6366f1' AFTER avatar_url");
+}
+
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'banner_url'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN banner_url VARCHAR(500) NULL AFTER banner_color");
+}
+
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'profile_layout'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN profile_layout VARCHAR(50) DEFAULT 'classic' AFTER banner_url");
+}
+
+$res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'badges'");
+if ($res->num_rows === 0) {
+    $mysqli->query("ALTER TABLE users ADD COLUMN badges JSON NULL AFTER profile_layout");
 }
 
 // New Infrastructure Migrations
@@ -550,8 +565,33 @@ if (isset($_GET['api'])) {
         $social = $_POST['social_links'] ?? null;
         $themePref = $_POST['theme_preference'] ?? null;
         $keywords = $_POST['notification_keywords'] ?? null;
-        $stmt = $mysqli->prepare("UPDATE users SET bio = ?, banner_color = ?, status = ?, social_links = ?, theme_preference = ?, notification_keywords = ? WHERE id = ?");
-        $stmt->bind_param("ssssssi", $bio, $bannerColor, $status, $social, $themePref, $keywords, $userId);
+        $profileLayout = $_POST['profile_layout'] ?? 'classic';
+        $removeBanner = ($_POST['remove_banner'] ?? 'false') === 'true';
+
+        // Handle Banner Deletion / Cleanup
+        if ($removeBanner || (isset($_FILES['banner']) && $_FILES['banner']['error'] === UPLOAD_ERR_OK)) {
+            $pStmt = $mysqli->prepare("SELECT banner_url FROM users WHERE id = ?");
+            $pStmt->bind_param("i", $userId);
+            $pStmt->execute();
+            if ($row = $pStmt->get_result()->fetch_assoc()) {
+                $oldPath = $row['banner_url'];
+                if ($oldPath) {
+                    $fullOldPath = __DIR__ . '/' . $oldPath;
+                    if (file_exists($fullOldPath)) unlink($fullOldPath);
+                }
+            }
+            $pStmt->close();
+
+            if ($removeBanner) {
+                $updBan = $mysqli->prepare("UPDATE users SET banner_url = NULL WHERE id = ?");
+                $updBan->bind_param("i", $userId);
+                $updBan->execute();
+                $updBan->close();
+            }
+        }
+
+        $stmt = $mysqli->prepare("UPDATE users SET bio = ?, banner_color = ?, status = ?, social_links = ?, theme_preference = ?, notification_keywords = ?, profile_layout = ? WHERE id = ?");
+        $stmt->bind_param("sssssssi", $bio, $bannerColor, $status, $social, $themePref, $keywords, $profileLayout, $userId);
         $stmt->execute();
         $stmt->close();
 
@@ -569,14 +609,34 @@ if (isset($_GET['api'])) {
 
                 $newFileName = $uuid . '.' . $ext;
                 if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
-                    // Store path relative to web root or current script?
-                    // Previous logic used 'frontend/uploads/'. If accessed from index.php in frontend/, 
-                    // it should be 'uploads/avatars/' if index.php is the entry point.
-                    // However, to keep consistency with existing attachment logic:
                     $avatarPath = 'uploads/avatars/' . $newFileName;
                     $upd = $mysqli->prepare("UPDATE users SET avatar_url = ? WHERE id = ?");
                     $upd->bind_param("si", $avatarPath, $userId);
                     $upd->execute();
+                    $upd->close();
+                }
+            }
+        }
+
+        // Handle Banner Upload
+        if (isset($_FILES['banner']) && $_FILES['banner']['error'] === UPLOAD_ERR_OK) {
+            require_once __DIR__ . '/../backend/SecurityUtil.php';
+            $tmpName = $_FILES['banner']['tmp_name'];
+            $fileName = $_FILES['banner']['name'];
+            $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+            if (SecurityUtil::validateFile($tmpName, $ext)) {
+                $uuid = SecurityUtil::generateUuid();
+                $uploadDir = __DIR__ . '/uploads/banners/';
+                if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+                $newFileName = $uuid . '.' . $ext;
+                if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
+                    $bannerPath = 'uploads/banners/' . $newFileName;
+                    $upd = $mysqli->prepare("UPDATE users SET banner_url = ? WHERE id = ?");
+                    $upd->bind_param("si", $bannerPath, $userId);
+                    $upd->execute();
+                    $upd->close();
                 }
             }
         }
@@ -628,7 +688,7 @@ if (isset($_GET['api'])) {
 
     if ($action === 'get_user_profile') {
         $targetId = $_GET['user_id'] ?? 0;
-        $stmt = $mysqli->prepare("SELECT id, username, status, custom_status, bio, avatar_url, banner_color FROM users WHERE id = ?");
+        $stmt = $mysqli->prepare("SELECT id, username, status, custom_status, bio, avatar_url, banner_color, banner_url, profile_layout, social_links FROM users WHERE id = ?");
         $stmt->bind_param("i", $targetId);
         $stmt->execute();
         $res = $stmt->get_result()->fetch_assoc();
@@ -1850,7 +1910,7 @@ if (isset($_GET['logout'])) {
 }
 
 if ($isLoggedIn) {
-    $stmt = $mysqli->prepare("SELECT last_thread_id, status, custom_status, bio, avatar_url, banner_color, social_links, theme_preference, notification_keywords FROM users WHERE id = ?");
+    $stmt = $mysqli->prepare("SELECT last_thread_id, status, custom_status, bio, avatar_url, banner_color, banner_url, profile_layout, social_links, theme_preference, notification_keywords FROM users WHERE id = ?");
     $stmt->bind_param("i", $_SESSION['user_id']);
     $stmt->execute();
     if ($row = $stmt->get_result()->fetch_assoc()) {
@@ -1861,6 +1921,8 @@ if ($isLoggedIn) {
         $currentUserBio = $row['bio'];
         $currentUserAvatar = $row['avatar_url'];
         $currentUserBanner = $row['banner_color'] ?: '#6366f1';
+        $currentUserBannerUrl = $row['banner_url'];
+        $currentUserProfileLayout = $row['profile_layout'] ?: 'classic';
         $currentUserSocialLinks = json_decode($row['social_links'] ?: '{}', true);
         $currentUserThemePref = json_decode($row['theme_preference'] ?: '{}', true);
         $currentUserKeywords = $row['notification_keywords'] ?: '';
@@ -2099,6 +2161,49 @@ if ($isLoggedIn) {
             white-space: pre-wrap;
         }
 
+        /* Layout Variants */
+        .discord-card[data-layout="slim"] .discord-banner {
+            height: 40px;
+        }
+
+        .discord-card[data-layout="slim"] .discord-avatar-wrapper {
+            margin-top: -20px;
+            margin-left: 12px;
+        }
+
+        .discord-card[data-layout="slim"] .discord-avatar {
+            width: 60px;
+            height: 60px;
+            border-width: 4px;
+        }
+
+        .discord-card[data-layout="modern"] .discord-banner {
+            height: 100px;
+        }
+
+        .discord-card[data-layout="modern"] .discord-avatar-wrapper {
+            margin-left: 50%;
+            transform: translateX(-50%);
+            margin-top: -50px;
+        }
+
+        .discord-card[data-layout="modern"] .discord-avatar {
+            width: 100px;
+            height: 100px;
+            border-width: 8px;
+        }
+
+        .discord-card[data-layout="modern"] .discord-body {
+            text-align: center;
+        }
+
+        .discord-card[data-layout="modern"] .discord-status-indicator {
+            right: 8px;
+            bottom: 8px;
+            width: 22px;
+            height: 22px;
+        }
+
         /* Form styling */
         .modal-form-group {
             margin-bottom: 20px;
@@ -2123,6 +2228,85 @@ if ($isLoggedIn) {
             color: #dbdee1;
             font-size: 0.9rem;
             outline: none;
+        }
+
+        /* GPS Info Styling */
+        .gps-info {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 12px 35px 12px 12px;
+            margin-top: 8px;
+            font-size: 0.8rem;
+            position: relative;
+        }
+
+        .gps-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 2px;
+        }
+
+        .gps-row:last-child {
+            border-bottom: none;
+        }
+
+        .gps-label {
+            color: #b5bac1;
+            font-weight: 600;
+        }
+
+        .gps-value {
+            color: var(--accent-color);
+            font-family: 'Inter', monospace;
+        }
+
+        .gps-status-indicator {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 8px;
+            /* Position next to text */
+        }
+
+        .gps-info.compact {
+            padding: 8px;
+            font-size: 0.75rem;
+        }
+
+        .gps-info.compact .gps-row {
+            margin-bottom: 2px;
+        }
+
+        .gps-waiting {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+
+        .status-dot.active {
+            background-color: #6BB700;
+            box-shadow: 0 0 8px #6BB700;
+        }
+
+        .status-dot.error {
+            background-color: #f87171;
+            box-shadow: 0 0 8px #f87171;
+        }
+
+        .gps-error {
+            color: #f87171;
+            font-size: 0.75rem;
+            margin-top: 8px;
         }
 
         .modal-textarea {
@@ -2195,6 +2379,7 @@ if ($isLoggedIn) {
             currentUserId: <?= json_encode($_SESSION['user_id']) ?>,
             currentUserName: <?= json_encode($currentUser) ?>,
             currentUserTheme: <?= json_encode($currentUserThemePref) ?>,
+            currentUserProfileLayout: <?= json_encode($currentUserProfileLayout) ?>,
             userKeywords: <?= json_encode($currentUserKeywords) ?>,
             translations: <?= json_encode(I18n::getInstance()->getTranslations()) ?>,
             csrfToken: <?= json_encode($_SESSION['csrf_token']) ?>
@@ -2209,7 +2394,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.29.8</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.32</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
@@ -2279,6 +2464,12 @@ if ($isLoggedIn) {
                             <polyline points="13 2 13 9 20 9"></polyline>
                         </svg>
                     </button>
+                    <button class="widget-tab" data-widget="todo" title="<?= __('todo') ?>">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 11 12 14 22 4"></polyline>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                        </svg>
+                    </button>
                 </div>
                 <div class="widget-content">
                     <div id="widget-clock" class="widget-pane active">
@@ -2324,6 +2515,20 @@ if ($isLoggedIn) {
                     <div id="widget-filer" class="widget-pane">
                         <div id="file-list" class="file-list">
                             <div class="loading"><?= __('loading') ?></div>
+                        </div>
+                    </div>
+                    <div id="widget-todo" class="widget-pane">
+                        <div class="todo-container">
+                            <div class="todo-input-area">
+                                <input type="text" id="todo-input" placeholder="<?= __('task_placeholder', 'タスクを入力...') ?>">
+                                <button class="todo-add-btn" onclick="addTodo()" title="<?= __('add', '追加') ?>">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div id="todo-list" class="todo-list"></div>
                         </div>
                     </div>
                 </div>
@@ -2492,7 +2697,7 @@ if ($isLoggedIn) {
                             <span style="font-size:1.1rem;">📱</span>
                             <span style="font-weight:600; font-size:1.1rem;"><?= __('install_sycs') ?></span>
                         </div>
-                        <button onclick="installPWA()" style="background:white; color:#4f46e5; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;"><?= __('install') ?></button>
+                        <button onclick="installPWA()" style="background:#4f46e5; color:#fff; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;"><?= __('install') ?></button>
                         <button onclick="dismissInstallBanner()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.1rem; opacity:0.7; padding:4px;">✕</button>
                     </div>
 
@@ -2891,9 +3096,27 @@ if ($isLoggedIn) {
                         </div>
 
                         <div class="modal-form-group">
+                            <label class="modal-label"><?= __('banner_image', 'バナー画像') ?></label>
+                            <input type="file" id="edit-banner-img-input" accept="image/*" style="display:none" onchange="previewBannerImage(this)">
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn-secondary" onclick="document.getElementById('edit-banner-img-input').click()"><?= __('select_image') ?></button>
+                                <button class="btn-secondary" id="btn-remove-banner" onclick="removeBannerPreview()" style="color:#f87171; display: <?= $currentUserBannerUrl ? 'inline-block' : 'none' ?>;"><?= __('delete') ?></button>
+                            </div>
+                        </div>
+
+                        <div class="modal-form-group">
                             <label class="modal-label"><?= __('banner_color') ?></label>
                             <input type="color" id="edit-banner-input" class="modal-input" style="height: 40px; padding: 5px;"
                                 oninput="updatePreviewBanner(this.value)" value="<?= htmlspecialchars($currentUserBanner) ?>">
+                        </div>
+
+                        <div class="modal-form-group">
+                            <label class="modal-label"><?= __('profile_layout', 'プロフィールのレイアウト') ?></label>
+                            <select id="edit-layout-input" class="modal-input" onchange="updatePreviewLayout(this.value)">
+                                <option value="classic" <?= $currentUserProfileLayout === 'classic' ? 'selected' : '' ?>>Classic</option>
+                                <option value="slim" <?= $currentUserProfileLayout === 'slim' ? 'selected' : '' ?>>Slim</option>
+                                <option value="modern" <?= $currentUserProfileLayout === 'modern' ? 'selected' : '' ?>>Modern</option>
+                            </select>
                         </div>
 
                         <div class="modal-form-group">
@@ -2962,8 +3185,8 @@ if ($isLoggedIn) {
                     </div>
 
                     <div class="profile-preview-pane">
-                        <div class="discord-card">
-                            <div class="discord-banner" id="preview-banner" style="background: <?= htmlspecialchars($currentUserBanner) ?>"></div>
+                        <div class="discord-card" id="profile-preview-card" data-layout="<?= htmlspecialchars($currentUserProfileLayout) ?>">
+                            <div class="discord-banner" id="preview-banner" style="background: <?= $currentUserBannerUrl ? "url('" . htmlspecialchars($currentUserBannerUrl) . "') center/cover" : htmlspecialchars($currentUserBanner) ?>"></div>
                             <div class="discord-avatar-wrapper">
                                 <div class="discord-avatar" id="preview-avatar-container">
                                     <?php if ($currentUserAvatar): ?>
@@ -2980,10 +3203,21 @@ if ($isLoggedIn) {
                                 <div class="discord-divider"></div>
                                 <div class="discord-section-title"><?= __('bio') ?></div>
                                 <div class="discord-bio" id="preview-bio"><?= nl2br(htmlspecialchars($currentUserBio)) ?></div>
-
+                                <div class="discord-divider"></div>
                                 <section class="section2" id="gps-section">
-                                    <h3>GPS</h3>
-                                    <div id="gps-status"><?= __('gps_waiting') ?></div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                        <div class="discord-section-title" style="margin:0; display:flex; align-items:center;">
+                                            GPS Status
+                                            <div id="gps-header-status" class="gps-status-indicator"></div>
+                                        </div>
+                                        <button class="icon-btn" onclick="if(typeof locationManager !== 'undefined') locationManager.getCurrentLocation()" title="GPS更新" style="padding:2px; opacity:0.6;">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M23 4v6h-6"></path>
+                                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div id="gps-status" class="gps-status-target" style="min-height:20px; font-size:0.8rem; color:var(--text-secondary);"><?= __('gps_waiting') ?></div>
                                 </section>
                             </div>
                         </div>

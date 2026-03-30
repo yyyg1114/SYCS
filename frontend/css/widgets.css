@@ -434,3 +434,112 @@ input:checked + .slider:before {
     color: var(--text-secondary);
     opacity: 0.6;
 }
+
+/* Todo Widget */
+.todo-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 10px;
+}
+
+.todo-input-area {
+    display: flex;
+    gap: 6px;
+}
+
+#todo-input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    color: #eee;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    outline: none;
+}
+
+#todo-input:focus {
+    border-color: var(--accent-color);
+}
+
+.todo-add-btn {
+    background: var(--accent-color);
+    border: none;
+    color: white;
+    padding: 0 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.todo-add-btn:hover {
+    background: var(--accent-hover);
+}
+
+.todo-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.todo-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.todo-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.todo-item.completed .todo-text {
+    text-decoration: line-through;
+    opacity: 0.5;
+}
+
+.todo-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent-color);
+}
+
+.todo-text {
+    flex: 1;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    word-break: break-all;
+}
+
+.todo-delete {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.todo-item:hover .todo-delete {
+    opacity: 1;
+}
+
+.todo-delete:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
