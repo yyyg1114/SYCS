@@ -1,5 +1,5 @@
 <?php
-// v1.2.32
+// v1.2.33
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -2370,8 +2370,79 @@ if ($isLoggedIn) {
             background-color: #10b981;
             box-shadow: 0 0 15px #10b981;
         }
+
+        /* Markdown & Rich Text Styling */
+        .message-content b {
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .message-content i {
+            font-style: italic;
+        }
+
+        .message-content u {
+            text-decoration: underline;
+        }
+
+        .message-content del {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        .message-content blockquote {
+            border-left: 4px solid #4f545c;
+            padding: 2px 8px 2px 12px;
+            margin: 4px 0;
+            color: #dbdee1;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+        }
+
+        .message-content code {
+            font-family: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace;
+            background: #2b2d31;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 85%;
+        }
+
+        .message-content pre {
+            margin: 8px 0;
+            background: #2b2d31;
+            border-radius: 4px;
+            padding: 12px;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .message-content pre code {
+            background: transparent !important;
+            padding: 0 !important;
+            display: block;
+            line-height: 1.45;
+            font-size: 0.9rem;
+        }
+
+        .mention {
+            background: rgba(88, 101, 242, 0.3);
+            color: #c9cdfb;
+            padding: 0 4px;
+            border-radius: 3px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .mention:hover {
+            background: rgba(88, 101, 242, 0.6);
+            text-decoration: underline;
+        }
     </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- highlight.js for Syntax Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script>
         window.SYCS_CONFIG = {
             currentThreadId: <?= json_encode($initialThreadId) ?>,
@@ -2394,7 +2465,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.32</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.33</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
@@ -2697,7 +2768,7 @@ if ($isLoggedIn) {
                             <span style="font-size:1.1rem;">📱</span>
                             <span style="font-weight:600; font-size:1.1rem;"><?= __('install_sycs') ?></span>
                         </div>
-                        <button onclick="installPWA()" style="background:#4f46e5; color:#fff; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;"><?= __('install') ?></button>
+                        <button onclick="installPWA()" style="background:#fff; color:#4f46e5; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;"><?= __('install') ?></button>
                         <button onclick="dismissInstallBanner()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.1rem; opacity:0.7; padding:4px;">✕</button>
                     </div>
 

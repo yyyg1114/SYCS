@@ -73,29 +73,65 @@ function escapeHTML(str) {
     .replace(/'/g, "&#39;");
 }
 
-function appendMentionHighlightedText(element, text) {
-  const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-  const raw = String(text || "");
-  let lastIndex = 0;
-  let match;
+function formatMessage(text) {
+  if (!text) return "";
 
-  while ((match = mentionRegex.exec(raw)) !== null) {
-    if (match.index > lastIndex) {
-      element.appendChild(
-        document.createTextNode(raw.slice(lastIndex, match.index)),
-      );
-    }
+  // 1. Escape HTML first for security
+  let html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 
-    const mentionSpan = document.createElement("span");
-    mentionSpan.className = `mention${match[1] === currentUserName ? " mention-me" : ""}`;
-    mentionSpan.textContent = match[0];
-    element.appendChild(mentionSpan);
+  // 2. Code Blocks: ```lang\ncode\n```
+  html = html.replace(/```(\w*)\n([\s\S]*?)\n```/g, (match, lang, code) => {
+    const languageClass = lang ? ` class="language-${lang}"` : "";
+    return `<pre><code${languageClass}>${code.trim()}</code></pre>`;
+  });
 
-    lastIndex = mentionRegex.lastIndex;
-  }
+  // 3. Inline Code: `code`
+  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
 
-  if (lastIndex < raw.length) {
-    element.appendChild(document.createTextNode(raw.slice(lastIndex)));
+  // 4. Bold: **text**
+  html = html.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+
+  // 5. Italic: *text* or _text_
+  html = html.replace(/\*([^*]+)\*/g, "<i>$1</i>");
+  html = html.replace(/_([^_]+)_/g, "<i>$1</i>");
+
+  // 6. Underline: __text__
+  html = html.replace(/__([^_]+)__/g, "<u>$1</u>");
+
+  // 7. Strikethrough: ~~text~~
+  html = html.replace(/~~([^~]+)~~/g, "<del>$1</del>");
+
+  // 8. Blockquotes: > text (multiline support)
+  html = html.replace(/^&gt; (.*$)/gm, "<blockquote>$1</blockquote>");
+
+  // 9. Mentions: @username
+  html = html.replace(/@([a-zA-Z0-9_]+)/g, (match, username) => {
+    const isMe = typeof currentUserName !== 'undefined' && username === currentUserName;
+    return `<span class="mention${isMe ? " mention-me" : ""}">${match}</span>`;
+  });
+
+  // 10. Auto-link URLs
+  const urlRegex = /(https?:\/\/[^\s<]+)/g;
+  html = html.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+
+  // 11. Line breaks (preserve in code blocks)
+  const parts = html.split(/(<pre[\s\S]*?<\/pre>)/);
+  html = parts.map(part => {
+    if (part.startsWith("<pre")) return part;
+    return part.replace(/\n/g, "<br>");
+  }).join("");
+
+  return html;
+}
+
+function applyHighlighting(container) {
+  if (typeof hljs !== 'undefined') {
+    container.querySelectorAll('pre code').forEach((block) => {
+      hljs.highlightElement(block);
+    });
   }
 }
 
@@ -1119,8 +1155,9 @@ function renderMessageNode(m, parentContainer) {
   const contentDiv = document.createElement("div");
   contentDiv.className = "message-content";
 
-  // Highlight Mentions (@username)
-  appendMentionHighlightedText(contentDiv, m.content || "");
+  // Render Rich Text / Markdown
+  contentDiv.innerHTML = formatMessage(m.content || "");
+  applyHighlighting(contentDiv);
 
   if (m.is_edited == 1) {
     const editedLabel = document.createElement("span");
@@ -2001,7 +2038,9 @@ async function loadDms(minDelay = 0) {
       const contentDiv = document.createElement("div");
       contentDiv.className = "message-content";
 
-      appendMentionHighlightedText(contentDiv, m.content || "");
+      // Render Rich Text / Markdown
+      contentDiv.innerHTML = formatMessage(m.content || "");
+      applyHighlighting(contentDiv);
 
       if (m.attachment_path) {
         const ext = m.attachment_path.split(".").pop().toLowerCase();
@@ -2675,8 +2714,9 @@ async function searchMessages() {
 
     const bodyDiv = document.createElement("div");
     bodyDiv.style.cssText = "font-size:0.85rem; margin:4px 0;";
-    bodyDiv.textContent =
-      m.content || (m.attachment_path ? "[添付ファイル]" : "");
+    bodyDiv.className = "message-content"; // Add class for styling
+    bodyDiv.innerHTML = formatMessage(m.content || (m.attachment_path ? "[添付ファイル]" : ""));
+    applyHighlighting(bodyDiv);
 
     const timeDiv = document.createElement("div");
     timeDiv.style.cssText = "font-size:0.65rem; opacity:0.6;";
@@ -2774,9 +2814,11 @@ async function showPinnedMessages() {
     header.appendChild(dateSpan);
 
     const content = document.createElement("div");
+    content.className = "message-content"; // Add class for styling
     content.style.cssText =
-      "font-size:0.9rem; color:var(--text-primary); padding-left:4px; white-space:pre-wrap; word-break:break-word;";
-    content.innerText = m.content || "[添付ファイル]";
+      "font-size:0.9rem; color:var(--text-primary); padding-left:4px; word-break:break-word;";
+    content.innerHTML = formatMessage(m.content || "[添付ファイル]");
+    applyHighlighting(content);
 
     const actions = document.createElement("div");
     actions.style.cssText = "display:flex; gap:8px; margin-top:10px;";

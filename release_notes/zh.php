@@ -7,6 +7,59 @@
  */
 ?>
 
+<!-- ===== v1.2.33 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.33</span>
+        <span class="release-title">支持 Markdown 渲染和代码高亮</span>
+        <span class="release-date">2026-03-30</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新功能 (New Features)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📝</span>
+                    <div>
+                        <strong>Markdown / 富文本渲染</strong>
+                        <span class="detail">支持粗体 (**bold**)、斜体 (*italic*)、下划线 (__underline__)、删除线 (~~strike~~) 和引用 (blockquote)，让您的消息表达更灵活生动。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">💻</span>
+                    <div>
+                        <strong>代码块语法高亮 (Highlight.js)</strong>
+                        <span class="detail">集成了 `highlight.js`，为多种编程语言提供精美的代码块高亮显示，显著提升开发者间的代码可读性。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔗</span>
+                    <div>
+                        <strong>更智能的消息格式化</strong>
+                        <span class="detail">改进了 URL 自动链接和提及 (Mentions) 处理的可靠性，提供了更清晰、直观的聊天界面。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善 (Improvements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>UI 体验优化</strong>
+                        <span class="detail">优化了 PWA 安装按钮的对比度，提高了可视性和整体界面美感。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.28 ===== -->
 <article class="release">
     <div class="release-header">

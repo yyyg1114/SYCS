@@ -1,3 +1,56 @@
+<!-- ===== v1.2.33 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.33</span>
+        <span class="release-title">Markdown & Syntax Highlighting Support</span>
+        <span class="release-date">2026-03-30</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> New Features
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📝</span>
+                    <div>
+                        <strong>Markdown & Rich Text Rendering</strong>
+                        <span class="detail">Added support for Bold (**bold**), Italic (*italic*), Underline (__underline__), Strikethrough (~~strike~~), and Blockquotes. Enhance your chat experience with flexible formatting.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">💻</span>
+                    <div>
+                        <strong>Code Block Syntax Highlighting (Highlight.js)</strong>
+                        <span class="detail">Integrated `highlight.js` for beautiful syntax highlighting in code blocks across multiple languages, making code sharing more readable for developers.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔗</span>
+                    <div>
+                        <strong>Smarter Message Formatting</strong>
+                        <span class="detail">Enhanced URL auto-linking and improved mention reliability for a cleaner, more intuitive chat interface.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Improvements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>UI Design Polish</strong>
+                        <span class="detail">Improved contrast for the PWA install button to enhance visibility and overall aesthetics.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.28 ===== -->
 <article class="release">
     <div class="release-header">

@@ -6,6 +6,59 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v1.2.33 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.33</span>
+        <span class="release-title">Markdown レンダリングとコードシンタックスハイライトへの対応</span>
+        <span class="release-date">2026-03-30</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 (New Features)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📝</span>
+                    <div>
+                        <strong>Markdown / リッチテキスト レンダリング</strong>
+                        <span class="detail">太字 (**bold**)、斜体 (*italic*)、下線 (__underline__)、打ち消し線 (~~strike~~)、および引用 (blockquote) に対応しました。チャット内での柔軟な表現が可能になります。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">💻</span>
+                    <div>
+                        <strong>コードブロック シンタックスハイライト (Highlight.js)</strong>
+                        <span class="detail">`highlight.js` を導入し、複数言語のコードブロックに対してシンタックスハイライトを適用しました。開発者間のコード共有がより見やすくなります。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔗</span>
+                    <div>
+                        <strong>スマートなメッセージフォーマット</strong>
+                        <span class="detail">URL の自動リンク化やメンション処理の堅牢性を向上させ、メッセージの視認性を高めました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善 (Improvements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>UI デザインの微調整</strong>
+                        <span class="detail">PWA インストールボタンのコントラストを改善し、視認性を高めました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.28 ===== -->
 <article class="release">
     <div class="release-header">
