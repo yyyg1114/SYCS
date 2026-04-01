@@ -6,6 +6,45 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v1.2.34 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.34</span>
+        <span class="release-title">Markdown レンダリングエンジンのセキュリティ強化 (XSS対策)</span>
+        <span class="release-date">2026-04-01</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 安定性 & セキュリティ (Stability & Security)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>レンダリング方式の刷新による XSS 対策</strong>
+                        <span class="detail">`innerHTML` を完全に廃止し、`DocumentFragment` と `createTextNode` を使用して DOM ノードを直接生成する方式に移行しました。これにより、悪意のあるスクリプトの実行を物理的に遮断し、安全なチャット体験を提供します。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔍</span>
+                    <div>
+                        <strong>フォーマット適用の厳格化</strong>
+                        <span class="detail">コードブロック内での二重フォーマットの適用を防止するロジックを導入。コードの可読性を損なうことなく、確実なレンダリングを実現しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>メッセージ表示の最適化</strong>
+                        <span class="detail">`replaceChildren` メソッドを採用し、最新のブラウザ標準に則った高速で安全なコンテンツ更新を実装しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.33 ===== -->
 <article class="release">
     <div class="release-header">

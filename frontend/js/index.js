@@ -73,58 +73,166 @@ function escapeHTML(str) {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * Helper to apply a regex rule to text nodes within a fragment and replace match with elements
+ * @param {DocumentFragment} fragment
+ * @param {RegExp} regex
+ * @param {Function} elementFactory
+ */
+function applyRule(fragment, regex, elementFactory) {
+  const walker = document.createTreeWalker(
+    fragment,
+    NodeFilter.SHOW_TEXT,
+    null,
+    false,
+  );
+  const textNodes = [];
+  while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+  for (const node of textNodes) {
+    // Skip if already inside a pre or code tag to avoid nested formatting or breaking code blocks
+    let parent = node.parentElement;
+    let inProtectedTag = false;
+    while (parent && parent !== fragment) {
+      if (parent.tagName === "CODE" || parent.tagName === "PRE") {
+        inProtectedTag = true;
+        break;
+      }
+      parent = parent.parentElement;
+    }
+    if (inProtectedTag) continue;
+
+    const text = node.nodeValue;
+    let lastIndex = 0;
+    let match;
+    const newNodes = [];
+    let hasMatch = false;
+
+    while ((match = regex.exec(text)) !== null) {
+      hasMatch = true;
+      if (match.index > lastIndex) {
+        newNodes.push(
+          document.createTextNode(text.substring(lastIndex, match.index)),
+        );
+      }
+      const element = elementFactory(...match);
+      if (element) {
+        newNodes.push(element);
+      }
+      lastIndex = regex.lastIndex;
+      if (!regex.global) break;
+    }
+
+    if (hasMatch) {
+      if (lastIndex < text.length) {
+        newNodes.push(document.createTextNode(text.substring(lastIndex)));
+      }
+      const p = node.parentNode;
+      for (const newNode of newNodes) {
+        p.insertBefore(newNode, node);
+      }
+      p.removeChild(node);
+    }
+    regex.lastIndex = 0;
+  }
+}
+
+/**
+ * Format a message string into a DocumentFragment with rich text elements
+ * @param {string} text
+ * @returns {DocumentFragment}
+ */
 function formatMessage(text) {
-  if (!text) return "";
+  const fragment = document.createDocumentFragment();
+  if (!text) return fragment;
 
-  // 1. Escape HTML first for security
-  let html = text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  // Add initial text node
+  fragment.appendChild(document.createTextNode(text));
 
-  // 2. Code Blocks: ```lang\ncode\n```
-  html = html.replace(/```(\w*)\n([\s\S]*?)\n```/g, (match, lang, code) => {
-    const languageClass = lang ? ` class="language-${lang}"` : "";
-    return `<pre><code${languageClass}>${code.trim()}</code></pre>`;
+  // 1. Code Blocks: ```lang\ncode\n```
+  applyRule(fragment, /```(\w*)\n([\s\S]*?)\n```/g, (match, lang, code) => {
+    const pre = document.createElement("pre");
+    const codeEl = document.createElement("code");
+    if (lang) codeEl.className = `language-${lang}`;
+    codeEl.textContent = code.trim();
+    pre.appendChild(codeEl);
+    return pre;
   });
 
-  // 3. Inline Code: `code`
-  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
-
-  // 4. Bold: **text**
-  html = html.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
-
-  // 5. Italic: *text* or _text_
-  html = html.replace(/\*([^*]+)\*/g, "<i>$1</i>");
-  html = html.replace(/_([^_]+)_/g, "<i>$1</i>");
-
-  // 6. Underline: __text__
-  html = html.replace(/__([^_]+)__/g, "<u>$1</u>");
-
-  // 7. Strikethrough: ~~text~~
-  html = html.replace(/~~([^~]+)~~/g, "<del>$1</del>");
-
-  // 8. Blockquotes: > text (multiline support)
-  html = html.replace(/^&gt; (.*$)/gm, "<blockquote>$1</blockquote>");
-
-  // 9. Mentions: @username
-  html = html.replace(/@([a-zA-Z0-9_]+)/g, (match, username) => {
-    const isMe = typeof currentUserName !== 'undefined' && username === currentUserName;
-    return `<span class="mention${isMe ? " mention-me" : ""}">${match}</span>`;
+  // 2. Inline Code: `code`
+  applyRule(fragment, /`([^`]+)`/g, (match, code) => {
+    const codeEl = document.createElement("code");
+    codeEl.textContent = code;
+    return codeEl;
   });
 
-  // 10. Auto-link URLs
+  // 3. Bold: **text**
+  applyRule(fragment, /\*\*([^*]+)\*\*/g, (match, content) => {
+    const b = document.createElement("b");
+    b.textContent = content;
+    return b;
+  });
+
+  // 4. Italic: *text* or _text_
+  applyRule(fragment, /\*([^*]+)\*/g, (match, content) => {
+    const i = document.createElement("i");
+    i.textContent = content;
+    return i;
+  });
+  applyRule(fragment, /_([^_]+)_/g, (match, content) => {
+    const i = document.createElement("i");
+    i.textContent = content;
+    return i;
+  });
+
+  // 5. Underline: __text__
+  applyRule(fragment, /__([^_]+)__/g, (match, content) => {
+    const u = document.createElement("u");
+    u.textContent = content;
+    return u;
+  });
+
+  // 6. Strikethrough: ~~text~~
+  applyRule(fragment, /~~([^~]+)~~/g, (match, content) => {
+    const del = document.createElement("del");
+    del.textContent = content;
+    return del;
+  });
+
+  // 7. Blockquotes: > text
+  applyRule(fragment, /^> (.*$)/gm, (match, content) => {
+    const bq = document.createElement("blockquote");
+    bq.textContent = content;
+    return bq;
+  });
+
+  // 8. Mentions: @username
+  applyRule(fragment, /@([a-zA-Z0-9_]+)/g, (match, username) => {
+    const span = document.createElement("span");
+    const isMe =
+      typeof currentUserName !== "undefined" && username === currentUserName;
+    span.className = `mention${isMe ? " mention-me" : ""}`;
+    span.textContent = match;
+    return span;
+  });
+
+  // 9. Auto-link URLs
   const urlRegex = /(https?:\/\/[^\s<]+)/g;
-  html = html.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+  applyRule(fragment, urlRegex, (match, url) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = url;
+    return a;
+  });
 
-  // 11. Line breaks (preserve in code blocks)
-  const parts = html.split(/(<pre[\s\S]*?<\/pre>)/);
-  html = parts.map(part => {
-    if (part.startsWith("<pre")) return part;
-    return part.replace(/\n/g, "<br>");
-  }).join("");
+  // 10. Line breaks (preserve in code blocks)
+  applyRule(fragment, /\n/g, () => {
+    return document.createElement("br");
+  });
 
-  return html;
+  return fragment;
 }
 
 function applyHighlighting(container) {
@@ -1156,7 +1264,7 @@ function renderMessageNode(m, parentContainer) {
   contentDiv.className = "message-content";
 
   // Render Rich Text / Markdown
-  contentDiv.innerHTML = formatMessage(m.content || "");
+  contentDiv.replaceChildren(formatMessage(m.content || ""));
   applyHighlighting(contentDiv);
 
   if (m.is_edited == 1) {
@@ -2039,7 +2147,7 @@ async function loadDms(minDelay = 0) {
       contentDiv.className = "message-content";
 
       // Render Rich Text / Markdown
-      contentDiv.innerHTML = formatMessage(m.content || "");
+      contentDiv.replaceChildren(formatMessage(m.content || ""));
       applyHighlighting(contentDiv);
 
       if (m.attachment_path) {
@@ -2715,7 +2823,9 @@ async function searchMessages() {
     const bodyDiv = document.createElement("div");
     bodyDiv.style.cssText = "font-size:0.85rem; margin:4px 0;";
     bodyDiv.className = "message-content"; // Add class for styling
-    bodyDiv.innerHTML = formatMessage(m.content || (m.attachment_path ? "[添付ファイル]" : ""));
+    bodyDiv.replaceChildren(
+      formatMessage(m.content || (m.attachment_path ? "[添付ファイル]" : "")),
+    );
     applyHighlighting(bodyDiv);
 
     const timeDiv = document.createElement("div");
@@ -2817,7 +2927,7 @@ async function showPinnedMessages() {
     content.className = "message-content"; // Add class for styling
     content.style.cssText =
       "font-size:0.9rem; color:var(--text-primary); padding-left:4px; word-break:break-word;";
-    content.innerHTML = formatMessage(m.content || "[添付ファイル]");
+    content.replaceChildren(formatMessage(m.content || "[添付ファイル]"));
     applyHighlighting(content);
 
     const actions = document.createElement("div");

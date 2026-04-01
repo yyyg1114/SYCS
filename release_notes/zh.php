@@ -7,6 +7,45 @@
  */
 ?>
 
+<!-- ===== v1.2.34 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.34</span>
+        <span class="release-title">增强 Markdown 渲染引擎的安全性 (彻底防御 XSS)</span>
+        <span class="release-date">2026-04-01</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 稳定性与安全性 (Stability & Security)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>全新渲染方式，彻底防御 XSS</strong>
+                        <span class="detail">全面废除 `innerHTML`，转而采用 `DocumentFragment` 和 `createTextNode` 直接生成 DOM 节点。这一改进在物理层面上切断了恶意脚本执行的可能性，为您提供一个安全可靠的聊天环境。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔍</span>
+                    <div>
+                        <strong>严谨的格式化逻辑</strong>
+                        <span class="detail">引入 `inProtectedTag` 判定机制，确保 Markdown 格式化规则不会影响代码块 (`code`) 和预格式化标签 (`pre`) 内部的内容，完美呈现源代码。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>性能优化与标准对齐</strong>
+                        <span class="detail">采用现代化的 `replaceChildren` 方法更新页面内容，遵循最新浏览器标准，实现更快速、更安全的 UI 渲染。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.33 ===== -->
 <article class="release">
     <div class="release-header">

@@ -1,3 +1,42 @@
+<!-- ===== v1.2.34 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.34</span>
+        <span class="release-title">Security Hardening for Markdown Rendering</span>
+        <span class="release-date">2026-04-01</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> Stability & Security
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Modernized Rendering for XSS Prevention</strong>
+                        <span class="detail">Replaced `innerHTML` with a robust DOM-based rendering approach using `DocumentFragment` and `createTextNode`. This provides a complete physical barrier against cross-site scripting (XSS), ensuring a safe and secure chat experience.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔍</span>
+                    <div>
+                        <strong>Strict Formatting Logic</strong>
+                        <span class="detail">Implemented `inProtectedTag` logic to prevent formatting rules from being applied inside code blocks and pre tags, ensuring correct rendering without breaking source code visibility.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>Performance Optimization</strong>
+                        <span class="detail">Integrated the modern `replaceChildren` method for optimized, high-speed content replacement in sync with the latest browser standards.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.33 ===== -->
 <article class="release">
     <div class="release-header">
