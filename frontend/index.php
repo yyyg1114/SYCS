@@ -1,5 +1,5 @@
 <?php
-// v1.2.34
+// v1.2.35
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -2465,7 +2465,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.34</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.35</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
@@ -2840,7 +2840,7 @@ if ($isLoggedIn) {
                 </aside>
 
                 <dialog id="group-creation-modal" class="modal"
-                    style="border:none; border-radius:8px; padding:1rem; background:var(--bg-secondary); color:var(--text-primary);">
+                    style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
                     <h3><?= __('create_group') ?></h3>
                     <input type="text" id="group-chat-name" class="chat-input" placeholder="<?= __('enter_group_name') ?>" style="width:100%; margin-bottom:10px;">
                     <p><?= __('select_members') ?></p>
@@ -3048,7 +3048,7 @@ if ($isLoggedIn) {
 
             <!-- Keyboard Shortcuts Help Modal -->
             <dialog id="keyboard-shortcuts-modal" class="modal"
-                style="border:none; border-radius:12px; padding:24px; background:var(--bg-secondary); color:var(--text-primary); width:90%; max-width:480px;">
+                style="border:none; border-radius:12px; padding:24px; background:var(--accent-hover); color:var(--text-primary); width:90%; max-width:480px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                     <h3 style="margin:0; display:flex; align-items:center; gap:8px;"><span>⌨️</span> <?= __('keyboard_shortcuts') ?></h3>
                     <button onclick="document.getElementById('keyboard-shortcuts-modal').close()" style="background:none; border:none; color:var(--text-primary); font-size:1.2rem; cursor:pointer;">✕</button>

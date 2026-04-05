@@ -1,3 +1,35 @@
+<!-- ===== v1.2.35 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.35</span>
+        <span class="release-title">UI/UX Refinement & Modal Visibility Improvement</span>
+        <span class="release-date">2026-04-05</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Improvements & Fixes
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>Optimized Modal Size & Background</strong>
+                        <span class="detail">Refined the background colors and dimensions of modal windows like `group-creation-modal` and `keyboard-shortcuts-modal` for better visibility and usability.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔘</span>
+                    <div>
+                        <strong>Button Styling Polish</strong>
+                        <span class="detail">Updated `border-radius` and `width` for primary buttons and chat header elements to provide a more modern and intuitive user experience.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.34 ===== -->
 <article class="release">
     <div class="release-header">

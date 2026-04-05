@@ -7,6 +7,38 @@
  */
 ?>
 
+<!-- ===== v1.2.35 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.35</span>
+        <span class="release-title">UI/UX 设计微调与模态框视认性提升</span>
+        <span class="release-date">2026-04-05</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善与修正 (Improvements & Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>优化模态框尺寸与背景色</strong>
+                        <span class="detail">调整了 `group-creation-modal` 和 `keyboard-shortcuts-modal` 的背景色及尺寸，提升了视认性与操作便捷性。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔘</span>
+                    <div>
+                        <strong>按钮圆角与宽度优化</strong>
+                        <span class="detail">微调了主要按钮及聊天顶栏按钮的 `border-radius` 与 `width`，使整体设计更趋现代且更易于使用。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.34 ===== -->
 <article class="release">
     <div class="release-header">

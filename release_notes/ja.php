@@ -6,6 +6,38 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v1.2.35 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.35</span>
+        <span class="release-title">UI/UX デザインの微調整とモーダルの視認性向上</span>
+        <span class="release-date">2026-04-05</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善 & 修正 (Improvements & Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>モーダルウィンドウのサイズと背景色の最適化</strong>
+                        <span class="detail">`group-creation-modal` や `keyboard-shortcuts-modal` の背景色およびサイズを調整し、視認性と操作性を向上させました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔘</span>
+                    <div>
+                        <strong>ボタンの角丸と幅の調整による操作性向上</strong>
+                        <span class="detail">プライベートボタンやチャットヘッダー内のボタンの `border-radius` と `width` を微調整し、よりモダンで使いやすいデザインに更新しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.34 ===== -->
 <article class="release">
     <div class="release-header">
