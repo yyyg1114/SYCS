@@ -208,18 +208,26 @@ async function loadFiles() {
     const list = document.getElementById('file-list');
     if (!list) return;
 
-    list.innerHTML = '<div class="loading">読み込み中...</div>';
+    list.textContent = '';
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading';
+    loadingDiv.textContent = '読み込み中...';
+    list.appendChild(loadingDiv);
 
     try {
         const res = await fetch('index.php?api=get_my_files');
         const files = await res.json();
 
         if (!files || files.length === 0) {
-            list.innerHTML = '<div class="empty-files">ファイルはありません</div>';
+        list.textContent = '';
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'empty-files';
+        emptyDiv.textContent = 'ファイルはありません';
+        list.appendChild(emptyDiv);
             return;
         }
 
-        list.innerHTML = '';
+        list.textContent = '';
         files.forEach(file => {
             const item = document.createElement('a');
             item.className = 'file-item';
@@ -236,18 +244,35 @@ async function loadFiles() {
             if (['pdf'].includes(ext)) icon = '📕';
             if (['zip', 'rar', '7z'].includes(ext)) icon = '📦';
 
-            item.innerHTML = `
-                <span class="file-icon">${icon}</span>
-                <div class="file-info">
-                    <span class="file-name" title="${fileName}">${fileName}</span>
-                    <span class="file-date">${new Date(file.created_at).toLocaleDateString()}</span>
-                </div>
-            `;
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'file-icon';
+            iconSpan.textContent = icon;
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'file-info';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'file-name';
+            nameSpan.title = fileName;
+            nameSpan.textContent = fileName;
+
+            const dateSpan = document.createElement('span');
+            dateSpan.className = 'file-date';
+            dateSpan.textContent = new Date(file.created_at).toLocaleDateString();
+
+            infoDiv.appendChild(nameSpan);
+            infoDiv.appendChild(dateSpan);
+            item.appendChild(iconSpan);
+            item.appendChild(infoDiv);
             list.appendChild(item);
         });
     } catch (err) {
         console.error('Failed to load files:', err);
-        list.innerHTML = '<div class="empty-files">読み込み失敗</div>';
+        list.textContent = '';
+        const errDiv = document.createElement('div');
+        errDiv.className = 'empty-files';
+        errDiv.textContent = '読み込み失敗';
+        list.appendChild(errDiv);
     }
 }
 
@@ -315,11 +340,16 @@ function renderTodos() {
     if (!list) return;
 
     if (todos.length === 0) {
-        list.innerHTML = `<div class="empty-files" style="padding-top:20px;">${window.SYCS_CONFIG.translations.no_tasks || 'タスクはありません'}</div>`;
+        list.textContent = '';
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'empty-files';
+        emptyDiv.style.paddingTop = '20px';
+        emptyDiv.textContent = window.SYCS_CONFIG.translations.no_tasks || 'タスクはありません';
+        list.appendChild(emptyDiv);
         return;
     }
 
-    list.innerHTML = '';
+    list.textContent = '';
     // Sort: Uncompleted first, then by id descending
     const sorted = [...todos].sort((a, b) => {
         if (a.completed !== b.completed) return a.completed ? 1 : -1;
@@ -330,22 +360,54 @@ function renderTodos() {
         const item = document.createElement('div');
         item.className = `todo-item ${todo.completed ? 'completed' : ''}`;
         
-        item.innerHTML = `
-            <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(${todo.id})">
-            <span class="todo-text">${escapeHTML(todo.text)}</span>
-            <button class="todo-delete" onclick="deleteTodo(${todo.id})" title="削除">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-            </button>
-        `;
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'todo-checkbox';
+        checkbox.checked = todo.completed;
+        checkbox.onchange = () => toggleTodo(todo.id);
+
+        const textSpan = document.createElement('span');
+        textSpan.className = 'todo-text';
+        textSpan.textContent = todo.text;
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'todo-delete';
+        deleteBtn.title = '削除';
+        deleteBtn.onclick = () => deleteTodo(todo.id);
+        
+        const deleteSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        deleteSvg.setAttribute('width', '14');
+        deleteSvg.setAttribute('height', '14');
+        deleteSvg.setAttribute('viewBox', '0 0 24 24');
+        deleteSvg.setAttribute('fill', 'none');
+        deleteSvg.setAttribute('stroke', 'currentColor');
+        deleteSvg.setAttribute('stroke-width', '2.5');
+        deleteSvg.setAttribute('stroke-linecap', 'round');
+        deleteSvg.setAttribute('stroke-linejoin', 'round');
+        
+        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polyline.setAttribute('points', '3 6 5 6 21 6');
+        
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2');
+        
+        deleteSvg.appendChild(polyline);
+        deleteSvg.appendChild(path);
+        deleteBtn.appendChild(deleteSvg);
+
+        item.appendChild(checkbox);
+        item.appendChild(textSpan);
+        item.appendChild(deleteBtn);
         list.appendChild(item);
     });
 }
 
 function escapeHTML(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
 }

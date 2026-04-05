@@ -6,6 +6,45 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v1.2.36 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.36</span>
+        <span class="release-title">レンダリングエンジンのセキュリティ強化 (XSS 対策)</span>
+        <span class="release-date">2026-04-05</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 安定性 & セキュリティ (Stability & Security)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>描画ロジックの刷新による XSS 対策</strong>
+                        <span class="detail">`innerHTML` の使用を大幅に削減し、`createElement` と `textContent` を使用した安全な DOM 生成方式に移行しました。これにより、悪意のあるスクリプトの混入を物理的に防ぎます。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔍</span>
+                    <div>
+                        <strong>escapeHTML 関数の最適化</strong>
+                        <span class="detail">特殊文字の処理をより確実に行うようロジックを改善し、データの整合性と安全性を高めました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>ウィジェット表示の安定化</strong>
+                        <span class="detail">通知リスト、ファイル一覧、ToDo リストのレンダリングを近代的な手法に統一しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.35 ===== -->
 <article class="release">
     <div class="release-header">

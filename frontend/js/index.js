@@ -366,16 +366,57 @@ function showToast(title, message, type = "success", duration = 5000) {
       '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
   };
 
-  toast.innerHTML = `
-        <div class="toast-icon">${iconMap[type] || ""}</div>
-        <div class="toast-content">
-            <div class="toast-title">${escapeHTML(title)}</div>
-            <div class="toast-message">${escapeHTML(message)}</div>
-        </div>
-        <div class="toast-close">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </div>
-    `;
+  const iconContainer = document.createElement("div");
+  iconContainer.className = "toast-icon";
+  if (iconMap[type]) {
+    const parser = new DOMParser();
+    const svgDoc = parser.parseFromString(iconMap[type], "image/svg+xml");
+    const svgElement = svgDoc.documentElement;
+    iconContainer.appendChild(svgElement);
+  }
+
+  const toastContent = document.createElement("div");
+  toastContent.className = "toast-content";
+
+  const toastTitle = document.createElement("div");
+  toastTitle.className = "toast-title";
+  toastTitle.textContent = title;
+
+  const toastMsg = document.createElement("div");
+  toastMsg.className = "toast-message";
+  toastMsg.textContent = message;
+
+  toastContent.appendChild(toastTitle);
+  toastContent.appendChild(toastMsg);
+
+  const closeBtn = document.createElement("div");
+  closeBtn.className = "toast-close";
+  const closeSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  closeSvg.setAttribute("viewBox", "0 0 24 24");
+  closeSvg.setAttribute("width", "16");
+  closeSvg.setAttribute("height", "16");
+  closeSvg.setAttribute("fill", "none");
+  closeSvg.setAttribute("stroke", "currentColor");
+  closeSvg.setAttribute("stroke-width", "2");
+  closeSvg.setAttribute("stroke-linecap", "round");
+  closeSvg.setAttribute("stroke-linejoin", "round");
+  const line1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line1.setAttribute("x1", "18");
+  line1.setAttribute("y1", "6");
+  line1.setAttribute("x2", "6");
+  line1.setAttribute("y2", "18");
+  const line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line2.setAttribute("x1", "6");
+  line2.setAttribute("y1", "6");
+  line2.setAttribute("x2", "18");
+  line2.setAttribute("y2", "18");
+  closeSvg.appendChild(line1);
+  closeSvg.appendChild(line2);
+  closeBtn.appendChild(closeSvg);
+
+  toast.appendChild(iconContainer);
+  toast.appendChild(toastContent);
+  toast.appendChild(closeBtn);
 
   container.appendChild(toast);
 
@@ -2604,21 +2645,37 @@ async function loadNotifications() {
   const list = document.getElementById("notification-list");
   const badge = document.getElementById("notif-badge");
 
-  list.innerHTML = "";
+  list.textContent = "";
   let unreadCount = 0;
 
   if (notifications.length === 0) {
-    list.innerHTML =
-      '<div class="empty-state" style="padding:40px 20px;">通知はありません</div>';
+    const emptyDiv = document.createElement("div");
+    emptyDiv.className = "empty-state";
+    emptyDiv.style.padding = "40px 20px";
+    emptyDiv.textContent = "通知はありません";
+    list.appendChild(emptyDiv);
   } else {
     notifications.forEach((n) => {
       if (!n.is_read) unreadCount++;
+      const item = document.createElement("div");
       item.className = `notif-item ${n.is_read ? "read" : "unread"}`;
-      item.innerHTML = `
-          <div class="content">${escapeHTML(n.content)}</div>
-          <div class="time">${new Date(n.created_at).toLocaleString()}</div>
-          ${!n.is_read ? '<div class="notif-unread-dot"></div>' : ""}
-      `;
+      
+      const contentDiv = document.createElement("div");
+      contentDiv.className = "content";
+      contentDiv.textContent = n.content;
+      
+      const timeDiv = document.createElement("div");
+      timeDiv.className = "time";
+      timeDiv.textContent = new Date(n.created_at).toLocaleString();
+      
+      item.appendChild(contentDiv);
+      item.appendChild(timeDiv);
+
+      if (!n.is_read) {
+        const dot = document.createElement("div");
+        dot.className = "notif-unread-dot";
+        item.appendChild(dot);
+      }
 
       item.onclick = async (e) => {
         e.stopPropagation();

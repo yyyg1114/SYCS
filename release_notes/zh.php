@@ -7,6 +7,45 @@
  */
 ?>
 
+<!-- ===== v1.2.36 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.36</span>
+        <span class="release-title">增强渲染引擎安全性 (防御 XSS)</span>
+        <span class="release-date">2026-04-05</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 稳定性与安全性 (Stability & Security)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>刷新渲染逻辑以防御 XSS</strong>
+                        <span class="detail">大幅减少了 `innerHTML` 的使用，转而采用 `createElement` 和 `textContent` 进行安全的 DOM 操作。这在物理层面上杜绝了恶意脚本执行的可能性。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔍</span>
+                    <div>
+                        <strong>优化 escapeHTML 函数</strong>
+                        <span class="detail">改进了特殊字符的处理逻辑，提高了数据的一致性与安全性。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>统一组件渲染方式</strong>
+                        <span class="detail">将通知列表、文件列表及任务列表的渲染方式统一为更现代化、更安全的标准。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.35 ===== -->
 <article class="release">
     <div class="release-header">

@@ -1,3 +1,42 @@
+<!-- ===== v1.2.36 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.36</span>
+        <span class="release-title">Security Hardening & Rendering Refactor (XSS Protection)</span>
+        <span class="release-date">2026-04-05</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> Stability & Security
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Modernized Rendering for XSS Prevention</strong>
+                        <span class="detail">Significantly reduced the use of `innerHTML`, transitioning to secure DOM generation using `createElement` and `textContent`. This provides a robust barrier against cross-site scripting (XSS).</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔍</span>
+                    <div>
+                        <strong>Optimized escapeHTML Function</strong>
+                        <span class="detail">Improved the replacement logic for special characters to ensure better data integrity and security.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>Unified Widget Rendering</strong>
+                        <span class="detail">Standardized the rendering processes for notifications, file lists, and ToDo items using modern, safe DOM APIs.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.35 ===== -->
 <article class="release">
     <div class="release-header">

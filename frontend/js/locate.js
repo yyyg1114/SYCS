@@ -152,7 +152,13 @@ class LocationManager {
       wrapper.className = isCompact ? "gps-info compact" : "gps-info";
 
       if (!lat || !lon) {
-        wrapper.innerHTML = `<div class="gps-waiting"><span class="status-dot error"></span> 位置情報を取得中...</div>`;
+        const waitingDiv = document.createElement("div");
+        waitingDiv.className = "gps-waiting";
+        const dot = document.createElement("span");
+        dot.className = "status-dot error";
+        waitingDiv.appendChild(dot);
+        waitingDiv.appendChild(document.createTextNode(" 位置情報を取得中..."));
+        wrapper.appendChild(waitingDiv);
         return wrapper;
       }
 
