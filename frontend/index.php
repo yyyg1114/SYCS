@@ -2571,12 +2571,12 @@ if ($isLoggedIn) {
                         </div>
                         <div class="clock-controls">
                             <label class="switch-label">
-                                <span>Digital</span>
+                                <span><?= __('digital') ?></span>
                                 <div class="switch">
                                     <input type="checkbox" id="clock-type-toggle" checked>
                                     <span class="slider"></span>
                                 </div>
-                                <span>Analog</span>
+                                <span><?= __('analog') ?></span>
                             </label>
                         </div>
                     </div>

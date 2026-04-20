@@ -158,5 +158,13 @@
     "toggle_video": "Toggle Video",
     "toggle_screen": "Toggle Screen Share",
     "leave_meeting": "Leave Meeting",
-    "install_sycs": "Install SYCS"
+    "install_sycs": "Install SYCS",
+    "digital": "Digital",
+    "analog": "Analog",
+    "task_placeholder": "Enter task...",
+    "task_add": "Add Task",
+    "task_delete": "Delete Task",
+    "task_edit": "Edit Task",
+    "task_complete": "Complete Task",
+    "task_incomplete": "Incomplete Task"
 }

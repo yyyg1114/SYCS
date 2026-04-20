@@ -158,5 +158,13 @@
     "toggle_video": "カメラ オン/オフ",
     "toggle_screen": "画面共有",
     "leave_meeting": "退席",
-    "install_sycs": "SYCSをインストール"
+    "install_sycs": "SYCSをインストール",
+    "digital": "デジタル",
+    "analog": "アナログ",
+    "task_placeholder": "タスクを入力...",
+    "task_add": "タスクを追加",
+    "task_delete": "タスクを削除",
+    "task_edit": "タスクを編集",
+    "task_complete": "タスクを完了",
+    "task_incomplete": "タスクを未完了"
 }

@@ -158,5 +158,13 @@
     "toggle_video": "開啟/關閉攝像頭",
     "toggle_screen": "螢幕共享",
     "leave_meeting": "離開會議",
-    "install_sycs": "安裝SYCS"
+    "install_sycs": "安裝SYCS",
+    "digital": "數位",
+    "analog": "指針",
+    "task_placeholder": "輸入任務...",
+    "task_add": "添加任務",
+    "task_delete": "刪除任務",
+    "task_edit": "編輯任務",
+    "task_complete": "完成任務",
+    "task_incomplete": "未完成任務"
 }
