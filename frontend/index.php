@@ -1,5 +1,5 @@
 <?php
-// v1.2.36
+// v1.2.38
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -2465,7 +2465,7 @@ if ($isLoggedIn) {
             <div class="sidebar-top">
                 <div class="logo-container">
                     <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.36</span>
+                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.38</span>
                 </div>
                 <div class="sidebar-secondary">
                     <div class="release-notes">
@@ -2801,6 +2801,7 @@ if ($isLoggedIn) {
                         </div>
                     </div>
                 </div>
+
                 <aside id="thread-browser" class="thread-browser">
                     <div class="panel-header">
                         <span><?= __('sidebar') ?></span>
@@ -3035,7 +3036,7 @@ if ($isLoggedIn) {
                 <div style="display:flex; flex-direction:column; height:100%;">
                     <div style="padding:16px 20px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; background:var(--bg-secondary);">
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-size:1.2rem;">📌</span>
+                            <img src="assets/img/pin.svg" alt="" width="16" height="16">
                             <h3 style="margin:0; font-size:1rem;"><?= __('pinned_messages') ?></h3>
                         </div>
                         <button class="close-btn" onclick="document.getElementById('pinned-messages-modal').close()" style="background:none; border:none; color:var(--text-primary); font-size:1.2rem; cursor:pointer;">✕</button>
@@ -3167,7 +3168,7 @@ if ($isLoggedIn) {
                         </div>
 
                         <div class="modal-form-group">
-                            <label class="modal-label"><?= __('banner_image', 'バナー画像') ?></label>
+                            <label class="modal-label"><?= __('banner_image') ?></label>
                             <input type="file" id="edit-banner-img-input" accept="image/*" style="display:none" onchange="previewBannerImage(this)">
                             <div style="display:flex; gap:8px;">
                                 <button class="btn-secondary" onclick="document.getElementById('edit-banner-img-input').click()"><?= __('select_image') ?></button>
@@ -3182,7 +3183,7 @@ if ($isLoggedIn) {
                         </div>
 
                         <div class="modal-form-group">
-                            <label class="modal-label"><?= __('profile_layout', 'プロフィールのレイアウト') ?></label>
+                            <label class="modal-label"><?= __('profile_layout') ?></label>
                             <select id="edit-layout-input" class="modal-input" onchange="updatePreviewLayout(this.value)">
                                 <option value="classic" <?= $currentUserProfileLayout === 'classic' ? 'selected' : '' ?>>Classic</option>
                                 <option value="slim" <?= $currentUserProfileLayout === 'slim' ? 'selected' : '' ?>>Slim</option>

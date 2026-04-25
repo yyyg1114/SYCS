@@ -1,4 +1,5 @@
 <?php
+
 /**
  * SMTP Mail Configuration (Sample)
  * 

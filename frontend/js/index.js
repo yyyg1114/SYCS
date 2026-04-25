@@ -63,7 +63,7 @@ const uploadPreview = document.getElementById("upload-preview");
 const previewContent = document.getElementById("preview-content");
 
 // Helper to escape HTML to prevent XSS
-function escapeHTML(str) {
+/**function escapeHTML(str) {
   if (str === null || str === undefined) return "";
   return String(str)
     .replace(/&/g, "&amp;")
