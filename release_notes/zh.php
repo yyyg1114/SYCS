@@ -7,6 +7,52 @@
  */
 ?>
 
+<!-- ===== v1.2.38 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.38</span>
+        <span class="release-title">UI/UX 优化与多语言支持扩充</span>
+        <span class="release-date">2026-04-25</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善与修正 (Improvements & Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>置顶消息图标更新</strong>
+                        <span class="detail">将表情符号图标替换为专用的 SVG 图标 (`pin.svg`)，提升了 UI 的一致性与专业感。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">👤</span>
+                    <div>
+                        <strong>个人资料设置功能强化</strong>
+                        <span class="detail">为个人资料布局选择和横幅图片设置添加了多语言支持，排除了前端模板中的硬编码文本。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌍</span>
+                    <div>
+                        <strong>多语言资源扩充 (JA/EN/ZH)</strong>
+                        <span class="detail">新增了时钟组件显示切换（数字/指针）和任务列表操作的翻译，为所有支持语言提供一致的用户体验。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>前端代码清理</strong>
+                        <span class="detail">将模板文件中的内联日语文本替换为动态多语言调用，提高了代码的可维护性。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.36 ===== -->
 <article class="release">
     <div class="release-header">

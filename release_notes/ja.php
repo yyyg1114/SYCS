@@ -6,6 +6,52 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v1.2.38 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.38</span>
+        <span class="release-title">UI/UX の洗練と多言語対応の拡充</span>
+        <span class="release-date">2026-04-25</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善 & 修正 (Improvements & Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>ピン留めメッセージのアイコン刷新</strong>
+                        <span class="detail">絵文字から専用の SVG アイコン (`pin.svg`) に変更し、UI の一貫性とプロフェッショナルな外観を向上させました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">👤</span>
+                    <div>
+                        <strong>プロフィール編集機能の強化</strong>
+                        <span class="detail">レイアウト選択やバナー画像設定のラベルを多言語対応（i18n）化し、コード内のハードコードされたテキストを排除しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌍</span>
+                    <div>
+                        <strong>多言語リソースの拡充 (JA/EN/ZH)</strong>
+                        <span class="detail">時計ウィジェットの表示切替（デジタル/アナログ）や ToDo リストの操作用テキストを追加し、すべての対応言語で一貫したユーザー体験を提供します。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>フロントエンドコードのクリーンアップ</strong>
+                        <span class="detail">テンプレートファイル内のインラインテキストを言語定数に置き換え、保守性を高めました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.36 ===== -->
 <article class="release">
     <div class="release-header">

@@ -1,3 +1,49 @@
+<!-- ===== v1.2.38 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v1.2.38</span>
+        <span class="release-title">UI/UX Refinement & Extended i18n Support</span>
+        <span class="release-date">2026-04-25</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Improvements & Fixes
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>Pinned Messages Icon Refresh</strong>
+                        <span class="detail">Replaced the text emoji with a custom SVG icon (`pin.svg`) for better UI consistency and a professional look.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">👤</span>
+                    <div>
+                        <strong>Enhanced Profile Settings</strong>
+                        <span class="detail">Localized labels for profile layout and banner images, eliminating hardcoded strings from the frontend templates.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌍</span>
+                    <div>
+                        <strong>Expanded Localization (JA/EN/ZH)</strong>
+                        <span class="detail">Added translation support for clock widget types (Digital/Analog) and ToDo list operations across all supported languages.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>Frontend Code Cleanup</strong>
+                        <span class="detail">Replaced inline Japanese text with dynamic i18n calls in template files to improve maintainability.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.36 ===== -->
 <article class="release">
     <div class="release-header">
