@@ -366,14 +366,14 @@
 .toast {
   background: var(--card-bg);
   color: var(--text-primary);
-  padding: 12px 20px;
+  padding: 12px 24px;
   border-radius: var(--radius-md);
   border-left: 4px solid var(--accent-color);
   box-shadow: var(--shadow-lg);
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 320px;
+  min-width: 250px;
   animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(8px);
 }
