@@ -1,0 +1,89 @@
+/**
+ * SYCS Markdown & Rich Text Styling
+ */
+
+.marker-pin {
+    width: 30px;
+    height: 30px;
+    border-radius: 50% 50% 50% 0;
+    background: #6366f1;
+    position: absolute;
+    transform: rotate(-45deg);
+    left: 50%;
+    top: 50%;
+    margin: -21px 0 0 -15px;
+    border: 2px solid white;
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.marker-pin::after {
+    content: '';
+    width: 24px;
+    height: 24px;
+    margin: 1px 0 0 1px;
+    background: #fff;
+    position: absolute;
+    border-radius: 50%;
+    z-index: -1;
+}
+
+.marker-pin.me {
+    background-color: #10b981;
+    box-shadow: 0 0 15px #10b981;
+}
+
+.message-content b { font-weight: 700; color: #fff; }
+.message-content i { font-style: italic; }
+.message-content u { text-decoration: underline; }
+.message-content del { text-decoration: line-through; opacity: 0.6; }
+
+.message-content blockquote {
+    border-left: 4px solid #4f545c;
+    padding: 2px 8px 2px 12px;
+    margin: 4px 0;
+    color: #dbdee1;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+}
+
+.message-content code {
+    font-family: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace;
+    background: #2b2d31;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-size: 85%;
+}
+
+.message-content pre {
+    margin: 8px 0;
+    background: #2b2d31;
+    border-radius: 4px;
+    padding: 12px;
+    overflow-x: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message-content pre code {
+    background: transparent !important;
+    padding: 0 !important;
+    display: block;
+    line-height: 1.45;
+    font-size: 0.9rem;
+}
+
+.mention {
+    background: rgba(88, 101, 242, 0.3);
+    color: #c9cdfb;
+    padding: 0 4px;
+    border-radius: 3px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.mention:hover {
+    background: rgba(88, 101, 242, 0.6);
+    text-decoration: underline;
+}

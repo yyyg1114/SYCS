@@ -1,0 +1,179 @@
+/**
+ * SYCS Modals CSS
+ */
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #1a1b1e;
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  z-index: 1000;
+}
+
+/* Discord-style Profile Modal */
+.profile-modal {
+    background: rgba(30, 31, 35, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 0;
+    width: 860px;
+    max-width: 95vw;
+    box-shadow: 
+        0 20px 50px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    max-height: 90vh;
+    animation: modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.profile-modal::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.profile-content {
+    display: flex;
+    height: auto;
+    min-height: 500px;
+    max-height: 90vh;
+}
+
+.profile-edit-form {
+    flex: 1;
+    padding: 40px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.profile-preview-pane {
+    width: 360px;
+    background: var(--bg-secondary, rgba(0, 0, 0, 0.2));
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: brightness(0.9);
+}
+
+/* Discord Card Preview */
+.discord-card {
+    width: 300px;
+    background: var(--bg-color, #111214);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    font-family: 'Inter', sans-serif;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform 0.3s ease;
+}
+
+.discord-card:hover {
+    transform: translateY(-4px);
+}
+
+.discord-banner {
+    height: 80px;
+    background: var(--accent-color, #6366f1);
+    position: relative;
+}
+
+.discord-avatar-wrapper {
+    margin-top: -40px;
+    margin-left: 16px;
+    position: relative;
+    display: inline-block;
+}
+
+.discord-avatar {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 8px solid var(--bg-color, #111214);
+    background: var(--accent-color, #6366f1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 36px;
+    font-weight: 800;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.discord-status-indicator {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 5px solid var(--bg-color, #111214);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+    .profile-content {
+        flex-direction: column;
+        height: 100vh;
+        max-height: 100vh;
+    }
+
+    .profile-modal {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        border-radius: 0 !important;
+        top: 0 !important;
+        left: 0 !important;
+        transform: none !important;
+    }
+
+    .profile-preview-pane {
+        width: 100% !important;
+        order: -1;
+        border-left: none !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+}
+
+.modal-form-group {
+  margin-bottom: 20px;
+}
+
+.modal-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 10px;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: white;
+  outline: none;
+}

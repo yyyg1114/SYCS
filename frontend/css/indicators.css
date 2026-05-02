@@ -1,0 +1,132 @@
+/**
+ * SYCS Indicators & Status CSS
+ */
+
+/* Status Indicators */
+.avatar-container {
+    position: relative;
+    display: inline-block;
+}
+
+.status-indicator {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--sidebar-bg);
+    background-color: #94a3b8;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.status-online { background-color: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
+.status-busy { background-color: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+.status-away { background-color: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+.status-offline { background-color: #64748b; }
+.status-not_allowed { background-color: #ef4444; }
+.status-step_out { background-color: #f59e0b; }
+.status-going_away { background-color: #a855f7; }
+
+/* Status Dropdown */
+.status-select-container {
+    position: relative;
+    margin-top: 6px;
+}
+
+.status-select {
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: var(--transition-fast);
+}
+
+.status-select:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+/* GPS Info Styling */
+.gps-info {
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-top: 12px;
+    font-size: 0.85rem;
+    position: relative;
+    box-shadow: var(--shadow-md);
+}
+
+.gps-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 4px;
+}
+
+.gps-row:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.gps-label {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.gps-value {
+    color: var(--accent-color);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-weight: 500;
+}
+
+.gps-status-indicator {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 10px;
+}
+
+.gps-info.compact {
+    padding: 10px;
+    font-size: 0.75rem;
+}
+
+.gps-waiting {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+}
+
+.status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.status-dot.active {
+    background-color: #10b981;
+    box-shadow: 0 0 12px #10b981;
+}
+
+.status-dot.error {
+    background-color: #ef4444;
+    box-shadow: 0 0 12px #ef4444;
+}
+
+.gps-error {
+    color: #ef4444;
+    font-size: 0.8rem;
+    margin-top: 10px;
+    font-weight: 500;
+}

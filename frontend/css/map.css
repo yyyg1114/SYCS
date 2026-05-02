@@ -1,0 +1,18 @@
+/**
+ * SYCS Map CSS
+ */
+
+#tac-map-container {
+    border-top: 1px solid var(--border-color);
+}
+
+.leaflet-container {
+    background: #111 !important;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+}
