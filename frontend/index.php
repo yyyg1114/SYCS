@@ -1,5 +1,5 @@
 <?php
-// v1.2.38
+// v2.2.0
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -110,7 +110,7 @@ if ($isLoggedIn) {
 <head>
     <meta charset="UTF-8">
     <title>SYCS - Shinjuku Yamabuki Chat System</title>
-    <meta name="description" content="SYCS - <?= __('release_notes_desc') ?>">
+    <meta name="description" content="SYCS - <?= ('release_notes_desc') ?>">
     <meta name="theme-color" content="#6366f1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -146,191 +146,10 @@ if ($isLoggedIn) {
 <body>
     <div class="sidebar-backdrop" onclick="toggleSidebar()"></div>
     <div class="app-container">
-        <aside id="main-sidebar" class="sidebar">
-            <div class="sidebar-top">
-                <div class="logo-container">
-                    <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-                    <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v1.2.38</span>
-                </div>
-                <div class="sidebar-secondary">
-                    <div class="release-notes">
-                        <a href="../release_notes/release_notes.php" target="_blank" style="font-size: 0.8rem; margin-left: 100px; align-items: end; text-decoration: none; color: var(--text-primary); background-color: var(--accent-hover); border-radius: 4px; padding: 2px 4px;"><?= __('release_notes') ?></a>
-                    </div>
-                </div>
-                <nav>
-                    <ul class="nav-list">
-                        <li class="nav-item active" data-tab="threads">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="4" y1="9" x2="20" y2="9" />
-                                <line x1="4" y1="15" x2="20" y2="15" />
-                                <line x1="10" y1="3" x2="8" y2="21" />
-                                <line x1="16" y1="3" x2="14" y2="21" />
-                            </svg>
-                            <span><?= __('threads') ?></span>
-                        </li>
-                        <li class="nav-item" data-tab="dm">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                            </svg>
-                            <span><?= __('dm') ?></span>
-                            <span id="dm-unread-badge" style="display:none; background:#ef4444; color:white; border-radius:9999px; font-size:0.65rem; font-weight:700; padding:1px 6px; margin-left:6px; min-width:18px; text-align:center;"></span>
-                        </li>
-                        <li class="nav-item" data-tab="favorites">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <polygon
-                                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                            </svg>
-                            <span><?= __('favorites') ?></span>
-                        </li>
-                        <li class="nav-item" onclick="window.open('meetings.php', '_blank', 'noopener noreferrer')" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px; display: none">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                            </svg>
-                            <span style="font-weight: 600;"><?= __('meeting') ?></span>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
-
-            <!-- Sidebar Widgets -->
-            <div class="sidebar-widgets">
-                <div class="widget-tabs">
-                    <button class="widget-tab active" data-widget="clock" title="<?= __('clock') ?>">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                    </button>
-                    <button class="widget-tab" data-widget="notepad" title="<?= __('notepad') ?>">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                            <line x1="16" y1="13" x2="8" y2="13"></line>
-                            <line x1="16" y1="17" x2="8" y2="17"></line>
-                            <polyline points="10 9 9 9 8 9"></polyline>
-                        </svg>
-                    </button>
-                    <button class="widget-tab" data-widget="filer" title="<?= __('filer') ?>">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-                            <polyline points="13 2 13 9 20 9"></polyline>
-                        </svg>
-                    </button>
-                    <button class="widget-tab" data-widget="todo" title="<?= __('todo') ?>">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 11 12 14 22 4"></polyline>
-                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                        </svg>
-                    </button>
-                </div>
-                <div class="widget-content">
-                    <div id="widget-clock" class="widget-pane active">
-                        <div class="clock-display">
-                            <div id="analog-clock" class="analog-clock">
-                                <div class="clock-face">
-                                    <div class="sub-dial sub-9">
-                                        <div class="sub-hand"></div><span class="sub-label">24H</span>
-                                        <div class="sub-center-dot"></div>
-                                    </div>
-                                    <div class="sub-dial sub-3">
-                                        <div class="sub-hand"></div><span class="sub-label">DAY</span>
-                                        <div class="sub-center-dot"></div>
-                                    </div>
-                                    <div class="sub-dial sub-6">
-                                        <div class="sub-hand"></div><span class="sub-label">SEC</span>
-                                        <div class="sub-center-dot"></div>
-                                    </div>
-                                    <div class="date-window"><span>19</span></div>
-                                    <img src="./assets/img/SYCS_Logo.svg" alt="Logo" class="clock-logo">
-                                    <div class="hand hour-hand"></div>
-                                    <div class="hand minute-hand"></div>
-                                    <div class="hand second-hand"></div>
-                                    <div class="center-dot"></div>
-                                </div>
-                            </div>
-                            <div id="digital-clock" class="digital-clock" style="display:none;">00:00:00</div>
-                        </div>
-                        <div class="clock-controls">
-                            <label class="switch-label">
-                                <span><?= __('digital') ?></span>
-                                <div class="switch">
-                                    <input type="checkbox" id="clock-type-toggle" checked>
-                                    <span class="slider"></span>
-                                </div>
-                                <span><?= __('analog') ?></span>
-                            </label>
-                        </div>
-                    </div>
-                    <div id="widget-notepad" class="widget-pane">
-                        <textarea id="notepad-area" placeholder="<?= __('notepad_placeholder') ?>"></textarea>
-                    </div>
-                    <div id="widget-filer" class="widget-pane">
-                        <div id="file-list" class="file-list">
-                            <div class="loading"><?= __('loading') ?></div>
-                        </div>
-                    </div>
-                    <div id="widget-todo" class="widget-pane">
-                        <div class="todo-container">
-                            <div class="todo-input-area">
-                                <input type="text" id="todo-input" placeholder="<?= __('task_placeholder', 'タスクを入力...') ?>">
-                                <button class="todo-add-btn" onclick="addTodo()" title="<?= __('add', '追加') ?>">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    </svg>
-                                </button>
-                            </div>
-                            <div id="todo-list" class="todo-list"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="sidebar-bottom">
-                <div class="user-block">
-                    <div class="user-info-row">
-                        <div class="avatar-container">
-                            <div class="avatar" id="global-user-avatar">
-                                <?php if ($currentUserAvatar): ?>
-                                    <img src="<?= htmlspecialchars($currentUserAvatar) ?>" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
-                                <?php else: ?>
-                                    <?= htmlspecialchars(mb_substr($currentUser, 0, 1)) ?>
-                                <?php endif; ?>
-                            </div>
-                            <div class="status-indicator status-<?= htmlspecialchars($currentUserStatus) ?>" id="global-status-indicator"></div>
-                        </div>
-                        <div class="user-info">
-                            <span class="user-name"><?= htmlspecialchars($currentUser) ?></span>
-                            <div class="status-select-container">
-                                <select id="sidebar-status-input" class="status-select" onchange="updateMyStatus(this.value)">
-                                    <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>><?= __('status_online') ?></option>
-                                    <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>><?= __('status_busy') ?></option>
-                                    <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>><?= __('status_not_allowed') ?></option>
-                                    <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>><?= __('status_step_out') ?></option>
-                                    <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>><?= __('status_away') ?></option>
-                                    <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>><?= __('status_offline') ?></option>
-                                    <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>><?= __('status_going_away') ?></option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="sidebar-actions">
-                    <a href="javascript:void(0)" onclick="showProfileModal()" class="action-link"><?= __('settings') ?></a>
-                    <div class="lang-switcher">
-                        <select class="status-select" onchange="changeLang(this.value)">
-                            <option value="ja" <?= I18n::getInstance()->getCurrentLang() === 'ja' ? 'selected' : '' ?>><?= __('lang_ja') ?></option>
-                            <option value="en" <?= I18n::getInstance()->getCurrentLang() === 'en' ? 'selected' : '' ?>><?= __('lang_en') ?></option>
-                            <option value="zh" <?= I18n::getInstance()->getCurrentLang() === 'zh' ? 'selected' : '' ?>><?= __('lang_zh') ?></option>
-                        </select>
-                    </div>
-                    <a href="?logout=1" class="action-link" style="color:#ef4444;"><?= __('logout') ?></a>
-                </div>
-            </div>
-        </aside>
+        <?php
+        $currentPage = 'threads';
+        include 'includes/sidebar.php';
+        ?>
 
         <main class="main-content">
             <section id="threads-pane" class="content-pane active">
@@ -338,23 +157,23 @@ if ($isLoggedIn) {
                     <?php include 'includes/chat_header.php'; ?>
                     <div class="search-results-overlay" id="search-results-overlay">
                         <div class="search-results-header">
-                            <span><?= __('search_results') ?></span>
+                            <span><?= ('search_results') ?></span>
                             <span class="close-btn" onclick="toggleSearch(false)">✕</span>
                         </div>
                         <div id="search-results-list" class="search-results-list"></div>
                     </div>
                     <div id="message-container" class="chat-messages"></div>
-                    <div class="drag-overlay"><?= __('drop_to_upload') ?></div>
+                    <div class="drag-overlay"><?= ('drop_to_upload') ?></div>
 
                     <div id="reply-bar" class="reply-bar">
                         <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden;">
-                            <span style="font-size: 0.75rem; opacity: 0.8;"><?= __('replying_to') ?> <strong id="reply-target-name">User</strong></span>
+                            <span style="font-size: 0.75rem; opacity: 0.8;"><?= ('replying_to') ?> <strong id="reply-target-name">User</strong></span>
                             <div id="reply-preview-text" style="font-size: 0.8rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; opacity: 0.6;">...</div>
                         </div>
                         <span class="close-btn" onclick="cancelReply()">✕</span>
                     </div>
                     <div id="upload-preview" class="upload-preview">
-                        <span style="font-size:0.85rem; color:var(--text-secondary);"><?= __('attachments') ?> </span>
+                        <span style="font-size:0.85rem; color:var(--text-secondary);"><?= ('attachments') ?> </span>
                         <div id="preview-content"></div>
                         <span class="close-btn upload-cancel" onclick="cancelUpload()">✕</span>
                     </div>
@@ -362,9 +181,9 @@ if ($isLoggedIn) {
                     <div id="pwa-install-banner-threads" class="pwa-install-banner-integrated" style="display:none;">
                         <div style="display:flex; align-items:center; gap:10px;">
                             <span style="font-size:1.2rem;">📱</span>
-                            <span style="font-weight:600;"><?= __('install_sycs') ?></span>
+                            <span style="font-weight:600;"><?= ('install_sycs') ?></span>
                         </div>
-                        <button class="btn-add" onclick="installPWA()"><?= __('install') ?></button>
+                        <button class="btn-add" onclick="installPWA()"><?= ('install') ?></button>
                         <button class="btn-close" onclick="dismissInstallBanner()">✕</button>
                     </div>
 
@@ -372,19 +191,19 @@ if ($isLoggedIn) {
 
                     <div class="chat-input-area">
                         <div class="input-wrapper">
-                            <button class="upload-btn-plus" title="<?= __('upload') ?>" onclick="openMediaUploadModal()">
+                            <button class="upload-btn-plus" title="<?= ('upload') ?>" onclick="openMediaUploadModal()">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                             </button>
-                            <textarea id="msg-input" class="chat-input" placeholder="<?= __('send_message_placeholder') ?>"
+                            <textarea id="msg-input" class="chat-input" placeholder="<?= ('send_message_placeholder') ?>"
                                 rows="1" onkeydown="handleInputKey(event)" oninput="handleTyping()"></textarea>
-                            <select id="self-destruct-timer" title="<?= __('auto_delete') ?>">
-                                <option value="0"><?= __('no_expiry') ?></option>
-                                <option value="60"><?= __('one_minute') ?></option>
-                                <option value="3600"><?= __('one_hour') ?></option>
-                                <option value="86400"><?= __('one_day') ?></option>
+                            <select id="self-destruct-timer" title="<?= ('auto_delete') ?>">
+                                <option value="0"><?= ('no_expiry') ?></option>
+                                <option value="60"><?= ('one_minute') ?></option>
+                                <option value="3600"><?= ('one_hour') ?></option>
+                                <option value="86400"><?= ('one_day') ?></option>
                             </select>
                             <button class="send-btn-modern" onclick="sendMessage()">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -399,7 +218,7 @@ if ($isLoggedIn) {
 
                 <aside id="thread-browser" class="thread-browser">
                     <div class="panel-header">
-                        <span><?= __('sidebar') ?></span>
+                        <span><?= ('sidebar') ?></span>
                         <div class="close-btn" onclick="toggleThreadBrowser()"><svg width="18" height="18"
                                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                                 stroke-linecap="round" stroke-linejoin="round">
@@ -409,25 +228,25 @@ if ($isLoggedIn) {
                     </div>
 
                     <div class="sidebar-tabs">
-                        <button class="tab-btn active" onclick="switchSidebarTab('threads')"><?= __('threads') ?></button>
-                        <button class="tab-btn" onclick="switchSidebarTab('groups')"><?= __('groups') ?></button>
+                        <button class="tab-btn active" onclick="switchSidebarTab('threads')"><?= ('threads') ?></button>
+                        <button class="tab-btn" onclick="switchSidebarTab('groups')"><?= ('groups') ?></button>
                     </div>
 
                     <div id="thread-list" class="thread-list"></div>
                     <div id="group-list" class="thread-list" style="display:none;"></div>
 
                     <div id="create-thread-area" class="create-thread-area">
-                        <input type="text" id="new-thread-name" class="create-input" placeholder="<?= __('new_thread_name') ?>">
-                        <button onclick="createThread()" class="btn-primary" style="width: 100%;"><?= __('create') ?></button>
+                        <input type="text" id="new-thread-name" class="create-input" placeholder="<?= ('new_thread_name') ?>">
+                        <button onclick="createThread()" class="btn-primary" style="width: 100%;"><?= ('create') ?></button>
                     </div>
 
                     <div id="create-group-area" class="create-thread-area" style="display:none;">
-                        <button onclick="showGroupCreationDialog()" class="btn-primary" style="width: 100%;"><?= __('create_group') ?></button>
+                        <button onclick="showGroupCreationDialog()" class="btn-primary" style="width: 100%;"><?= ('create_group') ?></button>
                     </div>
 
                     <div id="online-users-section" class="sidebar-section">
                         <div class="section-header" onclick="toggleOnlineUsers()">
-                            <span><?= __('online_users') ?></span>
+                            <span><?= ('online_users') ?></span>
                             <span id="online-users-toggle-icon">▾</span>
                         </div>
                         <div id="online-users-list" class="sidebar-list"></div>
@@ -440,22 +259,22 @@ if ($isLoggedIn) {
                 <!-- Friend Hub (Default View) -->
                 <div id="dm-hub-view" style="display:flex; flex-direction:column; height:100%;">
                     <div class="chat-header">
-                        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="<?= __('menu') ?>">
+                        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="<?= ('menu') ?>">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="3" y1="12" x2="21" y2="12"></line>
                                 <line x1="3" y1="6" x2="21" y2="6"></line>
                                 <line x1="3" y1="18" x2="21" y2="18"></line>
                             </svg>
                         </button>
-                        <h3><?= __('friend_hub') ?></h3>
+                        <h3><?= ('friend_hub') ?></h3>
                         <div style="margin-left:auto; display:flex; gap:10px;">
-                            <button class="btn-primary" onclick="showAddFriendModal()"><?= __('add_friend') ?></button>
-                            <button class="btn-primary" onclick="showPendingRequestsModal()" id="btn-pending-req"><?= __('approve_friend') ?></button>
-                            <button class="btn-primary" onclick="showBlockedModal()" style="background-color: #333"><?= __('block_list') ?></button>
+                            <button class="btn-primary" onclick="showAddFriendModal()"><?= ('add_friend') ?></button>
+                            <button class="btn-primary" onclick="showPendingRequestsModal()" id="btn-pending-req"><?= ('approve_friend') ?></button>
+                            <button class="btn-primary" onclick="showBlockedModal()" style="background-color: #333"><?= ('block_list') ?></button>
                         </div>
                     </div>
                     <div class="scroller" style="flex:1; padding:20px; overflow-y:auto;">
-                        <h4 style="margin-bottom:10px; color:var(--text-secondary);"><?= __('friend_list') ?></h4>
+                        <h4 style="margin-bottom:10px; color:var(--text-secondary);"><?= ('friend_list') ?></h4>
                         <div id="hub-friend-list" class="thread-list"></div>
                     </div>
                 </div>
@@ -463,7 +282,7 @@ if ($isLoggedIn) {
                 <!-- DM Chat View (Hidden by default) -->
                 <div id="dm-chat-view" style="display:none; flex-direction:column; height:100%;">
                     <header class="chat-header">
-                        <button class="icon-btn" onclick="backToHub()" title="<?= __('back') ?>" style="margin-right:10px;">
+                        <button class="icon-btn" onclick="backToHub()" title="<?= ('back') ?>" style="margin-right:10px;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
                                 <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -471,19 +290,19 @@ if ($isLoggedIn) {
                         </button>
                         <div class="thread-info" id="current-dm-partner-info">
                             <span class="thread-icon">@</span>
-                            <h3 class="thread-name" id="current-dm-partner-name"><?= __('select_user') ?></h3>
+                            <h3 class="thread-name" id="current-dm-partner-name"><?= ('select_user') ?></h3>
                         </div>
                         <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
-                            <button class="icon-btn" onclick="startMeeting()" title="<?= __('video_meeting') ?>">
+                            <button class="icon-btn" onclick="startMeeting()" title="<?= ('video_meeting') ?>">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <polygon points="23 7 16 12 23 17 23 7"></polygon>
                                     <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                                 </svg>
                             </button>
-                            <button class="icon-btn" onclick="showAttachmentGallery()" title="<?= __('attachment_list') ?>">
-                                <img src="assets/img/files.svg" alt="<?= __('attachment_gallery') ?>" style="width:16px; height:16px; filter: grayscale(1) invert(1);">
+                            <button class="icon-btn" onclick="showAttachmentGallery()" title="<?= ('attachment_list') ?>">
+                                <img src="assets/img/files.svg" alt="<?= ('attachment_gallery') ?>" style="width:16px; height:16px; filter: grayscale(1) invert(1);">
                             </button>
-                            <button class="icon-btn" onclick="blockCurrentPartner()" title="<?= __('block') ?>"
+                            <button class="icon-btn" onclick="blockCurrentPartner()" title="<?= ('block') ?>"
                                 style="color:#ef4444;">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2">
@@ -496,7 +315,7 @@ if ($isLoggedIn) {
 
                     <div id="dm-message-container" class="messages-container">
                         <div class="empty-state">
-                            <p><?= __('no_thread_selected') ?></p>
+                            <p><?= ('no_thread_selected') ?></p>
                         </div>
                     </div>
 
@@ -509,9 +328,9 @@ if ($isLoggedIn) {
                     <div id="pwa-install-banner-dm" class="pwa-install-banner-integrated" style="display:none;">
                         <div style="display:flex; align-items:center; gap:10px;">
                             <span style="font-size:1.2rem;">📱</span>
-                            <span style="font-weight:600;"><?= __('install_sycs') ?></span>
+                            <span style="font-weight:600;"><?= ('install_sycs') ?></span>
                         </div>
-                        <button class="btn-add" onclick="installPWA()"><?= __('install') ?></button>
+                        <button class="btn-add" onclick="installPWA()"><?= ('install') ?></button>
                         <button class="btn-close" onclick="dismissInstallBanner()">✕</button>
                     </div>
 
@@ -519,13 +338,13 @@ if ($isLoggedIn) {
 
                     <div class="chat-input-area" id="dm-chat-area">
                         <div class="input-wrapper">
-                            <button class="upload-btn-plus" title="<?= __('upload') ?>" onclick="openMediaUploadModal()">
+                            <button class="upload-btn-plus" title="<?= ('upload') ?>" onclick="openMediaUploadModal()">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                             </button>
-                            <textarea id="dm-msg-input" class="chat-input" placeholder="<?= __('dm_placeholder') ?>"
+                            <textarea id="dm-msg-input" class="chat-input" placeholder="<?= ('dm_placeholder') ?>"
                                 rows="1" onkeydown="handleDmInputKey(event)" oninput="handleTyping()"></textarea>
                             <button class="send-btn-modern" onclick="sendDm()">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -543,13 +362,13 @@ if ($isLoggedIn) {
             <dialog id="add-friend-modal" class="modal"
                 style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
                 <div class="modal-content" style="min-width:400px;">
-                    <h3><?= __('add_friend') ?></h3>
+                    <h3><?= ('add_friend') ?></h3>
                     <div style="display:flex; gap:10px; margin-bottom:15px;">
-                        <input type="text" id="user-search-input" class="chat-input" placeholder="<?= __('search_user_placeholder') ?>">
-                        <button class="btn-primary" onclick="searchUsers()"><?= __('search') ?></button>
+                        <input type="text" id="user-search-input" class="chat-input" placeholder="<?= ('search_user_placeholder') ?>">
+                        <button class="btn-primary" onclick="searchUsers()"><?= ('search') ?></button>
                     </div>
                     <div id="user-search-results" style="max-height:300px; overflow-y:auto;"></div>
-                    <button class="btn-secondary" onclick="document.getElementById('add-friend-modal').close()" style="width:100%; margin-top:10px;"><?= __('close') ?></button>
+                    <button class="btn-secondary" onclick="document.getElementById('add-friend-modal').close()" style="width:100%; margin-top:10px;"><?= ('close') ?></button>
                 </div>
             </dialog>
 
@@ -557,7 +376,7 @@ if ($isLoggedIn) {
                 style="border:none; border-radius:12px; padding:0; background:var(--bg-color); color:var(--text-primary); width:90%; max-width:800px; max-height:80vh;">
                 <div style="display:flex; flex-direction:column; height:100%;">
                     <div style="padding:16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                        <h3 style="margin:0;"><?= __('attachment_gallery') ?></h3>
+                        <h3 style="margin:0;"><?= ('attachment_gallery') ?></h3>
                         <button class="close-btn" onclick="document.getElementById('gallery-modal').close()" style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;">✕</button>
                     </div>
                     <div id="gallery-content" style="flex:1; padding:20px; overflow-y:auto; display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:16px;">
@@ -569,12 +388,12 @@ if ($isLoggedIn) {
             <dialog id="pending-requests-modal" class="modal"
                 style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
                 <div class="modal-content" style="min-width:400px;">
-                    <h3><?= __('pending_requests') ?></h3>
+                    <h3><?= ('pending_requests') ?></h3>
                     <div id="pending-requests-list-modal" class="thread-list"
                         style="max-height:300px; overflow-y:auto;"></div>
                     <div class="modal-actions" style="margin-top:10px; text-align:right;">
                         <button class="btn-secondary"
-                            onclick="document.getElementById('pending-requests-modal').close()"><?= __('close') ?></button>
+                            onclick="document.getElementById('pending-requests-modal').close()"><?= ('close') ?></button>
                     </div>
                 </div>
             </dialog>
@@ -585,16 +404,16 @@ if ($isLoggedIn) {
                     <!-- Local video and remote videos will be injected here -->
                 </div>
                 <div class="meeting-controls">
-                    <button class="control-btn" id="toggle-mic" onclick="meetingManager.toggleMic()" title="<?= __('toggle_mic') ?>">
+                    <button class="control-btn" id="toggle-mic" onclick="meetingManager.toggleMic()" title="<?= ('toggle_mic') ?>">
                         <img id="mic-icon" src="assets/img/mic.svg" alt="">
                     </button>
-                    <button class="control-btn" id="toggle-video" onclick="meetingManager.toggleVideo()" title="<?= __('toggle_video') ?>">
+                    <button class="control-btn" id="toggle-video" onclick="meetingManager.toggleVideo()" title="<?= ('toggle_video') ?>">
                         <img id="video-icon" src="assets/img/camera_on.svg" alt="">
                     </button>
-                    <button class="control-btn" id="toggle-screen" onclick="meetingManager.toggleScreenShare()" title="<?= __('toggle_screen') ?>">
+                    <button class="control-btn" id="toggle-screen" onclick="meetingManager.toggleScreenShare()" title="<?= ('toggle_screen') ?>">
                         <img id="screen-icon" src="assets/img/screen_share.svg" alt="">
                     </button>
-                    <button class="control-btn" id="hangup-btn" onclick="meetingManager.leave()" title="<?= __('leave_meeting') ?>">
+                    <button class="control-btn" id="hangup-btn" onclick="meetingManager.leave()" title="<?= ('leave_meeting') ?>">
                         <img id="hangup-icon" src="assets/img/hangup.svg" alt="" color="white">
                     </button>
                 </div>
@@ -603,11 +422,11 @@ if ($isLoggedIn) {
             <dialog id="blocked-users-modal" class="modal"
                 style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
                 <div class="modal-content" style="min-width:400px;">
-                    <h3><?= __('blocked_users') ?></h3>
+                    <h3><?= ('blocked_users') ?></h3>
                     <div id="blocked-users-list" class="thread-list" style="max-height:300px; overflow-y:auto;"></div>
                     <div class="modal-actions" style="margin-top:10px; text-align:right;">
                         <button class="btn-secondary"
-                            onclick="document.getElementById('blocked-users-modal').close()"><?= __('close') ?></button>
+                            onclick="document.getElementById('blocked-users-modal').close()"><?= ('close') ?></button>
                     </div>
                 </div>
             </dialog>
@@ -619,12 +438,12 @@ if ($isLoggedIn) {
                     <div style="padding:16px 20px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; background:var(--bg-secondary);">
                         <div style="display:flex; align-items:center; gap:8px;">
                             <img src="assets/img/pin.svg" alt="" width="16" height="16">
-                            <h3 style="margin:0; font-size:1rem;"><?= __('pinned_messages') ?></h3>
+                            <h3 style="margin:0; font-size:1rem;"><?= ('pinned_messages') ?></h3>
                         </div>
                         <button class="close-btn" onclick="document.getElementById('pinned-messages-modal').close()" style="background:none; border:none; color:var(--text-primary); font-size:1.2rem; cursor:pointer;">✕</button>
                     </div>
                     <div id="pinned-messages-list" style="flex:1; overflow-y:auto; padding:16px;">
-                        <div style="text-align:center; color:var(--text-secondary); padding:40px 0;"><?= __('loading') ?></div>
+                        <div style="text-align:center; color:var(--text-secondary); padding:40px 0;"><?= ('loading') ?></div>
                     </div>
                 </div>
             </dialog>
@@ -633,29 +452,29 @@ if ($isLoggedIn) {
             <dialog id="keyboard-shortcuts-modal" class="modal"
                 style="border:none; border-radius:12px; padding:24px; background:var(--accent-hover); color:var(--text-primary); width:90%; max-width:480px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h3 style="margin:0; display:flex; align-items:center; gap:8px;"><span>⌨️</span> <?= __('keyboard_shortcuts') ?></h3>
+                    <h3 style="margin:0; display:flex; align-items:center; gap:8px;"><span>⌨️</span> <?= ('keyboard_shortcuts') ?></h3>
                     <button onclick="document.getElementById('keyboard-shortcuts-modal').close()" style="background:none; border:none; color:var(--text-primary); font-size:1.2rem; cursor:pointer;">✕</button>
                 </div>
                 <div style="display:grid; gap:10px;">
                     <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
                         <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">Esc</kbd>
-                        <span style="font-size:0.9rem;"><?= __('shortcut_esc_desc') ?></span>
+                        <span style="font-size:0.9rem;"><?= ('shortcut_esc_desc') ?></span>
                     </div>
                     <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
                         <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">/</kbd>
-                        <span style="font-size:0.9rem;"><?= __('search') ?></span>
+                        <span style="font-size:0.9rem;"><?= ('search') ?></span>
                     </div>
                     <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
                         <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">Alt + P</kbd>
-                        <span style="font-size:0.9rem;"><?= __('pinned_messages') ?></span>
+                        <span style="font-size:0.9rem;"><?= ('pinned_messages') ?></span>
                     </div>
                     <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
                         <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">Alt + Shift + ?</kbd>
-                        <span style="font-size:0.9rem;"><?= __('keyboard_shortcuts') ?></span>
+                        <span style="font-size:0.9rem;"><?= ('keyboard_shortcuts') ?></span>
                     </div>
                     <div style="display:flex; gap:12px; align-items:center; padding:8px; background:var(--bg-color); border-radius:6px;">
                         <kbd style="background:var(--input-bg); padding:3px 8px; border-radius:4px; font-family:monospace; font-size:0.85rem; border:1px solid var(--border-color); min-width:60px; text-align:center;">Enter</kbd>
-                        <span style="font-size:0.9rem;"><?= __('shortcut_enter_desc') ?></span>
+                        <span style="font-size:0.9rem;"><?= ('shortcut_enter_desc') ?></span>
                     </div>
                 </div>
             </dialog>
@@ -663,23 +482,23 @@ if ($isLoggedIn) {
             <dialog id="thread-settings-modal" class="modal"
                 style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
                 <div class="modal-content" style="min-width:400px;">
-                    <h3><?= __('thread_settings') ?></h3>
+                    <h3><?= ('thread_settings') ?></h3>
                     <div class="form-group" style="margin-top:1rem;">
-                        <label><?= __('thread_name') ?></label>
-                        <input type="text" id="settings-thread-name" class="chat-input" style="width:100%;" placeholder="<?= __('thread_name') ?>">
+                        <label><?= ('thread_name') ?></label>
+                        <input type="text" id="settings-thread-name" class="chat-input" style="width:100%;" placeholder="<?= ('thread_name') ?>">
                     </div>
                     <div class="form-group" style="margin-top:1rem;">
-                        <label><?= __('category') ?></label>
-                        <input type="text" id="settings-thread-category" class="chat-input" style="width:100%;" placeholder="<?= __('category_placeholder') ?>">
+                        <label><?= ('category') ?></label>
+                        <input type="text" id="settings-thread-category" class="chat-input" style="width:100%;" placeholder="<?= ('category_placeholder') ?>">
                     </div>
                     <div class="form-group" style="margin-top:1rem;">
-                        <label><?= __('discord_webhook') ?></label>
+                        <label><?= ('discord_webhook') ?></label>
                         <input type="text" id="settings-thread-webhook" class="chat-input" style="width:100%;" placeholder="https://discord.com/api/webhooks/...">
-                        <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:5px;"><?= __('discord_webhook_desc') ?></p>
+                        <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:5px;"><?= ('discord_webhook_desc') ?></p>
                     </div>
                     <div class="modal-actions" style="margin-top:20px; text-align:right;">
-                        <button class="btn-secondary" onclick="document.getElementById('thread-settings-modal').close()"><?= __('cancel') ?></button>
-                        <button class="btn-primary" onclick="saveThreadSettings()"><?= __('save') ?></button>
+                        <button class="btn-secondary" onclick="document.getElementById('thread-settings-modal').close()"><?= ('cancel') ?></button>
+                        <button class="btn-primary" onclick="saveThreadSettings()"><?= ('save') ?></button>
                     </div>
                 </div>
             </dialog>
@@ -687,7 +506,7 @@ if ($isLoggedIn) {
             <dialog id="media-upload-modal" class="modal media-upload-modal">
                 <div class="modal-content" style="min-width: 450px; max-width: 600px;">
                     <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                        <h3 style="margin:0;"><?= __('send_file') ?></h3>
+                        <h3 style="margin:0;"><?= ('send_file') ?></h3>
                         <button class="close-btn" onclick="closeMediaUploadModal()">
                             <p style="font-size: 20px; color: #000000; font-weight: bold; margin:0; padding:0; cursor:pointer; background-color: transparent; border: none; outline: none;">✕</p>
                         </button>
@@ -701,19 +520,19 @@ if ($isLoggedIn) {
                                     <polyline points="17 8 12 3 7 8"></polyline>
                                     <line x1="12" y1="3" x2="12" y2="15"></line>
                                 </svg>
-                                <p style="margin:0; color:var(--text-secondary);"><?= __('click_or_drag_to_select') ?></p>
+                                <p style="margin:0; color:var(--text-secondary);"><?= ('click_or_drag_to_select') ?></p>
                             </div>
                         </div>
                         <input type="file" id="modal-file-input" hidden onchange="handleMediaUploadFiles(this.files)">
                     </div>
 
                     <div class="modal-form-group" style="margin-top:20px;">
-                        <label class="modal-label"><?= __('message_optional') ?></label>
-                        <textarea id="modal-content-input" class="modal-textarea" placeholder="<?= __('bio_placeholder') ?>" rows="2" style="background:var(--input-bg); border:1px solid var(--border-color); color:white; border-radius:8px; padding:12px; width:100%; resize:none;"></textarea>
+                        <label class="modal-label"><?= ('message_optional') ?></label>
+                        <textarea id="modal-content-input" class="modal-textarea" placeholder="<?= ('bio_placeholder') ?>" rows="2" style="background:var(--input-bg); border:1px solid var(--border-color); color:white; border-radius:8px; padding:12px; width:100%; resize:none;"></textarea>
                     </div>
 
                     <div class="modal-actions" style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end;">
-                        <button class="btn-secondary" onclick="closeMediaUploadModal()" style="padding:10px 30px;"><?= __('cancel') ?></button>
+                        <button class="btn-secondary" onclick="closeMediaUploadModal()" style="padding:10px 30px;"><?= ('cancel') ?></button>
                     </div>
                 </div>
             </dialog>
@@ -721,14 +540,14 @@ if ($isLoggedIn) {
                 <aside class="thread-browser active"
                     style="margin-left:0; border-right:1px solid var(--border-color); display:block; position:relative;">
                     <div class="panel-header" style="justify-content: flex-start;">
-                        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="<?= __('menu') ?>">
+                        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="<?= ('menu') ?>">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="3" y1="12" x2="21" y2="12"></line>
                                 <line x1="3" y1="6" x2="21" y2="6"></line>
                                 <line x1="3" y1="18" x2="21" y2="18"></line>
                             </svg>
                         </button>
-                        <div style="display:flex; align-items:center; margin-left:10px;"><?= __('fav_threads') ?></div>
+                        <div style="display:flex; align-items:center; margin-left:10px;"><?= ('fav_threads') ?></div>
                     </div>
                     <div id="fav-thread-list" class="thread-list"></div>
                 </aside>
@@ -747,7 +566,7 @@ if ($isLoggedIn) {
 
     <!-- Offline Indicator -->
     <div id="offline-indicator" style="display:none; position:fixed; top:0; left:0; right:0; background:#ef4444; color:white; text-align:center; padding:6px; font-size:0.8rem; font-family:'Inter',sans-serif; z-index:10001; animation: slideDown 0.3s ease-out;">
-        <?= __('offline_msg') ?>
+        <?= ('offline_msg') ?>
     </div>
     <script src="js/index.js" type="module"></script>
     <script src="js/widgets.js"></script>

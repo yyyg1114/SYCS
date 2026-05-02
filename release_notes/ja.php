@@ -6,6 +6,59 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v2.2.0 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.0</span>
+        <span class="release-title">大規模なアーキテクチャの刷新とパフォーマンス向上</span>
+        <span class="release-date">2026-05-02</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 安定性 & セキュリティ (Stability & Security)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🏗️</span>
+                    <div>
+                        <strong>バックエンドAPIの分離と堅牢化</strong>
+                        <span class="detail">APIのルーティングとデータベース初期化ロジックを専用のハンドラクラス（<code>Handler.php</code>、<code>db_init.php</code>）に抽出し、バックエンドの保守性とセキュリティを大幅に向上させました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>フロントエンドのモジュール化</strong>
+                        <span class="detail">巨大化していた <code>index.js</code> を ES6 モジュール（<code>api.js</code>、<code>chat.js</code>、<code>ui.js</code> など）に分割し、コードの保守性と読み込みパフォーマンスを最適化しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善 & リファクタリング (Improvements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>CSSのコンポーネント化</strong>
+                        <span class="detail">単一の <code>style.css</code> を論理的なモジュール（<code>layout.css</code>、<code>components.css</code>、<code>modals.css</code> など）に分割・再構築し、UIの拡張性を高めました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧱</span>
+                    <div>
+                        <strong>UIテンプレートのコンポーネント化</strong>
+                        <span class="detail"><code>index.php</code> に集中していたHTML構造を <code>sidebar.php</code> や <code>modals.php</code> などのインクルードファイルに分割し、UIの一貫性と開発効率を向上させました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.38 ===== -->
 <article class="release">
     <div class="release-header">

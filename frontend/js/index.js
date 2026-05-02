@@ -39,6 +39,7 @@ window.deleteCurrentThread = () => import('./modules/chat.js').then(m => m.delet
 window.openMediaUploadModal = () => import('./modules/ui.js').then(m => m.showModal("media-upload-modal"));
 window.closeMediaUploadModal = () => import('./modules/ui.js').then(m => m.closeModal("media-upload-modal"));
 window.switchSidebarTab = (t) => import('./modules/chat.js').then(m => m.switchSidebarTab(t));
+window.switchTab = (t) => import('./modules/ui.js').then(m => m.switchTab(t));
 window.createThread = () => import('./modules/chat.js').then(m => m.createThread());
 window.toggleOnlineUsers = () => import('./modules/ui.js').then(m => m.toggleOnlineUsers());
 window.setTheme = (t) => import('./modules/ui.js').then(m => m.setTheme(t));
@@ -82,12 +83,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initApp() {
-    loadThreads(th => switchThread(th.id, th.name, th.creator_id));
+    const threadList = document.getElementById("thread-list");
+    if (threadList) {
+        loadThreads(th => switchThread(th.id, th.name, th.creator_id));
+    }
     
     initSocket(currentUserId, {
         onNewMessage: (data) => {
-            if (data.threadId == currentThreadId) {
-                loadMessages(currentThreadId, document.getElementById("message-container"), {currentUserName, currentUserId}, getMessageCallbacks());
+            const container = document.getElementById("message-container");
+            if (container && data.threadId == currentThreadId) {
+                loadMessages(currentThreadId, container, {currentUserName, currentUserId}, getMessageCallbacks());
             }
         }
     });

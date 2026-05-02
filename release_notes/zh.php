@@ -7,6 +7,59 @@
  */
 ?>
 
+<!-- ===== v2.2.0 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.0</span>
+        <span class="release-title">大规模架构革新与性能优化</span>
+        <span class="release-date">2026-05-02</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 稳定性与安全性 (Stability & Security)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🏗️</span>
+                    <div>
+                        <strong>后端 API 解耦与加固</strong>
+                        <span class="detail">将 API 路由和数据库初始化逻辑提取至专用的处理类 (<code>Handler.php</code>, <code>db_init.php</code>) 中，大幅提升了后端的代码可维护性和系统安全性。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>前端模块化改造</strong>
+                        <span class="detail">将庞大的 <code>index.js</code> 拆分为多个 ES6 模块 (如 <code>api.js</code>, <code>chat.js</code>, <code>ui.js</code> 等)，优化了代码的可维护性和页面加载性能。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善与重构 (Improvements & Refactoring)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>CSS 组件化重构</strong>
+                        <span class="detail">将单一的 <code>style.css</code> 拆分并重构为多个逻辑模块 (<code>layout.css</code>, <code>components.css</code>, <code>modals.css</code> 等)，增强了 UI 的可扩展性。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧱</span>
+                    <div>
+                        <strong>UI 模板组件化</strong>
+                        <span class="detail">将 <code>index.php</code> 中集中的 HTML 结构拆分为 <code>sidebar.php</code> 和 <code>modals.php</code> 等包含文件，提高了 UI 的一致性和开发效率。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.38 ===== -->
 <article class="release">
     <div class="release-header">

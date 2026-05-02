@@ -1,3 +1,56 @@
+<!-- ===== v2.2.0 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.0</span>
+        <span class="release-title">Massive Architecture Overhaul & Performance Tuning</span>
+        <span class="release-date">2026-05-02</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> Stability & Security
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🏗️</span>
+                    <div>
+                        <strong>Backend API Decoupling</strong>
+                        <span class="detail">Extracted API routing and database initialization logic into dedicated handler classes (<code>Handler.php</code>, <code>db_init.php</code>), significantly improving backend maintainability and security.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>Frontend Modularization</strong>
+                        <span class="detail">Split the monolithic <code>index.js</code> into ES6 modules (<code>api.js</code>, <code>chat.js</code>, <code>ui.js</code>, etc.) to optimize code maintainability and load performance.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Improvements & Refactoring
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>CSS Componentization</strong>
+                        <span class="detail">Decomposed the single <code>style.css</code> into logical modules (<code>layout.css</code>, <code>components.css</code>, <code>modals.css</code>, etc.) for better UI scalability.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧱</span>
+                    <div>
+                        <strong>UI Template Refactoring</strong>
+                        <span class="detail">Split the dense HTML structure in <code>index.php</code> into reusable include files like <code>sidebar.php</code> and <code>modals.php</code>, enhancing UI consistency and development efficiency.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v1.2.38 ===== -->
 <article class="release">
     <div class="release-header">

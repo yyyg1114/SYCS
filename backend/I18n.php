@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/Session.php';
+require_once __DIR__ . '/Cookie.php';
 
 class I18n
 {
@@ -87,7 +88,7 @@ class I18n
      */
     private function getCookieLang()
     {
-        return $_COOKIE['lang'] ?? null;
+        return Cookie::getInstance()->get('lang');
     }
 
     /**
@@ -95,13 +96,11 @@ class I18n
      */
     private function setCookieLang($lang)
     {
-        if (isset($_COOKIE['lang']) && $_COOKIE['lang'] === $lang) {
+        if (Cookie::getInstance()->get('lang') === $lang) {
             return;
         }
 
-        if (!headers_sent()) {
-            setcookie('lang', $lang, time() + (86400 * 30), "/"); // 30 days
-        }
+        Cookie::getInstance()->set('lang', $lang, 86400 * 30, "/"); // 30 days
     }
 
     /**
