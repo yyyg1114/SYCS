@@ -22,7 +22,11 @@
 <dialog id="profile-modal" class="profile-modal">
     <div class="profile-content">
         <div class="profile-edit-pane">
-            <h2 style="margin-bottom:24px; font-size:1.5rem; font-weight:700;"><?= __('user_settings') ?></h2>
+            <div class="profile-edit-header">
+                <h2 style="margin:0; font-size:1.5rem; font-weight:700;"><?= __('user_settings') ?></h2>
+            </div>
+            
+            <div class="profile-edit-body">
 
             <div class="modal-form-group">
                 <label class="modal-label"><?= __('avatar') ?></label>
@@ -43,10 +47,10 @@
                     <div style="display:flex; align-items:center; gap:10px;">
                         <input type="color" id="edit-banner-input" class="modal-input" style="width:60px; height:40px; padding:2px;"
                             oninput="updatePreviewBanner(this.value)" value="<?= htmlspecialchars($currentUserBanner) ?>">
-                        <button class="btn-primary" onclick="document.getElementById('edit-banner-img-input').click()" style="width:auto; padding:8px 16px;">
-                            <?= __('upload_image') ?>
+                        <button class="btn-premium-primary" onclick="document.getElementById('edit-banner-img-input').click()" style="flex:1;">
+                            <?= __('select_image') ?>
                         </button>
-                        <button class="btn-secondary" id="btn-remove-banner" onclick="removeBannerPreview()" style="width:auto; background:#333; display:none;">
+                        <button class="btn-premium-primary" onclick="removeBanner()" style="background:#f87171; flex:0.4;">
                             <?= __('remove') ?>
                         </button>
                         <input type="file" id="edit-banner-img-input" hidden accept="image/*" onchange="previewBannerImage(this)">
@@ -72,8 +76,8 @@
             <div class="modal-form-group">
                 <label class="modal-label"><?= __('theme_settings') ?></label>
                 <div style="display:flex; gap:10px;">
-                    <button class="btn-secondary" onclick="setTheme('dark')" style="flex:1;"><?= __('dark') ?></button>
-                    <button class="btn-secondary" onclick="setTheme('light')" style="flex:1;"><?= __('light') ?></button>
+                    <button class="btn-premium-primary" onclick="setTheme('dark')" style="flex:1;"><?= __('dark') ?></button>
+                    <button class="btn-premium-primary" onclick="setTheme('light')" style="flex:1;"><?= __('light') ?></button>
                 </div>
             </div>
 
@@ -117,13 +121,15 @@
                 </select>
             </div>
 
-            <div style="margin-top:32px; display:flex; flex-direction:column; gap:12px;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <button class="btn-secondary" onclick="document.getElementById('profile-modal').close()" style="padding: 12px; flex: 1;"><?= __('cancel') ?></button>
-                    <button class="btn-primary" onclick="saveProfile()" style="padding: 12px; flex: 1; font-weight: 600;"><?= __('save') ?></button>
+            </div> <!-- End profile-edit-body -->
+
+            <div class="profile-edit-footer">
+                <div class="primary-actions">
+                    <button class="btn-premium-primary" onclick="document.getElementById('profile-modal').close()" style="background: rgba(255,255,255,0.1);"><?= __('cancel') ?></button>
+                    <button class="btn-premium-primary" onclick="saveProfile()"><?= __('save') ?></button>
                 </div>
-                <div style="display:flex; justify-content: flex-end;">
-                    <a href="delete_account.php" style="color:#f87171; font-size:0.8rem; text-decoration:none;"><?= __('delete_account') ?></a>
+                <div class="danger-zone">
+                    <a href="delete_account.php" class="delete-account-link"><?= __('delete_account') ?></a>
                 </div>
             </div>
         </div>
@@ -136,13 +142,13 @@
                         <?php if ($currentUserAvatar): ?>
                             <img src="<?= htmlspecialchars($currentUserAvatar) ?>" class="discord-avatar" id="preview-avatar-img">
                         <?php else: ?>
-                            <?= strtoupper(substr($currentUser, 0, 1)) ?>
+                            <?= strtoupper(substr($currentUser ?? $_SESSION['user'] ?? '?', 0, 1)) ?>
                         <?php endif; ?>
                     </div>
                     <div class="discord-status-indicator status-<?= htmlspecialchars($currentUserStatus) ?>" id="preview-status-indicator"></div>
                 </div>
                 <div class="discord-body">
-                    <div class="discord-username"><?= htmlspecialchars($currentUser) ?></div>
+                    <div class="discord-username"><?= htmlspecialchars($currentUser ?? $_SESSION['user'] ?? 'User') ?></div>
                     <div class="discord-custom-status" id="preview-custom-status-text"></div>
                     <div class="discord-divider"></div>
                     <div class="discord-section-title"><?= __('bio') ?></div>

@@ -360,35 +360,34 @@ if ($isLoggedIn) {
                     </div>
 
                     <div id="pwa-install-banner-threads" class="pwa-install-banner-integrated" style="display:none;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-size:1.1rem;">📱</span>
-                            <span style="font-weight:600; font-size:1.1rem;"><?= __('install_sycs') ?></span>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span style="font-size:1.2rem;">📱</span>
+                            <span style="font-weight:600;"><?= __('install_sycs') ?></span>
                         </div>
-                        <button onclick="installPWA()" style="background:#fff; color:#4f46e5; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;"><?= __('install') ?></button>
-                        <button onclick="dismissInstallBanner()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.1rem; opacity:0.7; padding:4px;">✕</button>
+                        <button class="btn-add" onclick="installPWA()"><?= __('install') ?></button>
+                        <button class="btn-close" onclick="dismissInstallBanner()">✕</button>
                     </div>
 
                     <div id="typing-indicator" class="typing-indicator-bar" style="font-size: 0.75rem; color: var(--text-secondary); margin: 0 16px; min-height: 18px;"></div>
 
                     <div class="chat-input-area">
                         <div class="input-wrapper">
-                            <button class="icon-btn upload-btn-plus" title="<?= __('upload') ?>" onclick="openMediaUploadModal()">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <button class="upload-btn-plus" title="<?= __('upload') ?>" onclick="openMediaUploadModal()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                             </button>
                             <textarea id="msg-input" class="chat-input" placeholder="<?= __('send_message_placeholder') ?>"
                                 rows="1" onkeydown="handleInputKey(event)" oninput="handleTyping()"></textarea>
-                            <select id="self-destruct-timer" class="icon-btn" style="width: auto; font-size: 0.7rem; background: rgba(0,0,0,0.2); border: none; color: var(--text-secondary); border-radius: 4px; padding: 2px 4px;" title="<?= __('auto_delete') ?>">
+                            <select id="self-destruct-timer" title="<?= __('auto_delete') ?>">
                                 <option value="0"><?= __('no_expiry') ?></option>
                                 <option value="60"><?= __('one_minute') ?></option>
                                 <option value="3600"><?= __('one_hour') ?></option>
                                 <option value="86400"><?= __('one_day') ?></option>
                             </select>
-                            <button onclick="sendMessage()"
-                                style="background:transparent; border:none; color:var(--accent-color); cursor:pointer; padding:5px; display:flex;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            <button class="send-btn-modern" onclick="sendMessage()">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="22" y1="2" x2="11" y2="13" />
                                     <polygon points="22 2 15 22 11 13 2 9 22 2" />
@@ -508,31 +507,29 @@ if ($isLoggedIn) {
                     </div>
 
                     <div id="pwa-install-banner-dm" class="pwa-install-banner-integrated" style="display:none;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-size:1.1rem;">📱</span>
-                            <span style="font-weight:600; font-size:1.1rem;"><?= __('install_sycs') ?></span>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span style="font-size:1.2rem;">📱</span>
+                            <span style="font-weight:600;"><?= __('install_sycs') ?></span>
                         </div>
-                        <button onclick="installPWA()" style="background:white; color:#4f46e5; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:1rem; white-space:nowrap;"><?= __('add') ?></button>
-                        <button onclick="dismissInstallBanner()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.1rem; opacity:0.7; padding:4px;">✕</button>
+                        <button class="btn-add" onclick="installPWA()"><?= __('install') ?></button>
+                        <button class="btn-close" onclick="dismissInstallBanner()">✕</button>
                     </div>
 
                     <div id="dm-typing-indicator" class="typing-indicator-bar" style="font-size: 0.75rem; color: var(--text-secondary); margin: 0 16px; min-height: 18px;"></div>
 
                     <div class="chat-input-area" id="dm-chat-area">
                         <div class="input-wrapper">
-                            <button class="icon-btn upload-btn-plus" title="<?= __('upload') ?>" onclick="openMediaUploadModal()">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <button class="upload-btn-plus" title="<?= __('upload') ?>" onclick="openMediaUploadModal()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                             </button>
-                            <textarea id="dm-msg-input" class="chat-input" placeholder="<?= __('dm_placeholder') ?>" rows="1"
-                                onkeydown="handleDmInputKey(event)" oninput="handleTyping()"></textarea>
-                            <input type="file" id="msg-file-input" hidden onchange="handleMediaUploadFiles(this.files)">
-                            <button onclick="sendDm()"
-                                style="background:transparent; border:none; color:var(--accent-color); cursor:pointer;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
+                            <textarea id="dm-msg-input" class="chat-input" placeholder="<?= __('dm_placeholder') ?>"
+                                rows="1" onkeydown="handleDmInputKey(event)" oninput="handleTyping()"></textarea>
+                            <button class="send-btn-modern" onclick="sendDm()">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="22" y1="2" x2="11" y2="13" />
                                     <polygon points="22 2 15 22 11 13 2 9 22 2" />
                                 </svg>
@@ -737,19 +734,6 @@ if ($isLoggedIn) {
                 </aside>
             </section>
 
-            <!-- Profile Edit Modal -->
-            <dialog id="profile-modal" class="profile-modal">
-                <div class="profile-content">
-                    <div class="profile-edit-form">
-                        <h3 style="margin-bottom: 24px;"><?= __('user_settings') ?></h3>
-
-                        <div class="modal-form-group">
-                            <label class="modal-label"><?= __('avatar_image') ?></label>
-                            <input type="file" id="edit-avatar-input" accept="image/*" style="display:none" onchange="previewAvatar(this)">
-                            <div style="display:flex; gap:8px;">
-                                <button class="btn-secondary" onclick="document.getElementById('edit-avatar-input').click()"><?= __('select_image') ?></button>
-                                <button class="btn-secondary" id="btn-remove-avatar" onclick="removeAvatarPreview()" style="color:#f87171; display: <?= $currentUserAvatar ? 'inline-block' : 'none' ?>;"><?= __('delete') ?></button>
-                            </div>
         </main>
     </div>
 
@@ -765,15 +749,7 @@ if ($isLoggedIn) {
     <div id="offline-indicator" style="display:none; position:fixed; top:0; left:0; right:0; background:#ef4444; color:white; text-align:center; padding:6px; font-size:0.8rem; font-family:'Inter',sans-serif; z-index:10001; animation: slideDown 0.3s ease-out;">
         <?= __('offline_msg') ?>
     </div>
-    <script>
-        async function changeLang(lang) {
-            const res = await fetch(`index.php?api=set_lang&lang=${lang}`);
-            if (res.ok) {
-                location.reload();
-            }
-        }
-    </script>
-    <script src="js/index.js"></script>
+    <script src="js/index.js" type="module"></script>
     <script src="js/widgets.js"></script>
 </body>
 

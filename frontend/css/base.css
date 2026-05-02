@@ -7,10 +7,10 @@
   --bg-color: #0b0c10;
   --sidebar-bg: #14151a;
   --panel-bg: #14151a;
-  --accent-color: #6366f1;
-  --accent-hover: #818cf8;
-  --accent-soft: rgba(99, 102, 241, 0.1);
-  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  --accent-color: #443dc4;
+  --accent-hover: #564ed9;
+  --accent-soft: rgba(68, 61, 196, 0.1);
+  --accent-gradient: #443dc4;
   
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;

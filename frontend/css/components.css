@@ -377,3 +377,146 @@
   animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(8px);
 }
+/* Integrated PWA Banner */
+.pwa-install-banner-integrated {
+  position: absolute;
+  bottom: 85px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent-color);
+  color: white;
+  padding: 8px 10px 8px 24px;
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  animation: slideUpFade 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  min-width: 320px;
+}
+
+.pwa-install-banner-integrated .btn-add {
+  background: white;
+  color: var(--accent-color);
+  border: none;
+  padding: 6px 20px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.pwa-install-banner-integrated .btn-add:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.pwa-install-banner-integrated .btn-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.2s;
+}
+
+.pwa-install-banner-integrated .btn-close:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes slideUpFade {
+  from { transform: translate(-50%, 20px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+/* Chat Input Elements */
+.upload-btn-plus {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.upload-btn-plus:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  transform: rotate(90deg);
+}
+
+.chat-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: none;
+  max-height: 200px;
+  outline: none;
+}
+
+.chat-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.send-btn-modern {
+  background: transparent;
+  border: none;
+  color: var(--accent-color);
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.send-btn-modern:hover {
+  color: var(--accent-hover);
+  transform: scale(1.15) rotate(-10deg);
+}
+#self-destruct-timer {
+  background: rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.6);
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  margin: 0 10px;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.2s, color 0.2s;
+  font-family: 'Inter', sans-serif;
+  appearance: none;
+  -webkit-appearance: none;
+  text-align: center;
+}
+
+#self-destruct-timer:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+#self-destruct-timer option {
+  background: #1e1e2e;
+  color: white;
+}

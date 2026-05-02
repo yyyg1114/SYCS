@@ -5,6 +5,7 @@
 import { api } from './api.js';
 import { renderMessageNode } from './message.js';
 import { getSkeletonLoader, t } from './utils.js';
+import { showToast, switchTab } from './ui.js';
 
 export async function loadThreads(callback) {
   const threads = await api("get_threads");
@@ -202,5 +203,116 @@ export async function deleteCurrentThread() {
       // Switch to general or reload
       window.switchThread(1, "general");
     }
+  }
+}
+
+/**
+ * Switch between thread and group tabs in sidebar
+ * @param {string} tab 
+ */
+export function switchSidebarTab(tab) {
+  const threads = document.getElementById("thread-list");
+  const groups = document.getElementById("group-list");
+  const threadArea = document.getElementById("create-thread-area");
+  const groupArea = document.getElementById("create-group-area");
+  
+  if (tab === "threads") {
+    if (threads) threads.style.display = "block";
+    if (groups) groups.style.display = "none";
+    if (threadArea) threadArea.style.display = "block";
+    if (groupArea) groupArea.style.display = "none";
+    loadThreads(th => window.switchThread(th.id, th.name, th.creator_id));
+  } else {
+    if (threads) threads.style.display = "none";
+    if (groups) groups.style.display = "block";
+    if (threadArea) threadArea.style.display = "none";
+    if (groupArea) groupArea.style.display = "block";
+    loadGroupThreads(g => window.switchThread(g.id, g.name, g.creator_id));
+  }
+
+  document.querySelectorAll(".sidebar-tabs .tab-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.innerText.toLowerCase().includes(tab));
+  });
+}
+
+/**
+ * Create a new thread
+ */
+export async function createThread() {
+  const input = document.getElementById("new-thread-name");
+  const name = input.value.trim();
+  if (!name) return;
+
+  const res = await api("create_thread", "POST", { name });
+  if (res && res.success) {
+    input.value = "";
+    loadThreads(th => window.switchThread(th.id, th.name, th.creator_id));
+  }
+}
+
+/**
+ * Save thread settings (name, category, webhook)
+ */
+export async function saveThreadSettings() {
+  const name = document.getElementById("settings-thread-name").value;
+  const category = document.getElementById("settings-thread-category").value;
+  const webhook = document.getElementById("settings-thread-webhook").value;
+
+  const res = await api(`update_thread&id=${window.SYCS_CONFIG.currentThreadId}`, "POST", {
+    name,
+    category,
+    discord_webhook: webhook
+  });
+
+  if (res && res.success) {
+    showToast(t("success", "成功"), t("thread_updated", "スレッド情報を更新しました"), "success");
+    location.reload();
+  }
+}
+
+/**
+ * Show Group Creation Dialog
+ */
+export async function showGroupCreationDialog() {
+  const modal = document.getElementById("group-creation-modal");
+  const picker = document.getElementById("group-member-picker");
+  if (!modal || !picker) return;
+
+  picker.innerHTML = `<div class="loading">${t("loading", "読み込み中...")}</div>`;
+  const friends = await api("get_friends");
+  picker.innerHTML = "";
+  if (friends && friends.length > 0) {
+    friends.forEach(f => {
+      const div = document.createElement("div");
+      div.className = "member-picker-item";
+      div.innerHTML = `
+        <label>
+          <input type="checkbox" name="members" value="${f.id}"> ${f.username}
+        </label>
+      `;
+      picker.appendChild(div);
+    });
+  } else {
+    picker.innerHTML = `<div class="empty-state">${t("no_friends", "フレンドがいません")}</div>`;
+  }
+  modal.showModal();
+}
+
+/**
+ * Submit Group Creation
+ */
+export async function submitGroupCreation() {
+  const name = document.getElementById("group-chat-name").value.trim();
+  const checkboxes = document.querySelectorAll("#group-member-picker input[name='members']:checked");
+  const members = Array.from(checkboxes).map(cb => cb.value);
+
+  if (!name || members.length === 0) {
+    showToast(t("error", "エラー"), t("group_creation_invalid", "名前とメンバーを入力してください"), "error");
+    return;
+  }
+
+  const res = await api("create_group", "POST", { name, members });
+  if (res && res.success) {
+    location.reload();
   }
 }

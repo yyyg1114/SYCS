@@ -313,3 +313,103 @@ export async function changeLang(lang) {
     location.reload();
   }
 }
+
+/**
+ * Toggle Online Users list in sidebar
+ */
+export function toggleOnlineUsers() {
+  const list = document.getElementById("online-users-list");
+  const icon = document.getElementById("online-users-toggle-icon");
+  if (list) {
+    const isHidden = list.style.display === "none";
+    list.style.display = isHidden ? "block" : "none";
+    if (icon) icon.innerText = isHidden ? "▾" : "▸";
+  }
+}
+
+/**
+ * Set Application Theme
+ * @param {string} theme 'dark' | 'light'
+ */
+export function setTheme(theme) {
+  document.body.className = theme === "light" ? "light-theme" : "";
+  localStorage.setItem("sycs_theme", theme);
+  showToast(t("settings", "設定"), t("theme_changed", "テーマを変更しました"), "info");
+}
+
+let deferredPrompt;
+
+/**
+ * Handle PWA install prompt
+ */
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Show banners
+  document.querySelectorAll("[id^='pwa-install-banner']").forEach(b => b.style.display = "flex");
+});
+
+/**
+ * Install PWA
+ */
+export async function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    deferredPrompt = null;
+    dismissInstallBanner();
+  }
+}
+
+/**
+ * Dismiss PWA Install Banner
+ */
+export function dismissInstallBanner() {
+  document.querySelectorAll("[id^='pwa-install-banner']").forEach(b => b.style.display = "none");
+}
+
+/**
+ * Start WebRTC Meeting
+ */
+export function startMeeting() {
+  showToast(t("info", "情報"), t("meeting_start_clicked", "ミーティング機能は準備中です"), "info");
+  // Logic for meetingManager would go here
+}
+
+/**
+ * Handle Media Upload Files
+ */
+export function handleMediaUploadFiles(files) {
+  console.log("Files selected:", files);
+  showToast(t("info", "情報"), t("upload_started", "ファイルのアップロードを開始します"), "info");
+}
+
+/**
+ * Cancel DM Upload
+ */
+export function cancelDmUpload() {
+  const preview = document.getElementById("dm-upload-preview");
+  if (preview) preview.style.display = "none";
+}
+
+/**
+ * Toggle Notification Mute
+ */
+export function toggleMute() {
+  const isMuted = localStorage.getItem("sycs_muted") === "true";
+  const newMuted = !isMuted;
+  localStorage.setItem("sycs_muted", newMuted);
+  
+  const muteBtn = document.getElementById("mute-btn");
+  if (muteBtn) {
+    muteBtn.classList.toggle("muted", newMuted);
+    muteBtn.innerHTML = newMuted ? 
+      `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>` :
+      `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`;
+  }
+  showToast(t("settings", "設定"), newMuted ? t("muted", "通知をミュートしました") : t("unmuted", "通知をオンにしました"), "info");
+}
+
+// Register toast function to API module
+registerShowToast(showToast);

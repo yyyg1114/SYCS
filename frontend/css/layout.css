@@ -171,25 +171,25 @@
 }
 
 .chat-input-area {
-  padding: 0 20px 20px 20px;
+  padding: 10px 20px 20px 20px;
   background: transparent;
+  position: relative;
 }
 
 .input-wrapper {
-  background: var(--input-bg);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 8px 12px;
+  background: rgba(30, 31, 46, 0.95);
+  border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  transition: var(--transition-normal);
+  padding: 2px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
 }
 
 .input-wrapper:focus-within {
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 4px var(--accent-soft);
-  background: rgba(255, 255, 255, 0.08);
 }
 
 .thread-browser {

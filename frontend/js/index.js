@@ -38,6 +38,24 @@ window.editCurrentThread = () => import('./modules/chat.js').then(m => m.editCur
 window.deleteCurrentThread = () => import('./modules/chat.js').then(m => m.deleteCurrentThread());
 window.openMediaUploadModal = () => import('./modules/ui.js').then(m => m.showModal("media-upload-modal"));
 window.closeMediaUploadModal = () => import('./modules/ui.js').then(m => m.closeModal("media-upload-modal"));
+window.switchSidebarTab = (t) => import('./modules/chat.js').then(m => m.switchSidebarTab(t));
+window.createThread = () => import('./modules/chat.js').then(m => m.createThread());
+window.toggleOnlineUsers = () => import('./modules/ui.js').then(m => m.toggleOnlineUsers());
+window.setTheme = (t) => import('./modules/ui.js').then(m => m.setTheme(t));
+window.toggleMute = () => import('./modules/ui.js').then(m => m.toggleMute());
+window.showAddFriendModal = () => import('./modules/friends.js').then(m => m.showAddFriendModal());
+window.searchUsers = () => import('./modules/friends.js').then(m => m.searchUsers());
+window.sendFriendRequest = (id) => import('./modules/friends.js').then(m => m.sendFriendRequest(id));
+window.showPendingRequestsModal = () => import('./modules/friends.js').then(m => m.showPendingRequestsModal());
+window.handleFriendRequest = (id, a) => import('./modules/friends.js').then(m => m.handleFriendRequest(id, a));
+window.showBlockedModal = () => import('./modules/friends.js').then(m => m.showBlockedModal());
+window.unblockUser = (id) => import('./modules/friends.js').then(m => m.unblockUser(id));
+window.switchToDm = (id, n) => import('./modules/dm.js').then(m => m.switchToDm(id, n));
+window.backToHub = () => import('./modules/dm.js').then(m => m.backToHub());
+window.sendDm = () => import('./modules/dm.js').then(m => m.sendDm());
+window.blockCurrentPartner = () => import('./modules/dm.js').then(m => m.blockCurrentPartner());
+window.handleDmInputKey = (e) => import('./modules/dm.js').then(m => m.handleDmInputKey(e));
+window.handleTyping = () => import('./modules/dm.js').then(m => m.handleTyping());
 window.previewAvatar = (i) => import('./modules/profile.js').then(m => m.previewAvatar(i));
 window.removeAvatarPreview = () => import('./modules/profile.js').then(m => m.removeAvatarPreview());
 window.updatePreviewBanner = (c) => import('./modules/profile.js').then(m => m.updatePreviewBanner(c));
@@ -48,6 +66,14 @@ window.updateAccentColor = (c) => import('./modules/profile.js').then(m => m.upd
 window.updatePreviewBio = (b) => import('./modules/profile.js').then(m => m.updatePreviewBio(b));
 window.updatePreviewStatus = (s) => import('./modules/profile.js').then(m => m.updatePreviewStatus(s));
 window.saveProfile = () => import('./modules/profile.js').then(m => m.saveProfile());
+window.saveThreadSettings = () => import('./modules/chat.js').then(m => m.saveThreadSettings());
+window.showGroupCreationDialog = () => import('./modules/chat.js').then(m => m.showGroupCreationDialog());
+window.submitGroupCreation = () => import('./modules/chat.js').then(m => m.submitGroupCreation());
+window.installPWA = () => import('./modules/ui.js').then(m => m.installPWA());
+window.dismissInstallBanner = () => import('./modules/ui.js').then(m => m.dismissInstallBanner());
+window.startMeeting = () => import('./modules/ui.js').then(m => m.startMeeting());
+window.handleMediaUploadFiles = (f) => import('./modules/ui.js').then(m => m.handleMediaUploadFiles(f));
+window.cancelDmUpload = () => import('./modules/ui.js').then(m => m.cancelDmUpload());
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
