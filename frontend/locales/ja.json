@@ -171,5 +171,17 @@
     "task_delete": "タスクを削除",
     "task_edit": "タスクを編集",
     "task_complete": "タスクを完了",
-    "task_incomplete": "タスクを未完了"
+    "task_incomplete": "タスクを未完了",
+    "da_irreversible": "この操作は取り消せません。慎重に確認してください。",
+    "da_warn_data": "アカウント情報（ユーザー名、メールアドレス、パスワード）が完全に削除されます。",
+    "da_warn_messages": "投稿したメッセージや添付ファイルも削除対象になる場合があります。",
+    "da_warn_restore": "削除されたデータは復元できません。",
+    "da_confirm_password": "パスワードを入力して確認",
+    "da_ck1": "すべてのデータが完全に削除されることを理解しました",
+    "da_ck2": "この操作は取り消せないことを理解しました",
+    "da_final_confirm": "本当にアカウントを削除しますか？この操作は元に戻せません。",
+    "da_invalid_request": "不正なリクエストです。",
+    "da_password_required": "パスワードを入力してください。",
+    "da_wrong_password": "パスワードが正しくありません。",
+    "da_delete_failed": "アカウントの削除に失敗しました。"
 }

@@ -9,6 +9,9 @@ import { renderMessageNode } from './modules/message.js';
 import { loadThreads, loadGroupThreads, loadMessages, loadGroupMessages } from './modules/chat.js';
 import { initSocket, socket } from './modules/socket.js';
 
+// --- Emoji Picker state ---
+let emojiPickerTarget = null;
+
 // --- Global State ---
 let currentThreadId = window.SYCS_CONFIG.currentThreadId;
 let currentThreadCreatorId = window.SYCS_CONFIG.currentThreadCreatorId;
@@ -75,6 +78,10 @@ window.dismissInstallBanner = () => import('./modules/ui.js').then(m => m.dismis
 window.startMeeting = () => import('./modules/ui.js').then(m => m.startMeeting());
 window.handleMediaUploadFiles = (f) => import('./modules/ui.js').then(m => m.handleMediaUploadFiles(f));
 window.cancelDmUpload = () => import('./modules/ui.js').then(m => m.cancelDmUpload());
+window.handleInputKey = handleInputKey;
+window.cancelUpload = cancelUpload;
+window.closeEmojiPicker = closeEmojiPicker;
+window.toggleReactionPicker = toggleReactionPicker;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -127,6 +134,123 @@ function getMessageCallbacks() {
             document.getElementById("reply-target-name").innerText = name;
             document.getElementById("reply-preview-text").innerText = text;
             window.replyToId = id;
+            document.getElementById("msg-input")?.focus();
+        },
+
+        onPin: async (messageId) => {
+            const res = await api("toggle_pin", "POST", { message_id: messageId });
+            if (res && res.success) {
+                loadMessages(
+                    currentThreadId,
+                    document.getElementById("message-container"),
+                    { currentUserName, currentUserId },
+                    getMessageCallbacks()
+                );
+                showToast(t("pin", "ピン留め"), t("pin_toggled", "ピン状態を変更しました"), "success");
+            }
+        },
+
+        onReact: (event, messageId) => {
+            toggleReactionPicker(event, messageId);
+        },
+
+        onEdit: async (message, isDm) => {
+            const wrapper = document.getElementById("message-" + message.id);
+            if (!wrapper) return;
+            const contentDiv = wrapper.querySelector(".message-content");
+            if (!contentDiv) return;
+
+            const original = message.content || "";
+            const textarea = document.createElement("textarea");
+            textarea.className = "chat-input edit-inline-input";
+            textarea.value = original;
+            textarea.rows = 2;
+            textarea.style.width = "100%";
+            textarea.style.marginTop = "4px";
+
+            const btnRow = document.createElement("div");
+            btnRow.style.display = "flex";
+            btnRow.style.gap = "6px";
+            btnRow.style.marginTop = "4px";
+
+            const saveBtn = document.createElement("button");
+            saveBtn.className = "btn-primary";
+            saveBtn.style.fontSize = "0.75rem";
+            saveBtn.style.padding = "4px 10px";
+            saveBtn.textContent = t("save", "保存");
+            saveBtn.onclick = async () => {
+                const newContent = textarea.value.trim();
+                if (!newContent) return;
+                const payload = isDm
+                    ? { dm_id: message.id, content: newContent }
+                    : { message_id: message.id, content: newContent };
+                const res = await api("edit_message", "POST", payload);
+                if (res && res.success) {
+                    loadMessages(
+                        currentThreadId,
+                        document.getElementById("message-container"),
+                        { currentUserName, currentUserId },
+                        getMessageCallbacks()
+                    );
+                }
+            };
+
+            const cancelBtn = document.createElement("button");
+            cancelBtn.className = "btn-secondary";
+            cancelBtn.style.fontSize = "0.75rem";
+            cancelBtn.style.padding = "4px 10px";
+            cancelBtn.textContent = t("cancel", "キャンセル");
+            cancelBtn.onclick = () => {
+                loadMessages(
+                    currentThreadId,
+                    document.getElementById("message-container"),
+                    { currentUserName, currentUserId },
+                    getMessageCallbacks()
+                );
+            };
+
+            btnRow.appendChild(saveBtn);
+            btnRow.appendChild(cancelBtn);
+            contentDiv.replaceChildren(textarea, btnRow);
+            textarea.focus();
+        },
+
+        onDelete: async (messageId) => {
+            if (!confirm(t("delete_confirm", "このメッセージを削除してもよろしいですか？"))) return;
+            const res = await api("delete_message", "POST", { message_id: messageId });
+            if (res && res.success) {
+                loadMessages(
+                    currentThreadId,
+                    document.getElementById("message-container"),
+                    { currentUserName, currentUserId },
+                    getMessageCallbacks()
+                );
+            }
+        },
+
+        onShowProfile: async (userId, username) => {
+            import('./modules/ui.js').then(m => m.showModal("profile-modal"));
+            const res = await api(`get_user_profile&user_id=${userId}`);
+            if (res && !res.error) {
+                const modal = document.getElementById("profile-modal");
+                if (!modal) return;
+                const nameEl = modal.querySelector("#profile-display-name, .profile-username, [data-field='username']");
+                if (nameEl) nameEl.textContent = res.username || username;
+                const bioEl = modal.querySelector("#profile-bio-display, .profile-bio, [data-field='bio']");
+                if (bioEl) bioEl.textContent = res.bio || "";
+            }
+        },
+
+        onToggleReaction: async (messageId, emoji) => {
+            const res = await api("toggle_reaction", "POST", { message_id: messageId, emoji });
+            if (res && res.success) {
+                loadMessages(
+                    currentThreadId,
+                    document.getElementById("message-container"),
+                    { currentUserName, currentUserId },
+                    getMessageCallbacks()
+                );
+            }
         }
     };
 }
@@ -134,6 +258,9 @@ function getMessageCallbacks() {
 async function switchThread(id, name, creatorId) {
     currentThreadId = id;
     currentThreadCreatorId = creatorId || 0;
+    // ui モジュールや他モジュールがアクセスできるよう SYCS_CONFIG も更新
+    window.SYCS_CONFIG.currentThreadId = id;
+    window.SYCS_CONFIG.currentThreadCreatorId = creatorId || 0;
     document.getElementById("current-thread-name").innerText = name;
     await loadMessages(id, document.getElementById("message-container"), {currentUserName, currentUserId}, getMessageCallbacks());
     
@@ -148,23 +275,127 @@ function cancelReply() {
     window.replyToId = null;
 }
 
+function cancelUpload() {
+    const preview = document.getElementById("upload-preview");
+    if (preview) preview.style.display = "none";
+    window.pendingFile = null;
+}
+
+function handleInputKey(event) {
+    if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+    }
+}
+
+/**
+ * リアクションピッカーを表示/非表示する
+ */
+function toggleReactionPicker(event, messageId) {
+    event.stopPropagation();
+    closeEmojiPicker();
+
+    const emojis = ["👍", "❤️", "😂", "😮", "😢", "🎉", "🔥", "👀", "✅", "🙏"];
+
+    const picker = document.createElement("div");
+    picker.id = "emoji-picker-popup";
+    picker.style.cssText = `
+        position: fixed;
+        background: var(--bg-secondary, #1e1e2e);
+        border: 1px solid var(--border-color, #3a3a5c);
+        border-radius: 12px;
+        padding: 8px;
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        max-width: 200px;
+        z-index: 9999;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    `;
+
+    const rect = event.target.getBoundingClientRect();
+    picker.style.left = Math.min(rect.left, window.innerWidth - 220) + "px";
+    picker.style.top = (rect.top - 60) + "px";
+
+    emojis.forEach(emoji => {
+        const btn = document.createElement("button");
+        btn.textContent = emoji;
+        btn.style.cssText = "background:none; border:none; font-size:1.3rem; cursor:pointer; padding:4px; border-radius:6px; transition: transform 0.1s;";
+        btn.onmouseenter = () => btn.style.transform = "scale(1.3)";
+        btn.onmouseleave = () => btn.style.transform = "scale(1)";
+        btn.onclick = async (e) => {
+            e.stopPropagation();
+            closeEmojiPicker();
+            const res = await api("toggle_reaction", "POST", { message_id: messageId, emoji });
+            if (res && res.success) {
+                loadMessages(
+                    currentThreadId,
+                    document.getElementById("message-container"),
+                    { currentUserName, currentUserId },
+                    getMessageCallbacks()
+                );
+            }
+        };
+        picker.appendChild(btn);
+    });
+
+    document.body.appendChild(picker);
+    emojiPickerTarget = messageId;
+
+    // 外側クリックで閉じる
+    setTimeout(() => {
+        document.addEventListener("click", closeEmojiPicker, { once: true });
+    }, 0);
+}
+
+function closeEmojiPicker() {
+    const picker = document.getElementById("emoji-picker-popup");
+    if (picker) picker.remove();
+    emojiPickerTarget = null;
+}
+
 async function sendMessage() {
     const input = document.getElementById("msg-input");
     const content = input.value.trim();
-    if (!content) return;
+    if (!content && !window.pendingFile) return;
 
-    const res = await api("send_message", "POST", {
-        thread_id: currentThreadId,
-        content: content,
-        reply_to_id: window.replyToId
-    });
+    const formData = new FormData();
+    formData.append("thread_id", currentThreadId);
+    formData.append("content", content);
+    if (window.replyToId) formData.append("reply_to_id", window.replyToId);
+    if (window.pendingFile) formData.append("attachment", window.pendingFile);
 
-    if (res.success) {
+    const res = await api("send_message", "POST", formData);
+
+    if (res && res.success) {
         input.value = "";
         cancelReply();
+        cancelUpload();
         loadMessages(currentThreadId, document.getElementById("message-container"), {currentUserName, currentUserId}, getMessageCallbacks());
     }
 }
 
-// ... Rest of the migrated functions from index.js
-// Note: I will append more functions here or move them to modules.
+// キーボードショートカット
+document.addEventListener("keydown", (e) => {
+    // Alt+P: ピン留めメッセージ表示
+    if (e.altKey && e.key === "p") {
+        e.preventDefault();
+        window.showPinnedMessages();
+    }
+    // Alt+Shift+?: キーボードショートカット一覧
+    if (e.altKey && e.shiftKey && e.key === "?") {
+        e.preventDefault();
+        import('./modules/ui.js').then(m => m.showModal("keyboard-shortcuts-modal"));
+    }
+    // Esc: アクティブなモーダルを閉じる
+    if (e.key === "Escape") {
+        closeEmojiPicker();
+    }
+    // /: 検索フォーカス
+    if (e.key === "/" && !e.ctrlKey && !e.metaKey) {
+        const activeEl = document.activeElement;
+        if (activeEl && (activeEl.tagName === "TEXTAREA" || activeEl.tagName === "INPUT")) return;
+        e.preventDefault();
+        document.getElementById("search-input")?.focus();
+    }
+});

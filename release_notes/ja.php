@@ -6,7 +6,89 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v2.2.3 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.3</span>
+        <span class="release-title">チャット機能の全面的な修正と強化</span>
+        <span class="release-date">2026-05-03</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-red"></span> バグ修正 (Bug Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📌</span>
+                    <div>
+                        <strong>ピン留め機能の完全な修正</strong>
+                        <span class="detail">メッセージのピン留め・解除ボタンが正しく動作しなかった問題を解消。ピン留め後にメッセージ一覧が自動更新されるようになり、ピン留め一覧モーダルもスレッドIDを正しく渡してAPIを呼ぶよう修正しました。また発信者名・日時も表示されクリックで当該メッセージへジャンプできるようになりました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">😊</span>
+                    <div>
+                        <strong>リアクション機能の修正</strong>
+                        <span class="detail">絵文字リアクションピッカーが表示されなかった問題を修正。フローティングな絵文字ピッカー（👍❤️😂 など10種類）が表示され、選択するとリアクションのトグルが正しく機能するようになりました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✏️</span>
+                    <div>
+                        <strong>メッセージ編集・削除の修正</strong>
+                        <span class="detail">編集ボタンがインライン編集エリアを表示するように修正。削除ボタンも確認ダイアログ付きで正しく動作するよう修正しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">↩️</span>
+                    <div>
+                        <strong>返信機能の修正</strong>
+                        <span class="detail"><code>reply_to_id</code> がAPIに送信されていなかった問題を修正。バックエンドでも <code>reply_to_id</code> をINSERT文に正しく保存するよう改善しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔍</span>
+                    <div>
+                        <strong>メッセージ検索・添付ファイル一覧の修正</strong>
+                        <span class="detail">検索クエリのAPIパス二重化バグを修正。添付ファイルギャラリーでフィールド名不一致（<code>item.path</code> → <code>item.attachment_path</code>）によって画像が表示されなかった問題を解消しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善 (Improvements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⌨️</span>
+                    <div>
+                        <strong>キーボードショートカットの実装</strong>
+                        <span class="detail"><code>Alt+P</code> でピン留めメッセージ一覧、<code>/</code> で検索フォーカス、<code>Alt+Shift+?</code> でショートカット一覧を表示できるようになりました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🗄️</span>
+                    <div>
+                        <strong>メッセージ取得APIの強化</strong>
+                        <span class="detail"><code>getMessages</code> APIでリアクション・返信元ユーザー名・オンラインステータスを一括取得するよう改善。不要な追加リクエストを排除しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔗</span>
+                    <div>
+                        <strong>状態管理の改善</strong>
+                        <span class="detail">スレッド切り替え時に <code>window.SYCS_CONFIG.currentThreadId</code> を同期更新するよう修正。各モジュールが常に正しいスレッドIDを参照できるようになりました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.0 ===== -->
+
 <article class="release">
     <div class="release-header">
         <span class="version-badge">v2.2.0</span>

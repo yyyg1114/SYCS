@@ -268,13 +268,23 @@ export async function showAttachmentGallery() {
   const content = document.getElementById("gallery-content");
   if (content) {
     content.innerHTML = `<div class="loading">${t("loading", "読み込み中...")}</div>`;
-    const res = await api("get_attachments");
+    const threadId = window.SYCS_CONFIG?.currentThreadId || 0;
+    const res = await api(`get_attachments&thread_id=${threadId}`);
     content.innerHTML = "";
     if (res && res.length > 0) {
       res.forEach(item => {
+        const path = item.attachment_path;
+        if (!path) return;
         const div = document.createElement("div");
         div.className = "gallery-item";
-        div.innerHTML = `<img src="${item.path}" alt="" loading="lazy">`;
+        const ext = path.split('.').pop().toLowerCase();
+        const isImage = ['jpg','jpeg','png','gif','webp','svg'].includes(ext);
+        if (isImage) {
+          div.innerHTML = `<img src="${path}" alt="" loading="lazy" style="width:100%; height:150px; object-fit:cover; border-radius:8px;">` ;
+        } else {
+          div.innerHTML = `<div style="padding:20px; text-align:center; font-size:0.8rem; opacity:0.7;">${path.split('/').pop()}</div>`;
+        }
+        div.onclick = () => window.open(path, '_blank');
         content.appendChild(div);
       });
     } else {
@@ -291,17 +301,34 @@ export async function showPinnedMessages() {
   const list = document.getElementById("pinned-messages-list");
   if (list) {
     list.innerHTML = `<div class="loading">${t("loading", "読み込み中...")}</div>`;
-    const res = await api("get_pinned_messages");
+    const threadId = window.SYCS_CONFIG?.currentThreadId || 0;
+    const res = await api(`get_pinned_messages&thread_id=${threadId}`);
     list.innerHTML = "";
     if (res && res.length > 0) {
       res.forEach(msg => {
         const div = document.createElement("div");
         div.className = "pinned-item";
-        div.innerHTML = `<div class="pinned-text">${msg.content}</div>`;
+        div.style.cssText = "padding: 12px; border-bottom: 1px solid var(--border-color); cursor: pointer;";
+        div.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <span style="font-weight:600; font-size:0.9rem;">${msg.username || 'Unknown'}</span>
+            <span style="font-size:0.75rem; opacity:0.6;">${msg.created_at || ''}</span>
+          </div>
+          <div class="pinned-text" style="font-size:0.9rem; opacity:0.9;">${msg.content || ''}</div>
+        `;
+        div.onclick = () => {
+          const target = document.getElementById("message-" + msg.id);
+          if (target) {
+            document.getElementById('pinned-messages-modal')?.close();
+            target.scrollIntoView({ behavior: "smooth", block: "center" });
+            target.style.backgroundColor = "rgba(99, 102, 241, 0.2)";
+            setTimeout(() => (target.style.backgroundColor = ""), 2000);
+          }
+        };
         list.appendChild(div);
       });
     } else {
-      list.innerHTML = `<div class="empty-state">${t("no_pinned", "ピン留めされたメッセージはありません")}</div>`;
+      list.innerHTML = `<div class="empty-state" style="padding:40px; text-align:center; color:var(--text-secondary);">${t("no_pinned", "ピン留めされたメッセージはありません")}</div>`;
     }
   }
 }

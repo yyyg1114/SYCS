@@ -171,5 +171,17 @@
     "task_delete": "Delete Task",
     "task_edit": "Edit Task",
     "task_complete": "Complete Task",
-    "task_incomplete": "Incomplete Task"
+    "task_incomplete": "Incomplete Task",
+    "da_irreversible": "This action cannot be undone. Please review carefully.",
+    "da_warn_data": "Your account information (username, email address, password) will be permanently deleted.",
+    "da_warn_messages": "Your posted messages and attachments may also be deleted.",
+    "da_warn_restore": "Deleted data cannot be recovered.",
+    "da_confirm_password": "Enter your password to confirm",
+    "da_ck1": "I understand that all data will be permanently deleted",
+    "da_ck2": "I understand that this action cannot be undone",
+    "da_final_confirm": "Are you sure you want to delete your account? This action cannot be undone.",
+    "da_invalid_request": "Invalid request.",
+    "da_password_required": "Please enter your password.",
+    "da_wrong_password": "Incorrect password.",
+    "da_delete_failed": "Failed to delete the account."
 }

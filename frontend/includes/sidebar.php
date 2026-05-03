@@ -9,7 +9,7 @@
     <div class="sidebar-top">
         <div class="logo-container">
             <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-            <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v2.2.0</span>
+            <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v2.2.3</span>
         </div>
         <div class="sidebar-secondary">
             <div class="release-notes">

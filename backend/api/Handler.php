@@ -166,10 +166,14 @@ class ApiHandler
                 $this->getMuteStatuses();
                 break;
             case 'getPinnedMessages':
+            case 'get_pinned_messages':
                 $this->getPinnedMessages();
                 break;
             case 'get_online_users':
                 $this->getOnlineUsers();
+                break;
+            case 'update_thread':
+                $this->editThread();
                 break;
             case 'get_unread_dm_counts':
                 $this->getUnreadDmCounts();
@@ -474,11 +478,43 @@ class ApiHandler
 
     private function getMessages()
     {
-        $tid = $_GET['thread_id'] ?? 0;
-        $stmt = $this->mysqli->prepare("SELECT m.*, u.username, u.avatar_url FROM messages m JOIN users u ON m.user_id = u.id WHERE m.thread_id = ? ORDER BY m.created_at ASC");
+        $tid = (int)($_GET['thread_id'] ?? 0);
+        $stmt = $this->mysqli->prepare(
+            "SELECT m.*, u.username, u.avatar_url, u.status,
+                    r.username AS reply_username
+             FROM messages m
+             JOIN users u ON m.user_id = u.id
+             LEFT JOIN users r ON m.reply_to_id = r.id
+             WHERE m.thread_id = ?
+             ORDER BY m.created_at ASC"
+        );
         $stmt->bind_param("i", $tid);
         $stmt->execute();
-        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        $messages = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+        // リアクションを取得して各メッセージに付加
+        if (!empty($messages)) {
+            $ids = array_column($messages, 'id');
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $types = str_repeat('i', count($ids));
+            $rStmt = $this->mysqli->prepare(
+                "SELECT message_id, user_id, emoji FROM message_reactions WHERE message_id IN ($placeholders)"
+            );
+            $rStmt->bind_param($types, ...$ids);
+            $rStmt->execute();
+            $reactions = $rStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+            $reactMap = [];
+            foreach ($reactions as $r) {
+                $reactMap[$r['message_id']][] = $r;
+            }
+            foreach ($messages as &$msg) {
+                $msg['reactions'] = $reactMap[$msg['id']] ?? [];
+            }
+            unset($msg);
+        }
+
+        echo json_encode($messages);
     }
 
     private function getDmPartners()
@@ -567,11 +603,14 @@ class ApiHandler
         $tid = $_POST['thread_id'] ?? null;
         $gtid = $_POST['group_thread_id'] ?? null;
         $con = $_POST['content'] ?? '';
+        $replyToId = !empty($_POST['reply_to_id']) ? (int)$_POST['reply_to_id'] : null;
         $att = $this->handleFileUpload();
-        $stmt = $this->mysqli->prepare("INSERT INTO messages (thread_id, group_thread_id, user_id, content, attachment_path) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("iiiss", $tid, $gtid, $this->userId, $con, $att);
+        $stmt = $this->mysqli->prepare(
+            "INSERT INTO messages (thread_id, group_thread_id, user_id, content, attachment_path, reply_to_id) VALUES (?, ?, ?, ?, ?, ?)"
+        );
+        $stmt->bind_param("iiissi", $tid, $gtid, $this->userId, $con, $att, $replyToId);
         $stmt->execute();
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'id' => $stmt->insert_id]);
     }
 
     private function deleteMessage()
@@ -740,8 +779,17 @@ class ApiHandler
 
     private function getPinnedMessages()
     {
-        $tid = $_GET['thread_id'] ?? 0;
-        echo json_encode($this->mysqli->query("SELECT * FROM messages WHERE thread_id = $tid AND is_pinned = 1")->fetch_all(MYSQLI_ASSOC));
+        $tid = (int)($_GET['thread_id'] ?? 0);
+        if ($tid <= 0) {
+            echo json_encode([]);
+            return;
+        }
+        $stmt = $this->mysqli->prepare(
+            "SELECT m.*, u.username, u.avatar_url FROM messages m JOIN users u ON m.user_id = u.id WHERE m.thread_id = ? AND m.is_pinned = 1 ORDER BY m.created_at DESC"
+        );
+        $stmt->bind_param("i", $tid);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
     }
 
     private function getOnlineUsers()

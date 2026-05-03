@@ -7,7 +7,90 @@
  */
 ?>
 
+
+<!-- ===== v2.2.3 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.3</span>
+        <span class="release-title">聊天功能全面修正与强化</span>
+        <span class="release-date">2026-05-03</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-red"></span> 缺陷修复 (Bug Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📌</span>
+                    <div>
+                        <strong>完全修复消息置顶功能</strong>
+                        <span class="detail">解决了置顶/取消置顶按钮无效的问题。现在置顶后消息列表会自动刷新。置顶消息模态框现在能正确传递频道 ID 调用 API，并显示发送者、时间戳及内容，点击即可平滑滚动并高亮该消息。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">😊</span>
+                    <div>
+                        <strong>修复表情回应功能</strong>
+                        <span class="detail">修复了点击回应按钮时不显示表情选择器的问题。现在会弹出悬浮表情面板（包含 👍❤️😂 等 10 种常用表情），选择后即可正确切换回应状态。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✏️</span>
+                    <div>
+                        <strong>修复消息编辑与删除</strong>
+                        <span class="detail">修正了编辑按钮，现在会直接在消息内显示行内编辑框。删除按钮也已修复，现在会弹出确认对话框并正确执行删除操作。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">↩️</span>
+                    <div>
+                        <strong>修复回复功能</strong>
+                        <span class="detail">解决了回复时 <code>reply_to_id</code> 未发送至 API 的问题。后端 <code>sendMessage</code> 处理程序也已更新，以确保回复 ID 正确存入数据库。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔍</span>
+                    <div>
+                        <strong>修复搜索与附件画廊</strong>
+                        <span class="detail">修复了搜索功能中 API 路径重复的错误。解决了附件画廊中因字段名不匹配（<code>item.path</code> → <code>item.attachment_path</code>）导致图片无法显示的问题。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 功能改进 (Improvements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⌨️</span>
+                    <div>
+                        <strong>实现键盘快捷键</strong>
+                        <span class="detail">新增支持 <code>Alt+P</code>（查看置顶消息）、<code>/</code>（聚焦搜索框）以及 <code>Alt+Shift+?</code>（显示快捷键列表）。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🗄️</span>
+                    <div>
+                        <strong>强化消息获取 API</strong>
+                        <span class="detail">改进了 <code>getMessages</code> API，现在可以在单次请求中获取表情回应、回复源用户名及在线状态，减少了冗余的后续请求。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔗</span>
+                    <div>
+                        <strong>改进状态管理</strong>
+                        <span class="detail">切换频道时会同步更新 <code>window.SYCS_CONFIG.currentThreadId</code>，确保所有模块始终引用正确的活动频道。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.0 ===== -->
+
 <article class="release">
     <div class="release-header">
         <span class="version-badge">v2.2.0</span>

@@ -129,20 +129,19 @@ export async function searchMessages() {
 
   if (!query && !hasAttachment && !dateFrom && !dateTo) return;
 
-  const params = new URLSearchParams({
-    api: "search_messages",
-    q: query,
-    has_attachment: hasAttachment ? 1 : 0,
-    date_from: dateFrom,
-    date_to: dateTo
-  });
+  // クエリパラメータを直接渡す（api()は index.php?api= を前置する）
+  let apiPath = `search_messages`;
+  if (query) apiPath += `&q=${encodeURIComponent(query)}`;
+  if (hasAttachment) apiPath += `&has_attachment=1`;
+  if (dateFrom) apiPath += `&date_from=${encodeURIComponent(dateFrom)}`;
+  if (dateTo) apiPath += `&date_to=${encodeURIComponent(dateTo)}`;
 
-  const results = await api(params.toString());
+  const results = await api(apiPath);
   const list = document.getElementById("search-results-list");
   if (!list) return;
 
   list.innerHTML = "";
-  if (results.length === 0) {
+  if (!results || results.length === 0) {
     list.innerHTML = `<div class="empty-state">${t("no_results", "見つかりませんでした。")}</div>`;
   } else {
     results.forEach(m => {
@@ -150,14 +149,13 @@ export async function searchMessages() {
       item.className = "search-result-item";
       item.innerHTML = `
         <div class="result-meta">
-          <span class="result-user">${m.user}</span>
-          <span class="result-date">${m.created_at}</span>
+          <span class="result-user">${m.username || m.user || ''}</span>
+          <span class="result-date">${m.created_at || ''}</span>
         </div>
-        <div class="result-content">${m.content}</div>
+        <div class="result-content">${m.content || ''}</div>
       `;
       item.onclick = () => {
-        // Scroll to message or load thread
-        window.switchThread(m.thread_id, m.thread_name);
+        window.switchThread(m.thread_id, m.thread_name || m.thread_id);
         document.getElementById("search-results-overlay").classList.remove("active");
       };
       list.appendChild(item);
@@ -259,10 +257,11 @@ export async function saveThreadSettings() {
   const category = document.getElementById("settings-thread-category").value;
   const webhook = document.getElementById("settings-thread-webhook").value;
 
-  const res = await api(`update_thread&id=${window.SYCS_CONFIG.currentThreadId}`, "POST", {
+  const res = await api(`update_thread`, "POST", {
+    thread_id: window.SYCS_CONFIG.currentThreadId,
     name,
     category,
-    discord_webhook: webhook
+    discord_webhook_url: webhook
   });
 
   if (res && res.success) {

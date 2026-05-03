@@ -171,5 +171,17 @@
     "task_delete": "刪除任務",
     "task_edit": "編輯任務",
     "task_complete": "完成任務",
-    "task_incomplete": "未完成任務"
+    "task_incomplete": "未完成任務",
+    "da_irreversible": "此操作无法撤销，請仔細確認。",
+    "da_warn_data": "您的帳號資訊（用戶名、電子郵件、密碼）將被完全刪除。",
+    "da_warn_messages": "您發送的訊息和附件也可能被刪除。",
+    "da_warn_restore": "已刪除的資料無法恢復。",
+    "da_confirm_password": "輸入密碼以確認",
+    "da_ck1": "我瞭解所有資料將被永久刪除",
+    "da_ck2": "我瞭解此操作无法撤销",
+    "da_final_confirm": "您確定要刪除帳號嗎？此操作無法撤销。",
+    "da_invalid_request": "請求無效。",
+    "da_password_required": "請輸入密碼。",
+    "da_wrong_password": "密碼错誤。",
+    "da_delete_failed": "帳號刪除失敗。"
 }

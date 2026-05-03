@@ -1,4 +1,86 @@
+<!-- ===== v2.2.3 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.3</span>
+        <span class="release-title">Comprehensive Chat Feature Fixes & Enhancements</span>
+        <span class="release-date">2026-05-03</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-red"></span> Bug Fixes
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📌</span>
+                    <div>
+                        <strong>Pin Message Feature Fully Fixed</strong>
+                        <span class="detail">Resolved the bug where the pin/unpin button had no effect. The message list now auto-refreshes after pinning. The pinned messages modal now correctly passes the thread ID to the API, and displays sender name, timestamp, and content. Clicking a pinned item scrolls and highlights it in the chat.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">😊</span>
+                    <div>
+                        <strong>Reaction Picker Fixed</strong>
+                        <span class="detail">Fixed the emoji reaction picker not appearing when the reaction button was clicked. A floating emoji picker (👍❤️😂 and 7 more) now correctly appears, and selecting an emoji toggles the reaction as expected.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✏️</span>
+                    <div>
+                        <strong>Message Edit & Delete Fixed</strong>
+                        <span class="detail">The edit button now correctly displays an inline editing area within the message. The delete button now works with a confirmation dialog before removing the message.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">↩️</span>
+                    <div>
+                        <strong>Reply Feature Fixed</strong>
+                        <span class="detail">Fixed the <code>reply_to_id</code> not being sent to the API when replying. The backend <code>sendMessage</code> handler now correctly saves <code>reply_to_id</code> in the database.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔍</span>
+                    <div>
+                        <strong>Message Search & Attachment Gallery Fixed</strong>
+                        <span class="detail">Fixed the API path duplication bug in the search function. Resolved the field name mismatch (<code>item.path</code> → <code>item.attachment_path</code>) in the attachment gallery that caused images not to display.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Improvements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⌨️</span>
+                    <div>
+                        <strong>Keyboard Shortcuts Implemented</strong>
+                        <span class="detail"><code>Alt+P</code> to show pinned messages, <code>/</code> to focus search, and <code>Alt+Shift+?</code> to display the shortcuts help modal are now all functional.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🗄️</span>
+                    <div>
+                        <strong>Enhanced Message Fetch API</strong>
+                        <span class="detail">The <code>getMessages</code> API now fetches reactions, reply-source usernames, and online statuses in a single optimized query, eliminating redundant follow-up requests.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔗</span>
+                    <div>
+                        <strong>Improved State Management</strong>
+                        <span class="detail">Thread switching now syncs <code>window.SYCS_CONFIG.currentThreadId</code>, ensuring all modules always reference the correct active thread.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.0 ===== -->
+
 <article class="release">
     <div class="release-header">
         <span class="version-badge">v2.2.0</span>
