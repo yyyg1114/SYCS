@@ -199,9 +199,6 @@
   display: none;
   flex-direction: column;
   flex-shrink: 0;
-  position: absolute;
-  right: 0;
-  top: 0;
   height: 100%;
   z-index: 20;
   box-shadow: var(--shadow-lg);
@@ -245,6 +242,34 @@
 .sidebar-list {
   max-height: 250px;
   overflow-y: auto;
+}
+
+.create-thread-area {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--panel-bg);
+  margin-top: auto;
+}
+
+.create-input {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  outline: none;
+  transition: var(--transition-normal);
+}
+
+.create-input:focus {
+  border-color: var(--accent-color);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* Overlays & Special Areas */
@@ -339,6 +364,11 @@
   .thread-browser {
     width: 100%;
     position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    height: 100vh;
+    z-index: 1000;
   }
 }
 
@@ -360,7 +390,7 @@
     z-index: 25;
     backdrop-filter: blur(4px);
   }
-  .sidebar.active + .sidebar-backdrop {
+  .sidebar-backdrop.active {
     display: block;
   }
 }

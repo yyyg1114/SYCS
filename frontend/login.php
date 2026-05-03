@@ -425,6 +425,10 @@ if (isset($_GET['api'])) {
             h1 {
                 font-size: 1.8rem;
             }
+
+            .oauth-buttons {
+                grid-template-columns: 1fr;
+            }
         }
 
         @keyframes slideUp {

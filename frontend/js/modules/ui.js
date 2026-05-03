@@ -140,11 +140,14 @@ export async function updateMyStatus(status) {
  */
 export function toggleSidebar(force) {
   const sidebar = document.getElementById("main-sidebar");
+  const backdrop = document.querySelector(".sidebar-backdrop");
   if (!sidebar) return;
   if (typeof force === "boolean") {
     sidebar.classList.toggle("active", force);
+    if (backdrop) backdrop.classList.toggle("active", force);
   } else {
-    sidebar.classList.toggle("active");
+    const isActive = sidebar.classList.toggle("active");
+    if (backdrop) backdrop.classList.toggle("active", isActive);
   }
 }
 

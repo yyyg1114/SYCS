@@ -25,6 +25,30 @@
   filter: brightness(1.1);
 }
 
+.btn-secondary {
+  padding: 10px 20px;
+  background: var(--accent-soft);
+  color: var(--accent-color);
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+  filter: brightness(1.1);
+  background: var(--accent-soft);
+  color: white;
+}
+
 .icon-btn {
   border-radius: var(--radius-sm);
   width: 36px;
@@ -88,6 +112,13 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
+.message-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .message-user {
   font-weight: 600;
   color: var(--accent-color);
@@ -99,6 +130,50 @@
   color: var(--text-muted);
   margin-left: 8px;
   font-weight: 400;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.message-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.message-group:hover .message-actions {
+  opacity: 1;
+}
+
+.msg-action-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast);
+}
+
+.msg-action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.msg-action-btn img {
+  filter: brightness(0.8);
+  transition: filter var(--transition-fast);
+}
+
+.msg-action-btn:hover img {
+  filter: brightness(1.2);
 }
 
 .message-content {
@@ -120,6 +195,23 @@
   color: white;
   flex-shrink: 0;
   box-shadow: var(--shadow-sm);
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 150px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1.1rem;
+  font-weight: 600;
+  user-select: none;
+  pointer-events: none;
+  letter-spacing: 0.05em;
+  padding: 20px;
 }
 
 /* Forms */
