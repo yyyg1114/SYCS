@@ -170,11 +170,27 @@ export async function searchMessages() {
  * @param {number} threadId 
  */
 export async function toggleFavorite(threadId) {
-  const res = await api(`toggle_favorite&thread_id=${threadId}`, "POST");
+  if (!threadId || isNaN(threadId)) {
+    console.error("Invalid threadId for toggleFavorite:", threadId);
+    return;
+  }
+  const res = await api("toggle_favorite", "POST", { thread_id: threadId });
   if (res && res.success) {
     const btn = document.getElementById("fav-btn");
     if (btn) btn.innerText = res.is_favorite ? "★" : "☆";
   }
+}
+
+/**
+ * Update the favorite button state for the current thread
+ * @param {number} threadId 
+ */
+export async function updateFavoriteStatus(threadId) {
+    const res = await api(`check_favorite&thread_id=${threadId}`);
+    if (res) {
+        const btn = document.getElementById("fav-btn");
+        if (btn) btn.innerText = res.is_favorite ? "★" : "☆";
+    }
 }
 
 /**

@@ -136,21 +136,15 @@ if ($isLoggedIn) {
             <section id="dm-pane" class="content-pane active" style="display:flex; height:100%; flex-direction:column;">
                 <!-- Friend Hub (Default View) -->
                 <div id="dm-hub-view" style="display:flex; flex-direction:column; height:100%;">
-                    <div class="chat-header">
-                        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="<?= __('menu') ?>">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="3" y1="12" x2="21" y2="12"></line>
-                                <line x1="3" y1="6" x2="21" y2="6"></line>
-                                <line x1="3" y1="18" x2="21" y2="18"></line>
-                            </svg>
-                        </button>
-                        <h3><?= __('friend_hub') ?></h3>
-                        <div style="margin-left:auto; display:flex; gap:10px;">
-                            <button class="btn-primary" onclick="showAddFriendModal()"><?= __('add_friend') ?></button>
-                            <button class="btn-primary" onclick="showPendingRequestsModal()" id="btn-pending-req"><?= __('approve_friend') ?></button>
-                            <button class="btn-primary" onclick="showBlockedModal()" style="background-color: #333"><?= __('block_list') ?></button>
-                        </div>
-                    </div>
+                    <?php
+                    $headerTitle = __('friend_hub');
+                    $headerActions = '
+                        <button class="btn-primary" onclick="showAddFriendModal()">'.__('add_friend').'</button>
+                        <button class="btn-primary" onclick="showPendingRequestsModal()" id="btn-pending-req">'.__('approve_friend').'</button>
+                        <button class="btn-primary" onclick="showBlockedModal()" style="background-color: #333">'.__('block_list').'</button>
+                    ';
+                    include 'includes/app_header.php';
+                    ?>
                     <div class="scroller" style="flex:1; padding:20px; overflow-y:auto;">
                         <h4 style="margin-bottom:10px; color:var(--text-secondary);"><?= __('friend_list') ?></h4>
                         <div id="hub-friend-list" class="thread-list"></div>
@@ -159,37 +153,29 @@ if ($isLoggedIn) {
 
                 <!-- DM Chat View (Hidden by default) -->
                 <div id="dm-chat-view" style="display:none; flex-direction:column; height:100%;">
-                    <header class="chat-header">
-                        <button class="icon-btn" onclick="backToHub()" title="<?= __('back') ?>" style="margin-right:10px;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M19 12H5M12 19l-7-7 7-7" />
+                    <?php
+                    $backAction = 'backToHub()';
+                    $headerTitle = __('select_user');
+                    $headerIcon = '@';
+                    $headerActions = '
+                        <button class="icon-btn" onclick="startMeeting()" title="'.__('video_meeting').'">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                             </svg>
                         </button>
-                        <div class="thread-info" id="current-dm-partner-info">
-                            <span class="thread-icon">@</span>
-                            <h3 class="thread-name" id="current-dm-partner-name"><?= __('select_user') ?></h3>
-                        </div>
-                        <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
-                            <button class="icon-btn" onclick="startMeeting()" title="<?= __('video_meeting') ?>">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                                </svg>
-                            </button>
-                            <button class="icon-btn" onclick="showAttachmentGallery()" title="<?= __('attachment_list') ?>">
-                                <img src="assets/img/files.svg" alt="<?= __('attachment_gallery') ?>" style="width:16px; height:16px; filter: grayscale(1) invert(1);">
-                            </button>
-                            <button class="icon-btn" onclick="blockCurrentPartner()" title="<?= __('block') ?>"
-                                style="color:#ef4444;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                                </svg>
-                            </button>
-                        </div>
-                    </header>
+                        <button class="icon-btn" onclick="showAttachmentGallery()" title="'.__('attachment_list').'">
+                            <img src="assets/img/files.svg" alt="'.__('attachment_gallery').'" style="width:16px; height:16px; filter: grayscale(1) invert(1);">
+                        </button>
+                        <button class="icon-btn" onclick="blockCurrentPartner()" title="'.__('block').'" style="color:#ef4444;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                            </svg>
+                        </button>
+                    ';
+                    include 'includes/app_header.php';
+                    ?>
 
                     <div id="dm-message-container" class="messages-container">
                         <div class="empty-state">

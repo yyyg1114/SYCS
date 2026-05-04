@@ -9,7 +9,7 @@
     <div class="sidebar-top">
         <div class="logo-container">
             <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-            <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v2.2.3</span>
+            <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v2.2.4</span>
         </div>
         <div class="sidebar-secondary">
             <div class="release-notes">
@@ -36,7 +36,7 @@
                     <span><?= __('dm') ?></span>
                     <span id="dm-unread-badge" style="display:none; background:#ef4444; color:white; border-radius:9999px; font-size:0.65rem; font-weight:700; padding:1px 6px; margin-left:6px; min-width:18px; text-align:center;"></span>
                 </li>
-                <li class="nav-item" data-tab="favorites">
+                <li class="nav-item <?= $currentPage === 'favorites' ? 'active' : '' ?>" data-tab="favorites" onclick="location.href='favorites.php'">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <polygon

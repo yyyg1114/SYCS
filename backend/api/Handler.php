@@ -665,13 +665,28 @@ class ApiHandler
     private function toggleFavorite()
     {
         $this->verifyCsrf();
-        $tid = $_POST['thread_id'] ?? 0;
+        $tid = (int)($_POST['thread_id'] ?? 0);
+        if ($tid <= 0) {
+            echo json_encode(['success' => false, 'error' => 'Invalid thread ID']);
+            return;
+        }
         $stmt = $this->mysqli->prepare("SELECT id FROM favorites WHERE user_id = ? AND thread_id = ?");
         $stmt->bind_param("ii", $this->userId, $tid);
         $stmt->execute();
-        if ($row = $stmt->get_result()->fetch_assoc()) $this->mysqli->query("DELETE FROM favorites WHERE id = " . $row['id']);
-        else $this->mysqli->query("INSERT INTO favorites (user_id, thread_id) VALUES ($this->userId, $tid)");
-        echo json_encode(['success' => true]);
+        $res = $stmt->get_result();
+        $is_favorite = false;
+        if ($row = $res->fetch_assoc()) {
+            $delStmt = $this->mysqli->prepare("DELETE FROM favorites WHERE id = ?");
+            $delStmt->bind_param("i", $row['id']);
+            $delStmt->execute();
+            $is_favorite = false;
+        } else {
+            $insStmt = $this->mysqli->prepare("INSERT INTO favorites (user_id, thread_id) VALUES (?, ?)");
+            $insStmt->bind_param("ii", $this->userId, $tid);
+            $insStmt->execute();
+            $is_favorite = true;
+        }
+        echo json_encode(['success' => true, 'is_favorite' => $is_favorite]);
     }
 
     private function getFavorites()

@@ -8,6 +8,73 @@
 ?>
 
 
+<!-- ===== v2.2.4 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.4</span>
+        <span class="release-title">增强收藏管理与 UI 细节优化</span>
+        <span class="release-date">2026-05-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新功能 (New Features)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⭐</span>
+                    <div>
+                        <strong>新增收藏管理页面</strong>
+                        <span class="detail">增加了专门的页面，用于集中查看和管理您收藏的所有讨论串。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改进与 UI (Improvements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📱</span>
+                    <div>
+                        <strong>统一页眉组件</strong>
+                        <span class="detail">将页眉逻辑整合为公共组件，提升了搜索、附件库和置顶消息访问的便捷性。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌍</span>
+                    <div>
+                        <strong>多语言支持增强</strong>
+                        <span class="detail">扩展了与收藏功能相关的日、英、中翻译资源。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 修复与内部改进 (Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔧</span>
+                    <div>
+                        <strong>API 通信优化</strong>
+                        <span class="detail">收藏操作的 API 统一改用 JSON 负载，提升了安全性。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🐞</span>
+                    <div>
+                        <strong>私信页眉显示修复</strong>
+                        <span class="detail">修复了私信界面中对方用户名显示不正确的 bug。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.3 ===== -->
 <article class="release">
     <div class="release-header">

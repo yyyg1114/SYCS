@@ -18,7 +18,7 @@ export async function switchToDm(userId, userName) {
   currentDmPartnerId = userId;
   document.getElementById("dm-hub-view").style.display = "none";
   document.getElementById("dm-chat-view").style.display = "flex";
-  document.getElementById("current-dm-partner-name").innerText = userName;
+  document.getElementById("current-header-title").innerText = userName;
   
   const container = document.getElementById("dm-message-container");
   const context = {
@@ -53,7 +53,7 @@ export async function sendDm() {
 
   if (res && res.success) {
     input.value = "";
-    switchToDm(currentDmPartnerId, document.getElementById("current-dm-partner-name").innerText);
+    switchToDm(currentDmPartnerId, document.getElementById("current-header-title").innerText);
   }
 }
 

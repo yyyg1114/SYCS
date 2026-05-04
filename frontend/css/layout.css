@@ -160,6 +160,11 @@
   z-index: 10;
 }
 
+/* モバイルメニューボタン: デフォルトは非表示 (.icon-btn より詳細度を上げて確実に上書き) */
+.icon-btn.mobile-menu-btn {
+  display: none;
+}
+
 .chat-messages {
   flex-grow: 1;
   padding: 20px;
@@ -372,6 +377,8 @@
   }
 }
 
+
+
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
@@ -393,4 +400,185 @@
   .sidebar-backdrop.active {
     display: block;
   }
+
+  /* モバイルメニューボタン: 768px以下のみ表示 */
+  .icon-btn.mobile-menu-btn {
+    display: flex;
+  }
+
+  /* メインコンテンツとチャットエリアを画面幅いっぱいに広げる */
+  .main-content,
+  .chat-area,
+  .content-pane.active {
+    width: 100% !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* チャットヘッダー: パディング縮小・要素を両端揃えで配置 */
+  .chat-header {
+    padding: 0 10px;
+    gap: 4px;
+    justify-content: space-between;
+  }
+
+  /* スレッドアクション: 右寄せは chat-header の space-between に任せる */
+  .thread-actions {
+    margin-left: 0;
+    gap: 4px;
+  }
+
+  /* 検索ボックス: .chat-header を親に指定し詳細度を上げて確実に上書き */
+  .chat-header .search-input-wrapper input {
+    width: 80px;
+  }
+
+  /* 自動削除タイマー: モバイルでは非表示 */
+  #self-destruct-timer {
+    display: none;
+  }
+
+  /* チャット入力エリア: パディング縮小 */
+  .chat-input-area {
+    padding: 6px 10px 12px 10px;
+  }
+
+  /* input-wrapper: パディング縮小・全幅を使う */
+  .input-wrapper {
+    padding: 2px 8px;
+    overflow: hidden;
+  }
+
+  /* テキストエリア: min-width:0 で flex 縮小を許可 */
+  .input-wrapper .chat-input {
+    min-width: 0;
+    flex: 1;
+  }
+
+  /* 送信ボタン・アップロードボタン: 縮小させない */
+  .input-wrapper .send-btn-modern,
+  .input-wrapper .upload-btn-plus {
+    flex-shrink: 0;
+  }
 }
+
+/* --- スマホ専用最適化 (480px以下) --- */
+@media (max-width: 480px) {
+  /* ヘッダーの更なる最適化 */
+  .chat-header {
+    padding: 0 8px;
+    height: 56px;
+    min-height: 56px;
+  }
+
+  /* スレッド名の省略表示 (非常に狭い画面用) */
+  #current-thread-name {
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.9rem;
+  }
+
+  /* 検索ボックスをさらに小さく */
+  .chat-header .search-input-wrapper input {
+    width: 60px;
+  }
+
+  /* メッセージエリアの余白削減 */
+  .chat-messages {
+    padding: 10px;
+  }
+
+  .message-group {
+    padding: 6px 8px;
+    gap: 8px;
+  }
+
+  /* チャットエリアを画面幅いっぱいに強制 */
+  .chat-area {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow-x: hidden;
+  }
+
+  /* アバターを少し小さくしてスペース確保 */
+  .avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+
+  /* 入力エリアのコンパクト化 */
+  .chat-input-area {
+    padding: 4px 0 8px 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .input-wrapper {
+    width: 100% !important;
+    border-radius: 0 !important;
+    padding: 0 8px !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .chat-input {
+    padding: 8px 4px;
+    font-size: 0.9rem;
+  }
+
+  /* ボタン類を少し小さく */
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* PWA インストールバナーの最適化 (iPhone 12 Pro等) */
+  .pwa-install-banner-integrated {
+    position: fixed !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: auto !important;
+    min-width: 290px;
+    max-width: 95vw !important;
+    padding: 6px 10px 6px 16px !important;
+    gap: 8px !important;
+    bottom: 85px !important;
+    margin: 0 !important;
+    z-index: 9999;
+    display: flex !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .pwa-install-banner-integrated > div {
+    gap: 6px !important;
+  }
+
+  .pwa-install-banner-integrated span {
+    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+  }
+
+  .pwa-install-banner-integrated .btn-add {
+    padding: 6px 10px !important;
+    font-size: 0.75rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    border-radius: 6px !important;
+  }
+
+  .pwa-install-banner-integrated .btn-close {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 0.8rem !important;
+    flex-shrink: 0 !important;
+    margin-left: 2px !important;
+  }
+}
+

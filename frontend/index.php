@@ -1,5 +1,5 @@
 <?php
-// v2.2.3
+// v2.2.4
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -66,7 +66,7 @@ if (!$isLoggedIn) {
 }
 
 $currentUser = $_SESSION['user'];
-$initialThreadId = $_SESSION['last_thread_id'] ?? 1;
+$initialThreadId = $_GET['thread_id'] ?? $_SESSION['last_thread_id'] ?? 1;
 
 if (isset($_GET['logout'])) {
     session_destroy();
@@ -155,7 +155,31 @@ if ($isLoggedIn) {
         <main class="main-content">
             <section id="threads-pane" class="content-pane active">
                 <div class="chat-area">
-                    <?php include 'includes/chat_header.php'; ?>
+                    <?php 
+                    $isThread = true;
+                    $headerSearch = true;
+                    $headerActions = '
+                        <button id="mute-btn" class="icon-btn" onclick="toggleMute()" title="'.__('mute_notifications').'">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                            </svg>
+                        </button>
+                        <button class="icon-btn" onclick="showAttachmentGallery()" title="'.__('attachment_list').'">
+                            <img src="assets/img/files.svg" alt="'.__('gallery').'" class="action-icon">
+                        </button>
+                        <button class="icon-btn" onclick="showPinnedMessages()" title="'.__('pinned_messages_list').'">
+                            <img src="assets/img/pin.svg" alt="'.__('pinned_messages_list').'" class="action-icon">
+                        </button>
+                        <button class="icon-btn" onclick="editCurrentThread()" title="'.__('edit').'">
+                            <img src="assets/img/edit.svg" alt="'.__('edit').'" class="action-icon">
+                        </button>
+                        <button class="icon-btn btn-danger" onclick="deleteCurrentThread()" title="'.__('delete').'">
+                            <img src="assets/img/trash.svg" alt="'.__('delete').'" class="action-icon">
+                        </button>
+                    ';
+                    include 'includes/app_header.php'; 
+                    ?>
                     <div class="search-results-overlay" id="search-results-overlay">
                         <div class="search-results-header">
                             <span><?= __('search_results') ?></span>

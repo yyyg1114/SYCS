@@ -1,3 +1,70 @@
+<!-- ===== v2.2.4 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.4</span>
+        <span class="release-title">Enhanced Favorites Management & UI Refinement</span>
+        <span class="release-date">2026-05-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> New Features
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⭐</span>
+                    <div>
+                        <strong>Dedicated Favorites Page</strong>
+                        <span class="detail">Added a new page to view and manage all your favorite threads in one place.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Improvements & UI
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📱</span>
+                    <div>
+                        <strong>Standardized Header Component</strong>
+                        <span class="detail">Centralized header logic into a shared component, improving accessibility to thread search, attachment galleries, and pinned messages.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌍</span>
+                    <div>
+                        <strong>Extended i18n Support</strong>
+                        <span class="detail">Updated translation resources for favorite-related features in JA, EN, and ZH.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> Fixes & Internals
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔧</span>
+                    <div>
+                        <strong>API Protocol Optimization</strong>
+                        <span class="detail">Unified favorite operation APIs to use JSON payloads for better security and reliability.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🐞</span>
+                    <div>
+                        <strong>DM Header Display Fix</strong>
+                        <span class="detail">Fixed a bug where the DM partner's name was not displayed correctly in the header.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.3 ===== -->
 <article class="release">
     <div class="release-header">

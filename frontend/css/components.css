@@ -99,6 +99,37 @@
   color: var(--text-primary);
 }
 
+
+.category-header {
+  padding: 10px 20px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: var(--transition-fast);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-top: 20px;
+  padding-left: 20px;
+}
+
+.thread-item {
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+  text-align: left;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: 10px;
+}
+
+.thread-item:hover {
+  background: var(--input-bg);
+}
+
 .category-header {
   padding: 10px 20px;
   color: var(--text-secondary);

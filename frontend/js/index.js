@@ -6,14 +6,14 @@ import { t, formatMessage, applyHighlighting, getAvatarElement, getSkeletonLoade
 import { api } from './modules/api.js';
 import { showToast, updateMyStatus } from './modules/ui.js';
 import { renderMessageNode } from './modules/message.js';
-import { loadThreads, loadGroupThreads, loadMessages, loadGroupMessages } from './modules/chat.js';
+import { loadThreads, loadGroupThreads, loadMessages, loadGroupMessages, updateFavoriteStatus } from './modules/chat.js';
 import { initSocket, socket } from './modules/socket.js';
 
 // --- Emoji Picker state ---
 let emojiPickerTarget = null;
 
 // --- Global State ---
-let currentThreadId = window.SYCS_CONFIG.currentThreadId;
+let currentThreadId = parseInt(window.SYCS_CONFIG.currentThreadId) || 1;
 let currentThreadCreatorId = window.SYCS_CONFIG.currentThreadCreatorId;
 const currentUserId = window.SYCS_CONFIG.currentUserId;
 const currentUserName = window.SYCS_CONFIG.currentUserName;
@@ -256,6 +256,7 @@ function getMessageCallbacks() {
 }
 
 async function switchThread(id, name, creatorId) {
+    id = parseInt(id);
     currentThreadId = id;
     currentThreadCreatorId = creatorId || 0;
     // ui モジュールや他モジュールがアクセスできるよう SYCS_CONFIG も更新
@@ -263,6 +264,7 @@ async function switchThread(id, name, creatorId) {
     window.SYCS_CONFIG.currentThreadCreatorId = creatorId || 0;
     document.getElementById("current-thread-name").innerText = name;
     await loadMessages(id, document.getElementById("message-container"), {currentUserName, currentUserId}, getMessageCallbacks());
+    await updateFavoriteStatus(id);
     
     // Update Sidebar focus if needed
     document.querySelectorAll(".thread-item").forEach(item => {

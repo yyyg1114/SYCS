@@ -6,6 +6,73 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v2.2.4 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.4</span>
+        <span class="release-title">お気に入り管理機能の強化と UI の洗練</span>
+        <span class="release-date">2026-05-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 (New Features)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⭐</span>
+                    <div>
+                        <strong>お気に入り管理ページの追加</strong>
+                        <span class="detail">お気に入りに登録したスレッドを一覧で確認・管理できる専用ページを追加しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善 & UI (Improvements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📱</span>
+                    <div>
+                        <strong>ヘッダーコンポーネントの共通化</strong>
+                        <span class="detail">各ページで一貫した操作を提供するため、ヘッダーを共通コンポーネント化しました。スレッド内での検索、添付ファイル一覧、ピン留めメッセージへのアクセスがよりスムーズになります。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌍</span>
+                    <div>
+                        <strong>多言語対応の強化</strong>
+                        <span class="detail">お気に入り機能に関連する翻訳リソース（日・英・中）を拡充しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 修正 & 内部改善 (Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔧</span>
+                    <div>
+                        <strong>API 通信の最適化</strong>
+                        <span class="detail">お気に入り操作の API 通信を JSON 形式に統一し、安全性を向上させました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🐞</span>
+                    <div>
+                        <strong>DM ヘッダー表示の修正</strong>
+                        <span class="detail">ダイレクトメッセージ画面で相手のユーザー名が正しく表示されない問題を修正しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.3 ===== -->
 <article class="release">
     <div class="release-header">
