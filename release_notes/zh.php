@@ -8,6 +8,59 @@
 ?>
 
 
+<!-- ===== v2.2.5 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.5</span>
+        <span class="release-title">后端加固与安全性增强</span>
+        <span class="release-date">2026-05-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 安全性与稳定性 (Security & Stability)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>API 处理器加固</strong>
+                        <span class="detail">重构了 API 输入处理逻辑，使用安全的包装方法代替直接访问全局变量，有效降低了潜在的安全风险。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>扩大预处理语句的使用范围</strong>
+                        <span class="detail">在消息置顶和删除等关键操作中，更加一致地使用预处理语句，进一步强化了对 SQL 注入的防护。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 修复与改进 (Fixes & Improvements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🐞</span>
+                    <div>
+                        <strong>修复收藏夹加载问题</strong>
+                        <span class="detail">通过优化事件监听机制，解决了收藏列表在某些情况下无法正确显示的问题。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🏗️</span>
+                    <div>
+                        <strong>提升代码质量</strong>
+                        <span class="detail">在后端代码中引入了类型提示并完善了错误处理机制，增强了系统的可靠性。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.4 ===== -->
 <article class="release">
     <div class="release-header">

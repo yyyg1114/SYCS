@@ -1,3 +1,56 @@
+<!-- ===== v2.2.5 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.5</span>
+        <span class="release-title">Backend Hardening & Security Enhancements</span>
+        <span class="release-date">2026-05-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> Security & Stability
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Hardened API Handler</strong>
+                        <span class="detail">Refactored API input processing to use secure wrappers, eliminating direct access to superglobals and reducing vulnerability risks.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>Expanded Prepared Statements</strong>
+                        <span class="detail">Ensured consistent use of prepared statements for critical operations like message pinning and deletion to bolster SQL injection protection.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Fixes & Improvements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🐞</span>
+                    <div>
+                        <strong>Favorites Loading Fix</strong>
+                        <span class="detail">Resolved a race condition in the favorites view by optimizing event listeners, ensuring reliable data display.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🏗️</span>
+                    <div>
+                        <strong>Improved Code Quality</strong>
+                        <span class="detail">Implemented type hints and more robust error handling in the backend for enhanced system reliability.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.4 ===== -->
 <article class="release">
     <div class="release-header">

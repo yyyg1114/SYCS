@@ -108,13 +108,10 @@ if (isset($_GET['logout'])) {
 
     <?php include 'includes/modals.php'; ?>
 
-    <script src="js/index.js" type="module"></script>
     <script src="js/widgets.js"></script>
     <script type="module">
-        import {
-            loadFavorites
-        } from './js/modules/favorites.js';
-        document.addEventListener('DOMContentLoaded', () => {
+        import { loadFavorites } from './js/modules/favorites.js';
+        window.addEventListener('load', () => {
             loadFavorites();
         });
     </script>

@@ -6,6 +6,59 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v2.2.5 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.5</span>
+        <span class="release-title">バックエンドの堅牢化とセキュリティ強化</span>
+        <span class="release-date">2026-05-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> セキュリティ & 安定性 (Security & Stability)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>API ハンドラのセキュリティ強化</strong>
+                        <span class="detail">API 入力処理を専用のラッパーメソッドに統合し、グローバル変数への直接アクセスを排除することで、インジェクション攻撃などのリスクを低減しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>プリペアドステートメントの適用拡大</strong>
+                        <span class="detail">メッセージのピン留め解除や削除などの処理において、より一貫してプリペアドステートメントを使用するように改善し、SQL インジェクション対策を強化しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 修正 & 改善 (Fixes & Improvements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🐞</span>
+                    <div>
+                        <strong>お気に入り機能の読み込み不具合を修正</strong>
+                        <span class="detail">一部の環境でお気に入り一覧が正しく表示されない問題を、イベントリスナーの最適化によって解決しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🏗️</span>
+                    <div>
+                        <strong>コードの品質向上</strong>
+                        <span class="detail">バックエンドコードに型ヒントを導入し、エラーハンドリングを改善することで、システムの信頼性を高めました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.4 ===== -->
 <article class="release">
     <div class="release-header">

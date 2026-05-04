@@ -18,200 +18,211 @@ class ApiHandler
         $this->csrfToken = $csrfToken;
     }
 
-    public function handle($action)
+    public function handle($action): void
     {
-        switch ($action) {
-            case 'update_profile':
-                $this->updateProfile();
-                break;
-            case 'push_subscribe':
-                $this->pushSubscribe();
-                break;
-            case 'update_status':
-                $this->updateStatus();
-                break;
-            case 'get_user_status':
-                $this->getUserStatus();
-                break;
-            case 'get_user_profile':
-                $this->getUserProfile();
-                break;
-            case 'get_friends_statuses':
-                $this->getFriendsStatuses();
-                break;
-            case 'get_threads':
-                $this->getThreads();
-                break;
-            case 'create_thread':
-                $this->createThread();
-                break;
-            case 'edit_thread':
-                $this->editThread();
-                break;
-            case 'delete_thread':
-                $this->deleteThread();
-                break;
-            case 'toggle_reaction':
-                $this->toggleReaction();
-                break;
-            case 'toggle_pin':
-                $this->togglePin();
-                break;
-            case 'search_messages':
-                $this->searchMessages();
-                break;
-            case 'update_typing_status':
-                $this->updateTypingStatus();
-                break;
-            case 'get_typing_users':
-                $this->getTypingUsers();
-                break;
-            case 'mark_dms_as_read':
-                $this->markDmsAsRead();
-                break;
-            case 'edit_message':
-                $this->editMessage();
-                break;
-            case 'get_attachments':
-                $this->getAttachments();
-                break;
-            case 'get_messages':
-                $this->getMessages();
-                break;
-            case 'get_dm_partners':
-                $this->getDmPartners();
-                break;
-            case 'get_all_users':
-                $this->getAllUsers();
-                break;
-            case 'create_group_thread':
-                $this->createGroupThread();
-                break;
-            case 'get_group_threads':
-                $this->getGroupThreads();
-                break;
-            case 'get_group_messages':
-                $this->getGroupMessages();
-                break;
-            case 'update_location':
-                $this->updateLocation();
-                break;
-            case 'get_user_locations':
-                $this->getUserLocations();
-                break;
-            case 'get_direct_messages':
-                $this->getDirectMessages();
-                break;
-            case 'send_direct_message':
-                $this->sendDirectMessage();
-                break;
-            case 'send_message':
-                $this->sendMessage();
-                break;
-            case 'delete_message':
-                $this->deleteMessage();
-                break;
-            case 'set_last_thread':
-                $this->setLastThread();
-                break;
-            case 'request_friend':
-                $this->requestFriend();
-                break;
-            case 'accept_friend':
-                $this->acceptFriend();
-                break;
-            case 'get_friend_requests':
-                $this->getFriendRequests();
-                break;
-            case 'get_friends':
-                $this->getFriends();
-                break;
-            case 'toggle_favorite':
-                $this->toggleFavorite();
-                break;
-            case 'get_favorites':
-                $this->getFavorites();
-                break;
-            case 'check_favorite':
-                $this->checkFavorite();
-                break;
-            case 'block_user':
-                $this->blockUser();
-                break;
-            case 'unblock_user':
-                $this->unblockUser();
-                break;
-            case 'get_blocked_users':
-                $this->getBlockedUsers();
-                break;
-            case 'get_my_files':
-                $this->getMyFiles();
-                break;
-            case 'search_users':
-                $this->searchUsers();
-                break;
-            case 'join_meeting':
-                $this->joinMeeting();
-                break;
-            case 'send_signaling':
-                $this->sendSignaling();
-                break;
-            case 'get_signaling':
-                $this->getSignaling();
-                break;
-            case 'toggle_mute':
-                $this->toggleMute();
-                break;
-            case 'get_mute_statuses':
-                $this->getMuteStatuses();
-                break;
-            case 'getPinnedMessages':
-            case 'get_pinned_messages':
-                $this->getPinnedMessages();
-                break;
-            case 'get_online_users':
-                $this->getOnlineUsers();
-                break;
-            case 'update_thread':
-                $this->editThread();
-                break;
-            case 'get_unread_dm_counts':
-                $this->getUnreadDmCounts();
-                break;
-            case 'set_lang':
-                $this->setLang();
-                break;
-            default:
-                echo json_encode(['error' => 'Unknown action: ' . $action]);
-                break;
+        try {
+            switch ($action) {
+                case 'update_profile':
+                    $this->updateProfile();
+                    break;
+                case 'push_subscribe':
+                    $this->pushSubscribe();
+                    break;
+                case 'update_status':
+                    $this->updateStatus();
+                    break;
+                case 'get_user_status':
+                    $this->getUserStatus();
+                    break;
+                case 'get_user_profile':
+                    $this->getUserProfile();
+                    break;
+                case 'get_friends_statuses':
+                    $this->getFriendsStatuses();
+                    break;
+                case 'get_threads':
+                    $this->getThreads();
+                    break;
+                case 'create_thread':
+                    $this->createThread();
+                    break;
+                case 'edit_thread':
+                    $this->editThread();
+                    break;
+                case 'delete_thread':
+                    $this->deleteThread();
+                    break;
+                case 'toggle_reaction':
+                    $this->toggleReaction();
+                    break;
+                case 'toggle_pin':
+                    $this->togglePin();
+                    break;
+                case 'search_messages':
+                    $this->searchMessages();
+                    break;
+                case 'update_typing_status':
+                    $this->updateTypingStatus();
+                    break;
+                case 'get_typing_users':
+                    $this->getTypingUsers();
+                    break;
+                case 'mark_dms_as_read':
+                    $this->markDmsAsRead();
+                    break;
+                case 'edit_message':
+                    $this->editMessage();
+                    break;
+                case 'get_attachments':
+                    $this->getAttachments();
+                    break;
+                case 'get_messages':
+                    $this->getMessages();
+                    break;
+                case 'get_dm_partners':
+                    $this->getDmPartners();
+                    break;
+                case 'get_all_users':
+                    $this->getAllUsers();
+                    break;
+                case 'create_group_thread':
+                    $this->createGroupThread();
+                    break;
+                case 'get_group_threads':
+                    $this->getGroupThreads();
+                    break;
+                case 'get_group_messages':
+                    $this->getGroupMessages();
+                    break;
+                case 'update_location':
+                    $this->updateLocation();
+                    break;
+                case 'get_user_locations':
+                    $this->getUserLocations();
+                    break;
+                case 'get_direct_messages':
+                    $this->getDirectMessages();
+                    break;
+                case 'send_direct_message':
+                    $this->sendDirectMessage();
+                    break;
+                case 'send_message':
+                    $this->sendMessage();
+                    break;
+                case 'delete_message':
+                    $this->deleteMessage();
+                    break;
+                case 'set_last_thread':
+                    $this->setLastThread();
+                    break;
+                case 'request_friend':
+                    $this->requestFriend();
+                    break;
+                case 'accept_friend':
+                    $this->acceptFriend();
+                    break;
+                case 'get_friend_requests':
+                    $this->getFriendRequests();
+                    break;
+                case 'get_friends':
+                    $this->getFriends();
+                    break;
+                case 'toggle_favorite':
+                    $this->toggleFavorite();
+                    break;
+                case 'get_favorites':
+                    $this->getFavorites();
+                    break;
+                case 'check_favorite':
+                    $this->checkFavorite();
+                    break;
+                case 'block_user':
+                    $this->blockUser();
+                    break;
+                case 'unblock_user':
+                    $this->unblockUser();
+                    break;
+                case 'get_blocked_users':
+                    $this->getBlockedUsers();
+                    break;
+                case 'get_my_files':
+                    $this->getMyFiles();
+                    break;
+                case 'search_users':
+                    $this->searchUsers();
+                    break;
+                case 'join_meeting':
+                    $this->joinMeeting();
+                    break;
+                case 'send_signaling':
+                    $this->sendSignaling();
+                    break;
+                case 'get_signaling':
+                    $this->getSignaling();
+                    break;
+                case 'toggle_mute':
+                    $this->toggleMute();
+                    break;
+                case 'get_mute_statuses':
+                    $this->getMuteStatuses();
+                    break;
+                case 'getPinnedMessages':
+                case 'get_pinned_messages':
+                    $this->getPinnedMessages();
+                    break;
+                case 'get_online_users':
+                    $this->getOnlineUsers();
+                    break;
+                case 'update_thread':
+                    $this->editThread();
+                    break;
+                case 'get_unread_dm_counts':
+                    $this->getUnreadDmCounts();
+                    break;
+                case 'set_lang':
+                    $this->setLang();
+                    break;
+                default:
+                    echo json_encode(['error' => 'Unknown action: ' . $action]);
+                    break;
+            }
+        } catch (\Exception $e) {
+            return;
         }
-        exit;
+        return;
     }
 
-    private function verifyCsrf()
+    private function verifyCsrf(): void
     {
-        $token = $_POST['csrf_token'] ?? null;
+        $token = $this->getPost('csrf_token');
         if (!$token || !hash_equals($this->csrfToken, $token)) {
             http_response_code(403);
             echo json_encode(['error' => 'Invalid CSRF Token']);
-            exit;
+            throw new \Exception('Invalid CSRF Token');
         }
     }
 
-    private function updateProfile()
+    private function updateProfile(): void
     {
         $this->verifyCsrf();
-        $bio = $_POST['bio'] ?? null;
-        $bannerColor = $_POST['banner_color'] ?? '#6366f1';
-        $status = $_POST['status'] ?? 'online';
-        $removeAvatar = ($_POST['remove_avatar'] ?? 'false') === 'true';
-        if ($removeAvatar || (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK)) {
+        $bio = $this->getPost('bio');
+        $bannerColor = $this->getPost('banner_color', '#6366f1');
+        $status = $this->getPost('status', 'online');
+        $removeAvatar = ($this->getPost('remove_avatar', 'false')) === 'true';
+
+        $file = $this->getFile('avatar');
+        $hasAvatar = ($file && $file['error'] === UPLOAD_ERR_OK);
+        if ($removeAvatar || $hasAvatar) {
             $pStmt = $this->mysqli->prepare("SELECT avatar_url FROM users WHERE id = ?");
             $pStmt->bind_param("i", $this->userId);
             $pStmt->execute();
-            if ($row = $pStmt->get_result()->fetch_assoc()) {
+            $result = $pStmt->get_result();
+            $row = $result->fetch_assoc();
+            if ($row) {
                 $oldPath = $row['avatar_url'];
-                if ($oldPath && file_exists(__DIR__ . '/../../frontend/' . $oldPath)) unlink(__DIR__ . '/../../frontend/' . $oldPath);
+                if ($oldPath && file_exists(__DIR__ . '/../../frontend/' . $oldPath)) {
+                    unlink(__DIR__ . '/../../frontend/' . $oldPath);
+                }
             }
             if ($removeAvatar) {
                 $upd = $this->mysqli->prepare("UPDATE users SET avatar_url = NULL WHERE id = ?");
@@ -219,18 +230,25 @@ class ApiHandler
                 $upd->execute();
             }
         }
-        $social = $_POST['social_links'] ?? null;
-        $themePref = $_POST['theme_preference'] ?? null;
-        $keywords = $_POST['notification_keywords'] ?? null;
-        $profileLayout = $_POST['profile_layout'] ?? 'classic';
-        $removeBanner = ($_POST['remove_banner'] ?? 'false') === 'true';
-        if ($removeBanner || (isset($_FILES['banner']) && $_FILES['banner']['error'] === UPLOAD_ERR_OK)) {
+        $social = $this->getPost('social_links');
+        $themePref = $this->getPost('theme_preference');
+        $keywords = $this->getPost('notification_keywords');
+        $profileLayout = $this->getPost('profile_layout', 'classic');
+        $removeBanner = ($this->getPost('remove_banner', 'false')) === 'true';
+
+        $file = $this->getFile('banner');
+        $hasBanner = ($file && $file['error'] === UPLOAD_ERR_OK);
+        if ($removeBanner || $hasBanner) {
             $pStmt = $this->mysqli->prepare("SELECT banner_url FROM users WHERE id = ?");
             $pStmt->bind_param("i", $this->userId);
             $pStmt->execute();
-            if ($row = $pStmt->get_result()->fetch_assoc()) {
+            $result = $pStmt->get_result();
+            $row = $result->fetch_assoc();
+            if ($row) {
                 $oldPath = $row['banner_url'];
-                if ($oldPath && file_exists(__DIR__ . '/../../frontend/' . $oldPath)) unlink(__DIR__ . '/../../frontend/' . $oldPath);
+                if ($oldPath && file_exists(__DIR__ . '/../../frontend/' . $oldPath)) {
+                    unlink(__DIR__ . '/../../frontend/' . $oldPath);
+                }
             }
             if ($removeBanner) {
                 $upd = $this->mysqli->prepare("UPDATE users SET banner_url = NULL WHERE id = ?");
@@ -246,14 +264,17 @@ class ApiHandler
         echo json_encode(['success' => true]);
     }
 
-    private function handleAvatarUpload()
+    private function handleAvatarUpload(): void
     {
-        if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+        $file = $this->getFile('avatar');
+        if ($file && $file['error'] === UPLOAD_ERR_OK) {
             require_once __DIR__ . '/../SecurityUtil.php';
-            $tmp = $_FILES['avatar']['tmp_name'];
-            $ext = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
-            if (SecurityUtil::validateFile($tmp, $ext)) {
-                $uuid = SecurityUtil::generateUuid();
+            $file = $this->getFile('avatar');
+            $tmp = $file['tmp_name'];
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $sec = new SecurityUtil();
+            if ($sec->validateFile($tmp, $ext)) {
+                $uuid = $sec->generateUuid();
                 $dir = __DIR__ . '/../../frontend/uploads/avatars/';
                 if (!is_dir($dir)) mkdir($dir, 0755, true);
                 if (move_uploaded_file($tmp, $dir . $uuid . '.' . $ext)) {
@@ -266,14 +287,17 @@ class ApiHandler
         }
     }
 
-    private function handleBannerUpload()
+    private function handleBannerUpload(): void
     {
-        if (isset($_FILES['banner']) && $_FILES['banner']['error'] === UPLOAD_ERR_OK) {
+        $file = $this->getFile('banner');
+        if ($file && $file['error'] === UPLOAD_ERR_OK) {
             require_once __DIR__ . '/../SecurityUtil.php';
-            $tmp = $_FILES['banner']['tmp_name'];
-            $ext = strtolower(pathinfo($_FILES['banner']['name'], PATHINFO_EXTENSION));
-            if (SecurityUtil::validateFile($tmp, $ext)) {
-                $uuid = SecurityUtil::generateUuid();
+            $file = $this->getFile('banner');
+            $tmp = $file['tmp_name'];
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $sec = new SecurityUtil();
+            if ($sec->validateFile($tmp, $ext)) {
+                $uuid = $sec->generateUuid();
                 $dir = __DIR__ . '/../../frontend/uploads/banners/';
                 if (!is_dir($dir)) mkdir($dir, 0755, true);
                 if (move_uploaded_file($tmp, $dir . $uuid . '.' . $ext)) {
@@ -289,7 +313,7 @@ class ApiHandler
     private function pushSubscribe()
     {
         $this->verifyCsrf();
-        $sub = json_decode(file_get_contents('php://input'), true);
+        $sub = json_decode($this->getRawInput(), true);
         if ($sub && isset($sub['endpoint'])) {
             $stmt = $this->mysqli->prepare("INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE p256dh = VALUES(p256dh), auth = VALUES(auth)");
             $stmt->bind_param("isss", $this->userId, $sub['endpoint'], $sub['keys']['p256dh'], $sub['keys']['auth']);
@@ -303,8 +327,8 @@ class ApiHandler
     private function updateStatus()
     {
         $this->verifyCsrf();
-        $status = $_POST['status'] ?? 'online';
-        $custom = $_POST['custom_status'] ?? null;
+        $status = $this->getPost('status', 'online');
+        $custom = $this->getPost('custom_status');
         if (in_array($status, ['online', 'busy', 'away', 'offline', 'not_allowed', 'step_out', 'going_away'])) {
             $stmt = $this->mysqli->prepare("UPDATE users SET status = ?, custom_status = ? WHERE id = ?");
             $stmt->bind_param("ssi", $status, $custom, $this->userId);
@@ -315,7 +339,7 @@ class ApiHandler
 
     private function getUserStatus()
     {
-        $tid = $_GET['user_id'] ?? 0;
+        $tid = $this->getGet('user_id', 0);
         $stmt = $this->mysqli->prepare("SELECT status, custom_status FROM users WHERE id = ?");
         $stmt->bind_param("i", $tid);
         $stmt->execute();
@@ -324,7 +348,7 @@ class ApiHandler
 
     private function getUserProfile()
     {
-        $tid = $_GET['user_id'] ?? 0;
+        $tid = $this->getGet('user_id', 0);
         $stmt = $this->mysqli->prepare("SELECT id, username, status, custom_status, bio, avatar_url, banner_color, banner_url, profile_layout, social_links FROM users WHERE id = ?");
         $stmt->bind_param("i", $tid);
         $stmt->execute();
@@ -347,8 +371,8 @@ class ApiHandler
     private function createThread()
     {
         $this->verifyCsrf();
-        $name = $_POST['name'] ?? '';
-        $cat = $_POST['category'] ?? 'General';
+        $name = $this->getPost('name', '');
+        $cat = $this->getPost('category', 'General');
         if ($name) {
             $stmt = $this->mysqli->prepare("INSERT INTO threads (name, creator_id, category) VALUES (?, ?, ?)");
             $stmt->bind_param("sis", $name, $this->userId, $cat);
@@ -360,10 +384,10 @@ class ApiHandler
     private function editThread()
     {
         $this->verifyCsrf();
-        $tid = $_POST['thread_id'] ?? 0;
-        $name = $_POST['name'] ?? '';
-        $wh = $_POST['discord_webhook_url'] ?? null;
-        $cat = $_POST['category'] ?? 'General';
+        $tid = $this->getPost('thread_id', 0);
+        $name = $this->getPost('name', '');
+        $wh = $this->getPost('discord_webhook_url');
+        $cat = $this->getPost('category', 'General');
         $stmt = $this->mysqli->prepare("UPDATE threads SET name = ?, discord_webhook_url = ?, category = ? WHERE id = ? AND creator_id = ?");
         $stmt->bind_param("sssii", $name, $wh, $cat, $tid, $this->userId);
         $stmt->execute();
@@ -373,7 +397,7 @@ class ApiHandler
     private function deleteThread()
     {
         $this->verifyCsrf();
-        $tid = $_POST['thread_id'] ?? 0;
+        $tid = $this->getPost('thread_id', 0);
         $stmt = $this->mysqli->prepare("DELETE FROM threads WHERE id = ? AND creator_id = ?");
         $stmt->bind_param("ii", $tid, $this->userId);
         $stmt->execute();
@@ -383,13 +407,18 @@ class ApiHandler
     private function toggleReaction()
     {
         $this->verifyCsrf();
-        $mid = $_POST['message_id'] ?? 0;
-        $emo = $_POST['emoji'] ?? '';
+        $mid = $this->getPost('message_id', 0);
+        $emo = $this->getPost('emoji', '');
         $stmt = $this->mysqli->prepare("SELECT id FROM message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?");
         $stmt->bind_param("iis", $mid, $this->userId, $emo);
         $stmt->execute();
-        if ($row = $stmt->get_result()->fetch_assoc()) {
-            $this->mysqli->query("DELETE FROM message_reactions WHERE id = " . $row['id']);
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        if ($row) {
+            $favId = $row['id'];
+            $stmt = $this->mysqli->prepare("DELETE FROM message_reactions WHERE id = ?");
+            $stmt->bind_param("i", $favId);
+            $stmt->execute();
         } else {
             $stmt = $this->mysqli->prepare("INSERT INTO message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)");
             $stmt->bind_param("iis", $mid, $this->userId, $emo);
@@ -398,20 +427,22 @@ class ApiHandler
         echo json_encode(['success' => true]);
     }
 
-    private function togglePin()
+    private function togglePin(): void
     {
         $this->verifyCsrf();
-        $mid = $_POST['message_id'] ?? 0;
-        $this->mysqli->query("UPDATE messages SET is_pinned = NOT is_pinned WHERE id = $mid");
+        $mid = (int)$this->getPost('message_id', 0);
+        $stmt = $this->mysqli->prepare("UPDATE messages SET is_pinned = NOT is_pinned WHERE id = ?");
+        $stmt->bind_param("i", $mid);
+        $stmt->execute();
         echo json_encode(['success' => true]);
     }
 
     private function searchMessages()
     {
-        $tid = $_GET['thread_id'] ?? null;
-        $gtid = $_GET['group_thread_id'] ?? null;
-        $pid = $_GET['partner_id'] ?? null;
-        $kw = $_GET['keyword'] ?? '';
+        $tid = $this->getGet('thread_id');
+        $gtid = $this->getGet('group_thread_id');
+        $pid = $this->getGet('partner_id');
+        $kw = $this->getGet('keyword', '');
         // Simplified search implementation
         $sql = $pid ? "SELECT * FROM direct_messages WHERE 1=1" : "SELECT * FROM messages WHERE 1=1";
         if ($tid) $sql .= " AND thread_id = $tid";
@@ -423,8 +454,8 @@ class ApiHandler
     private function updateTypingStatus()
     {
         $this->verifyCsrf();
-        $tid = $_POST['thread_id'] ?? null;
-        $isTyping = ($_POST['is_typing'] ?? '0') === '1';
+        $tid = $this->getPost('thread_id');
+        $isTyping = ($this->getPost('is_typing', '0')) === '1';
         $stmt = $this->mysqli->prepare("UPDATE users SET typing_thread_id = ?, typing_at = ? WHERE id = ?");
         $tval = $isTyping ? $tid : null;
         $aval = $isTyping ? date('Y-m-d H:i:s') : null;
@@ -435,7 +466,7 @@ class ApiHandler
 
     private function getTypingUsers()
     {
-        $tid = $_GET['thread_id'] ?? '';
+        $tid = $this->getGet('thread_id', '');
         $stmt = $this->mysqli->prepare("SELECT username FROM users WHERE typing_thread_id = ? AND id != ? AND typing_at > (NOW() - INTERVAL 5 SECOND)");
         $stmt->bind_param("si", $tid, $this->userId);
         $stmt->execute();
@@ -445,7 +476,7 @@ class ApiHandler
     private function markDmsAsRead()
     {
         $this->verifyCsrf();
-        $pid = $_POST['partner_id'] ?? 0;
+        $pid = $this->getPost('partner_id', 0);
         $stmt = $this->mysqli->prepare("UPDATE direct_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ?");
         $stmt->bind_param("ii", $pid, $this->userId);
         $stmt->execute();
@@ -455,38 +486,60 @@ class ApiHandler
     private function editMessage()
     {
         $this->verifyCsrf();
-        $mid = $_POST['message_id'] ?? 0;
-        $did = $_POST['dm_id'] ?? 0;
-        $con = $_POST['content'] ?? '';
-        if ($mid) $stmt = $this->mysqli->prepare("UPDATE messages SET content = ?, is_edited = 1 WHERE id = ? AND user_id = ?");
-        else $stmt = $this->mysqli->prepare("UPDATE direct_messages SET content = ?, is_edited = 1 WHERE id = ? AND sender_id = ?");
-        $stmt->bind_param("sii", $con, $mid ?: $did, $this->userId);
-        $stmt->execute();
-        echo json_encode(['success' => true]);
+        $mid = (int)$this->getPost('message_id', 0);
+        $did = (int)$this->getPost('dm_id', 0);
+        $con = $this->getPost('content', '');
+
+        $stmt = null;
+        if ($mid > 0) {
+            $stmt = $this->mysqli->prepare("UPDATE messages SET content = ?, is_edited = 1 WHERE id = ? AND user_id = ?");
+            $stmt->bind_param("sii", $con, $mid, $this->userId);
+        } elseif ($did > 0) {
+            $stmt = $this->mysqli->prepare("UPDATE direct_messages SET content = ?, is_edited = 1 WHERE id = ? AND sender_id = ?");
+            $stmt->bind_param("sii", $con, $did, $this->userId);
+        }
+
+        if ($stmt) {
+            $stmt->execute();
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Invalid message or DM ID']);
+        }
     }
 
     private function getAttachments()
     {
-        $tid = $_GET['thread_id'] ?? null;
-        $pid = $_GET['partner_id'] ?? null;
-        if ($tid) $stmt = $this->mysqli->prepare("SELECT attachment_path FROM messages WHERE thread_id = ? AND attachment_path IS NOT NULL");
-        else $stmt = $this->mysqli->prepare("SELECT attachment_path FROM direct_messages WHERE (sender_id = ? OR receiver_id = ?) AND attachment_path IS NOT NULL");
-        $stmt->bind_param("i", $tid ?: $this->userId);
-        $stmt->execute();
-        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        $tid = (int)$this->getGet('thread_id', 0);
+        $pid = (int)$this->getGet('partner_id', 0);
+
+        $stmt = null;
+        if ($tid > 0) {
+            $stmt = $this->mysqli->prepare("SELECT attachment_path FROM messages WHERE thread_id = ? AND attachment_path IS NOT NULL");
+            $stmt->bind_param("i", $tid);
+        } else {
+            $stmt = $this->mysqli->prepare("SELECT attachment_path FROM direct_messages WHERE (sender_id = ? OR receiver_id = ?) AND attachment_path IS NOT NULL");
+            $stmt->bind_param("ii", $this->userId, $this->userId);
+        }
+
+        if ($stmt) {
+            $stmt->execute();
+            echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        } else {
+            echo json_encode([]);
+        }
     }
 
-    private function getMessages()
+    private function getMessages(): void
     {
-        $tid = (int)($_GET['thread_id'] ?? 0);
+        $tid = (int)($this->getGet('thread_id', 0));
         $stmt = $this->mysqli->prepare(
             "SELECT m.*, u.username, u.avatar_url, u.status,
-                    r.username AS reply_username
-             FROM messages m
-             JOIN users u ON m.user_id = u.id
-             LEFT JOIN users r ON m.reply_to_id = r.id
-             WHERE m.thread_id = ?
-             ORDER BY m.created_at ASC"
+                r.username AS reply_username
+            FROM messages m
+            JOIN users u ON m.user_id = u.id
+            LEFT JOIN users r ON m.reply_to_id = r.id
+            WHERE m.thread_id = ?
+            ORDER BY m.created_at ASC"
         );
         $stmt->bind_param("i", $tid);
         $stmt->execute();
@@ -533,8 +586,8 @@ class ApiHandler
     private function createGroupThread()
     {
         $this->verifyCsrf();
-        $name = $_POST['name'] ?? 'Group';
-        $pids = json_decode($_POST['participant_ids'] ?? '[]', true);
+        $name = $this->getPost('name', 'Group');
+        $pids = json_decode($this->getPost('participant_ids', '[]'), true);
         $stmt = $this->mysqli->prepare("INSERT INTO group_threads (name, creator_id) VALUES (?, ?)");
         $stmt->bind_param("si", $name, $this->userId);
         $stmt->execute();
@@ -554,7 +607,7 @@ class ApiHandler
 
     private function getGroupMessages()
     {
-        $tid = $_GET['thread_id'] ?? 0;
+        $tid = $this->getGet('thread_id', 0);
         $stmt = $this->mysqli->prepare("SELECT m.*, u.username FROM messages m JOIN users u ON m.user_id = u.id WHERE m.group_thread_id = ? ORDER BY m.created_at ASC");
         $stmt->bind_param("i", $tid);
         $stmt->execute();
@@ -563,8 +616,8 @@ class ApiHandler
 
     private function updateLocation()
     {
-        $lat = $_POST['lat'] ?? 0;
-        $lon = $_POST['lon'] ?? 0;
+        $lat = $this->getPost('lat', 0);
+        $lon = $this->getPost('lon', 0);
         $stmt = $this->mysqli->prepare("INSERT INTO user_locations (user_id, lat, lon) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE lat=VALUES(lat), lon=VALUES(lon)");
         $stmt->bind_param("idd", $this->userId, $lat, $lon);
         $stmt->execute();
@@ -578,7 +631,7 @@ class ApiHandler
 
     private function getDirectMessages()
     {
-        $pid = $_GET['partner_id'] ?? 0;
+        $pid = $this->getGet('partner_id', 0);
         $stmt = $this->mysqli->prepare("SELECT * FROM direct_messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) ORDER BY created_at ASC");
         $stmt->bind_param("iiii", $this->userId, $pid, $pid, $this->userId);
         $stmt->execute();
@@ -588,8 +641,8 @@ class ApiHandler
     private function sendDirectMessage()
     {
         $this->verifyCsrf();
-        $rid = $_POST['receiver_id'] ?? 0;
-        $con = $_POST['content'] ?? '';
+        $rid = $this->getPost('receiver_id', 0);
+        $con = $this->getPost('content', '');
         $att = $this->handleFileUpload();
         $stmt = $this->mysqli->prepare("INSERT INTO direct_messages (sender_id, receiver_id, content, attachment_path) VALUES (?, ?, ?, ?)");
         $stmt->bind_param("iiss", $this->userId, $rid, $con, $att);
@@ -600,10 +653,10 @@ class ApiHandler
     private function sendMessage()
     {
         $this->verifyCsrf();
-        $tid = $_POST['thread_id'] ?? null;
-        $gtid = $_POST['group_thread_id'] ?? null;
-        $con = $_POST['content'] ?? '';
-        $replyToId = !empty($_POST['reply_to_id']) ? (int)$_POST['reply_to_id'] : null;
+        $tid = $this->getPost('thread_id');
+        $gtid = $this->getPost('group_thread_id');
+        $con = $this->getPost('content', '');
+        $replyToId = !empty($this->getPost('reply_to_id')) ? (int)$this->getPost('reply_to_id') : null;
         $att = $this->handleFileUpload();
         $stmt = $this->mysqli->prepare(
             "INSERT INTO messages (thread_id, group_thread_id, user_id, content, attachment_path, reply_to_id) VALUES (?, ?, ?, ?, ?, ?)"
@@ -616,14 +669,14 @@ class ApiHandler
     private function deleteMessage()
     {
         $this->verifyCsrf();
-        $mid = $_POST['message_id'] ?? 0;
+        $mid = $this->getPost('message_id', 0);
         $this->mysqli->query("DELETE FROM messages WHERE id = $mid AND user_id = $this->userId");
         echo json_encode(['success' => true]);
     }
 
     private function setLastThread()
     {
-        $tid = $_GET['thread_id'] ?? 1;
+        $tid = $this->getGet('thread_id', 1);
         $stmt = $this->mysqli->prepare("UPDATE users SET last_thread_id = ? WHERE id = ?");
         $stmt->bind_param("ii", $tid, $this->userId);
         $stmt->execute();
@@ -633,7 +686,7 @@ class ApiHandler
     private function requestFriend()
     {
         $this->verifyCsrf();
-        $tid = $_POST['target_id'] ?? 0;
+        $tid = $this->getPost('target_id', 0);
         $this->mysqli->query("INSERT IGNORE INTO friends (user_id_1, user_id_2, status) VALUES ($this->userId, $tid, 'pending')");
         echo json_encode(['success' => true]);
     }
@@ -641,7 +694,7 @@ class ApiHandler
     private function acceptFriend()
     {
         $this->verifyCsrf();
-        $rid = $_POST['request_id'] ?? 0;
+        $rid = $this->getPost('request_id', 0);
         $this->mysqli->query("UPDATE friends SET status = 'accepted' WHERE id = $rid AND user_id_2 = $this->userId");
         echo json_encode(['success' => true]);
     }
@@ -665,51 +718,83 @@ class ApiHandler
     private function toggleFavorite()
     {
         $this->verifyCsrf();
-        $tid = (int)($_POST['thread_id'] ?? 0);
+        $tid = (int)($this->getPost('thread_id', 0));
         if ($tid <= 0) {
             echo json_encode(['success' => false, 'error' => 'Invalid thread ID']);
             return;
         }
+
         $stmt = $this->mysqli->prepare("SELECT id FROM favorites WHERE user_id = ? AND thread_id = ?");
         $stmt->bind_param("ii", $this->userId, $tid);
         $stmt->execute();
-        $res = $stmt->get_result();
+        $stmt->store_result();
+        $numRows = $stmt->num_rows;
+        $favId = 0;
+        $stmt->bind_result($favId);
+        $stmt->fetch();
+        $stmt->close();
+
         $is_favorite = false;
-        if ($row = $res->fetch_assoc()) {
+        if ($numRows > 0) {
             $delStmt = $this->mysqli->prepare("DELETE FROM favorites WHERE id = ?");
-            $delStmt->bind_param("i", $row['id']);
+            $delStmt->bind_param("i", $favId);
             $delStmt->execute();
+            $delStmt->close();
             $is_favorite = false;
         } else {
             $insStmt = $this->mysqli->prepare("INSERT INTO favorites (user_id, thread_id) VALUES (?, ?)");
             $insStmt->bind_param("ii", $this->userId, $tid);
             $insStmt->execute();
+            $insStmt->close();
             $is_favorite = true;
         }
         echo json_encode(['success' => true, 'is_favorite' => $is_favorite]);
     }
 
-    private function getFavorites()
+    private function getFavorites(): void
     {
-        $stmt = $this->mysqli->prepare("SELECT t.* FROM favorites f JOIN threads t ON f.thread_id = t.id WHERE f.user_id = ?");
+        $stmt = $this->mysqli->prepare("
+        SELECT t.id, t.name, t.category 
+        FROM favorites f 
+        JOIN threads t ON f.thread_id = t.id 
+        WHERE f.user_id = ? 
+        ORDER BY f.id DESC
+    ");
         $stmt->bind_param("i", $this->userId);
         $stmt->execute();
-        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        $id = null;
+        $name = null;
+        $category = null;
+        $stmt->bind_result($id, $name, $category);
+
+        $favorites = [];
+        while ($stmt->fetch()) {
+            $favorites[] = [
+                'id' => $id,
+                'name' => $name,
+                'category' => $category
+            ];
+        }
+        $stmt->close();
+        echo json_encode($favorites);
     }
 
-    private function checkFavorite()
+    private function checkFavorite(): void
     {
-        $tid = $_GET['thread_id'] ?? 0;
+        $tid = (int)($this->getGet('thread_id', 0));
         $stmt = $this->mysqli->prepare("SELECT 1 FROM favorites WHERE user_id = ? AND thread_id = ?");
         $stmt->bind_param("ii", $this->userId, $tid);
         $stmt->execute();
-        echo json_encode(['is_favorite' => $stmt->get_result()->num_rows > 0]);
+        $stmt->store_result();
+        $is_favorite = $stmt->num_rows > 0;
+        $stmt->close();
+        echo json_encode(['is_favorite' => $is_favorite]);
     }
 
     private function blockUser()
     {
         $this->verifyCsrf();
-        $tid = $_POST['target_id'] ?? 0;
+        $tid = $this->getPost('target_id', 0);
         $this->mysqli->query("INSERT IGNORE INTO blocked_users (blocker_id, blocked_id) VALUES ($this->userId, $tid)");
         echo json_encode(['success' => true]);
     }
@@ -717,7 +802,7 @@ class ApiHandler
     private function unblockUser()
     {
         $this->verifyCsrf();
-        $tid = $_POST['target_id'] ?? 0;
+        $tid = $this->getPost('target_id', 0);
         $this->mysqli->query("DELETE FROM blocked_users WHERE blocker_id = $this->userId AND blocked_id = $tid");
         echo json_encode(['success' => true]);
     }
@@ -738,9 +823,9 @@ class ApiHandler
         echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
     }
 
-    private function searchUsers()
+    private function searchUsers(): void
     {
-        $q = "%" . ($_GET['q'] ?? '') . "%";
+        $q = "%" . ($this->getGet('q', '')) . "%";
         $stmt = $this->mysqli->prepare("SELECT id, username FROM users WHERE username LIKE ? AND id != ?");
         $stmt->bind_param("si", $q, $this->userId);
         $stmt->execute();
@@ -750,8 +835,8 @@ class ApiHandler
     private function joinMeeting()
     {
         $this->verifyCsrf();
-        $tid = $_POST['thread_id'] ?? null;
-        $pid = $_POST['dm_partner_id'] ?? null;
+        $tid = $this->getPost('thread_id');
+        $pid = $this->getPost('dm_partner_id');
         $name = $tid ? "thread_$tid" : "dm_" . min($this->userId, $pid) . "_" . max($this->userId, $pid);
         $stmt = $this->mysqli->prepare("INSERT IGNORE INTO meeting_rooms (room_name, creator_id) VALUES (?, ?)");
         $stmt->bind_param("si", $name, $this->userId);
@@ -762,9 +847,12 @@ class ApiHandler
     private function sendSignaling()
     {
         $this->verifyCsrf();
-        $rid = $_POST['room_id'] ?? 0;
+        $rid = $this->getPost('room_id', 0);
+        $receiverId = $this->getPost('receiver_id');
+        $type = $this->getPost('type');
+        $content = $this->getPost('content');
         $stmt = $this->mysqli->prepare("INSERT INTO signaling (room_id, sender_id, receiver_id, type, content) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("iiiss", $rid, $this->userId, $_POST['receiver_id'], $_POST['type'], $_POST['content']);
+        $stmt->bind_param("iiiss", $rid, $this->userId, $receiverId, $type, $content);
         $stmt->execute();
         echo json_encode(['success' => true]);
     }
@@ -772,7 +860,9 @@ class ApiHandler
     private function getSignaling()
     {
         $stmt = $this->mysqli->prepare("SELECT * FROM signaling WHERE room_id = ? AND receiver_id = ? AND id > ?");
-        $stmt->bind_param("iii", $_GET['room_id'], $this->userId, $_GET['last_id']);
+        $roomId = $this->getGet('room_id');
+        $lastId = $this->getGet('last_id');
+        $stmt->bind_param("iii", $roomId, $this->userId, $lastId);
         $stmt->execute();
         echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
     }
@@ -780,9 +870,9 @@ class ApiHandler
     private function toggleMute()
     {
         $this->verifyCsrf();
-        $type = $_POST['target_type'];
-        $tid = $_POST['target_id'];
-        if ($_POST['is_muted'] === '1') $this->mysqli->query("INSERT IGNORE INTO user_notification_settings (user_id, target_type, target_id) VALUES ($this->userId, '$type', $tid)");
+        $type = $this->getPost('target_type');
+        $tid = $this->getPost('target_id');
+        if ($this->getPost('is_muted') === '1') $this->mysqli->query("INSERT IGNORE INTO user_notification_settings (user_id, target_type, target_id) VALUES ($this->userId, '$type', $tid)");
         else $this->mysqli->query("DELETE FROM user_notification_settings WHERE user_id = $this->userId AND target_type = '$type' AND target_id = $tid");
         echo json_encode(['success' => true]);
     }
@@ -794,7 +884,7 @@ class ApiHandler
 
     private function getPinnedMessages()
     {
-        $tid = (int)($_GET['thread_id'] ?? 0);
+        $tid = (int)($this->getGet('thread_id', 0));
         if ($tid <= 0) {
             echo json_encode([]);
             return;
@@ -809,7 +899,10 @@ class ApiHandler
 
     private function getOnlineUsers()
     {
-        echo json_encode($this->mysqli->query("SELECT id, username, status FROM users WHERE status != 'offline' AND id != " . $this->userId)->fetch_all(MYSQLI_ASSOC));
+        $stmt = $this->mysqli->prepare("SELECT id, username, status FROM users WHERE status != 'offline' AND id != ?");
+        $stmt->bind_param("i", $this->userId);
+        $stmt->execute();
+        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
     }
 
     private function getUnreadDmCounts()
@@ -822,22 +915,66 @@ class ApiHandler
 
     private function setLang()
     {
-        $_SESSION['lang'] = $_GET['lang'] ?? 'ja';
+        $this->setSession('lang', $this->getGet('lang', 'ja'));
         echo json_encode(['success' => true]);
     }
 
-    private function handleFileUpload()
+    private function handleFileUpload(): ?string
     {
-        if (!isset($_FILES['attachment']) || $_FILES['attachment']['error'] !== UPLOAD_ERR_OK) return null;
+        $file = $this->getFile('attachment');
+        if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
+            return null;
+        }
         require_once __DIR__ . '/../SecurityUtil.php';
-        $tmp = $_FILES['attachment']['tmp_name'];
-        $ext = strtolower(pathinfo($_FILES['attachment']['name'], PATHINFO_EXTENSION));
-        if (!SecurityUtil::validateFile($tmp, $ext)) return null;
-        $uuid = SecurityUtil::generateUuid();
+        $file = $this->getFile('attachment');
+        $tmp = $file['tmp_name'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $sec = new SecurityUtil();
+        if (!$sec->validateFile($tmp, $ext)) return null;
+        $uuid = $sec->generateUuid();
         $dir = __DIR__ . '/../../frontend/uploads/';
         if (!is_dir($dir)) mkdir($dir, 0755, true);
         $path = $uuid . '.' . $ext;
         if (move_uploaded_file($tmp, $dir . $path)) return 'uploads/' . $path;
         return null;
+    }
+
+    private function getPost(string $key, $default = null): mixed
+    {
+        return filter_input(INPUT_POST, $key) ?? $default;
+    }
+
+    private function getGet(string $key, $default = null): mixed
+    {
+        return filter_input(INPUT_GET, $key) ?? $default;
+    }
+
+    private function getFile(string $key): ?array
+    {
+        // @phpstan-ignore-next-line
+        $files = $_FILES;
+        return $files[$key] ?? null;
+    }
+
+    private function getServer(string $key, $default = null): mixed
+    {
+        return filter_input(INPUT_SERVER, $key) ?? $default;
+    }
+
+    private function getSession(string $key, $default = null): mixed
+    {
+        require_once __DIR__ . '/../Session.php';
+        return Session::getInstance()->get($key, $default);
+    }
+
+    private function setSession(string $key, $value): void
+    {
+        require_once __DIR__ . '/../Session.php';
+        Session::getInstance()->set($key, $value);
+    }
+
+    private function getRawInput()
+    {
+        return file_get_contents('php://input');
     }
 }

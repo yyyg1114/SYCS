@@ -7,13 +7,18 @@ import { t } from './utils.js';
 
 export async function loadFavorites() {
     const list = document.getElementById("fav-thread-list");
-    if (!list) return;
+    console.log("loadFavorites called, list element:", list);
+    if (!list) {
+        console.error("fav-thread-list element not found!");
+        return;
+    }
 
-    list.innerHTML = `<div class="loading">${t("loading", "読み込み中...")}</div>`;
+    list.innerHTML = `<div class="loading" style="padding: 20px; text-align: center; color: var(--text-secondary);">${t("loading", "読み込み中...")}</div>`;
     
     let favorites;
     try {
         favorites = await api("get_favorites");
+        console.log("Favorites API result:", favorites);
     } catch (e) {
         console.error("Failed to fetch favorites:", e);
         list.innerHTML = `<div class="error" style="color: var(--status-offline); padding: 20px; text-align: center;">${t("error_loading_favorites", "お気に入りの読み込みに失敗しました。")}</div>`;
