@@ -4,6 +4,17 @@
  * SYCS Shared Sidebar
  * This file is included in index.php and dm.php
  */
+
+// Fallback for missing variables to prevent "Undefined variable" errors
+if (!isset($currentUser)) {
+    $currentUser = $_SESSION['user'] ?? 'User';
+}
+if (!isset($currentUserAvatar)) {
+    $currentUserAvatar = $_SESSION['user_avatar'] ?? '';
+}
+if (!isset($currentUserStatus)) {
+    $currentUserStatus = 'online';
+}
 ?>
 <aside id="main-sidebar" class="sidebar">
     <div class="sidebar-top">
