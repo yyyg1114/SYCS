@@ -1,5 +1,5 @@
 <?php
-// v2.2.7
+// v2.2.8
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -43,6 +43,7 @@ if (isset($_GET['api'])) {
 
     $handler = new ApiHandler($mysqli, $userId, $_SESSION['csrf_token'] ?? null);
     $handler->handle($_GET['api']);
+    exit;
 }
 
 // --- Auth Status Check ---

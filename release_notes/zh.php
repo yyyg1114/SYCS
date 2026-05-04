@@ -8,6 +8,38 @@
 ?>
 
 
+<!-- ===== v2.2.8 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.8</span>
+        <span class="release-title">API的整合性提高与服务工作线程的可靠性</span>
+        <span class="release-date">2026-05-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 稳定性与修复 (Stability & Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>提高 API 响应完整性</strong>
+                        <span class="detail">确保在处理 API 请求后立即退出进程，防止多余的 HTML 片段干扰 JSON 响应。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔌</span>
+                    <div>
+                        <strong>优化服务工作线程 (Service Worker) 缓存</strong>
+                        <span class="detail">限制仅对 HTTP/HTTPS 协议进行缓存，有效避免了由浏览器扩展或内部协议引起的加载错误。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.7 ===== -->
 <article class="release">
     <div class="release-header">

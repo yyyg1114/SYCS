@@ -1,3 +1,35 @@
+<!-- ===== v2.2.8 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.8</span>
+        <span class="release-title">API Integration Improvements and Service Worker Reliability</span>
+        <span class="release-date">2026-05-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> Stability & Fixes
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>Improved API Response Integrity</strong>
+                        <span class="detail">Ensured the process exits immediately after API handling, preventing unwanted HTML fragments from corrupting JSON responses.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔌</span>
+                    <div>
+                        <strong>Optimized Service Worker Caching</strong>
+                        <span class="detail">Updated the cache logic to exclusively handle HTTP/HTTPS protocols, preventing crashes caused by browser extensions or internal protocols.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.7 ===== -->
 <article class="release">
     <div class="release-header">

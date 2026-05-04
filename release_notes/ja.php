@@ -6,6 +6,38 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v2.2.8 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.8</span>
+        <span class="release-title">APIの整合性向上とサービスワーカーの信頼性向上</span>
+        <span class="release-date">2026-05-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 安定性 & 修正 (Stability & Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>API レスポンスの整合性向上</strong>
+                        <span class="detail">API リクエスト処理後に確実に実行を終了させることで、意図しない HTML が JSON レスポンスに混入する問題を修正しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔌</span>
+                    <div>
+                        <strong>サービスワーカーのキャッシュ処理を最適化</strong>
+                        <span class="detail">HTTP/HTTPS プロトコルのみをキャッシュ対象とするよう制限し、ブラウザ拡張機能などに起因するエラーを防止しました。オフライン時の動作がより安定します。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.7 ===== -->
 <article class="release">
     <div class="release-header">

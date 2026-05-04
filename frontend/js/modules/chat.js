@@ -14,11 +14,13 @@ export async function loadThreads(callback) {
   list.innerText = "";
 
   const categories = {};
-  threads.forEach((t) => {
-    const cat = t.category || "General";
-    if (!categories[cat]) categories[cat] = [];
-    categories[cat].push(t);
-  });
+  if (Array.isArray(threads)) {
+    threads.forEach((t) => {
+      const cat = t.category || "General";
+      if (!categories[cat]) categories[cat] = [];
+      categories[cat].push(t);
+    });
+  }
 
   for (const [catName, catThreads] of Object.entries(categories)) {
     const catHeader = document.createElement("div");
@@ -41,13 +43,15 @@ export async function loadGroupThreads(callback) {
   const list = document.getElementById("group-list");
   if (!list) return;
   list.innerText = "";
-  groups.forEach((g) => {
-    const item = document.createElement("div");
-    item.className = "thread-item";
-    item.textContent = "👥 " + g.name;
-    item.onclick = () => callback(g);
-    list.appendChild(item);
-  });
+  if (Array.isArray(groups)) {
+    groups.forEach((g) => {
+      const item = document.createElement("div");
+      item.className = "thread-item";
+      item.textContent = "👥 " + g.name;
+      item.onclick = () => callback(g);
+      list.appendChild(item);
+    });
+  }
 }
 
 export async function loadMessages(threadId, container, context, callbacks) {
@@ -64,7 +68,7 @@ export async function loadMessages(threadId, container, context, callbacks) {
     div.className = "empty-state";
     div.innerHTML = `<p>${t("no_messages", "ｼｰﾝ...静かな場所ですね。")}</p>`;
     container.appendChild(div);
-  } else {
+  } else if (Array.isArray(messages)) {
     const msgMap = {};
     const roots = [];
     messages.forEach((m) => {

@@ -82,7 +82,7 @@ self.addEventListener("fetch", (event) => {
         if (cached) return cached;
         return fetch(event.request)
           .then((response) => {
-            if (response.ok) {
+            if (response.ok && (url.protocol === "http:" || url.protocol === "https:")) {
               const clone = response.clone();
               caches.open(DYNAMIC_CACHE).then((cache) => {
                 cache.put(event.request, clone);
@@ -106,7 +106,7 @@ self.addEventListener("fetch", (event) => {
       caches.match(event.request).then((cached) => {
         const fetchPromise = fetch(event.request)
           .then((response) => {
-            if (response.ok) {
+            if (response.ok && (url.protocol === "http:" || url.protocol === "https:")) {
               const clone = response.clone();
               caches.open(STATIC_CACHE).then((cache) => {
                 cache.put(event.request, clone);
@@ -216,7 +216,7 @@ self.addEventListener("fetch", (event) => {
     caches.match(event.request).then((cached) => {
       const fetchPromise = fetch(event.request)
         .then((response) => {
-          if (response.ok) {
+          if (response.ok && (url.protocol === "http:" || url.protocol === "https:")) {
             const clone = response.clone();
             caches.open(DYNAMIC_CACHE).then((cache) => {
               cache.put(event.request, clone);
