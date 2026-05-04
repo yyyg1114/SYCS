@@ -6,6 +6,38 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v2.2.7 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.7</span>
+        <span class="release-title">ステータス選択 UI の刷新と視覚効果の改善</span>
+        <span class="release-date">2026-05-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI & デザイン (UI & Design)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>ステータス選択ボックスのモダン化</strong>
+                        <span class="detail">ステータス選択ドロップダウンのデザインを全面的に刷新しました。カスタムアイコンの導入、グラスモーフィズム（背景ぼかし）の適用、洗練されたホバー/フォーカスエフェクトにより、操作性と視認性が向上しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>視覚フィードバックの強化</strong>
+                        <span class="detail">各種インタラクティブ要素のトランジションやシャドウを微調整し、よりプレミアムな使用感を実現しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.5 ===== -->
 <article class="release">
     <div class="release-header">

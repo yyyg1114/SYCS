@@ -1,3 +1,35 @@
+<!-- ===== v2.2.7 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.7</span>
+        <span class="release-title">Status Selector UI Overhaul & Visual Polish</span>
+        <span class="release-date">2026-05-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI & Design
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>Modernized Status Selector</strong>
+                        <span class="detail">Completely redesigned the status dropdown with a custom chevron icon, glassmorphism effects (backdrop blur), and refined hover/focus states for a more consistent and premium experience.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>Enhanced Visual Feedback</strong>
+                        <span class="detail">Optimized transitions and shadows across interactive elements to provide a smoother and more polished user interface.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.5 ===== -->
 <article class="release">
     <div class="release-header">

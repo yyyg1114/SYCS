@@ -35,20 +35,41 @@
 }
 
 .status-select {
-    background: var(--input-bg);
+    background: var(--bg-secondary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
     font-size: 0.75rem;
+    font-weight: 500;
     cursor: pointer;
-    padding: 3px 8px;
-    border-radius: var(--radius-sm);
+    padding: 4px 28px 4px 10px;
+    border-radius: 6px;
     outline: none;
-    transition: var(--transition-fast);
+    appearance: none;
+    -webkit-appearance: none;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .status-select:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background-color: var(--accent-hover);
+    border-color: var(--accent-primary);
     color: var(--text-primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.status-select:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.status-select option {
+    background: #1e1e2e;
+    color: var(--text-primary);
+    padding: 10px;
 }
 
 /* GPS Info Styling */

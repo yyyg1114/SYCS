@@ -8,6 +8,38 @@
 ?>
 
 
+<!-- ===== v2.2.7 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.7</span>
+        <span class="release-title">状态选择器 UI 革新与视觉细节优化</span>
+        <span class="release-date">2026-05-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI 与设计 (UI & Design)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>现代化状态选择框</strong>
+                        <span class="detail">全面重新设计了状态选择下拉框。引入了自定义图标、毛玻璃效果（背景模糊）以及更精致的悬停和聚焦状态，显著提升了视觉一致性和操作体验。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>视觉反馈强化</strong>
+                        <span class="detail">优化了交互元素的过渡动画和阴影效果，使整个界面更加流畅且富有质质感。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.5 ===== -->
 <article class="release">
     <div class="release-header">
