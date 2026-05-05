@@ -8,6 +8,52 @@
 ?>
 
 
+<!-- ===== v2.2.9 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.9</span>
+        <span class="release-title">全新的高级着陆页正式上线</span>
+        <span class="release-date">2026-05-05</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新功能 (New Feature)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>次世代着陆页 (index.html)</strong>
+                        <span class="detail">推出了全新的、极具现代感的着陆页，旨在全方位展示 SYCS 的生态系统。采用双面板布局，配合流畅的入场动画，为用户带来高级的视觉第一印象。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>专用的设计系统 (landing.css)</strong>
+                        <span class="detail">为着陆页开发了独立的设计系统，包括 Outfit 和 Inter 字体的高质量排版、平滑的过渡效果以及极具现代感的配色方案。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改进点 (Improvements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🚀</span>
+                    <div>
+                        <strong>全方位的响应式优化</strong>
+                        <span class="detail">确保在从桌面工作站到移动设备的各种屏幕尺寸上都能完美呈现，保持一致的视觉美感。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.8 ===== -->
 <article class="release">
     <div class="release-header">

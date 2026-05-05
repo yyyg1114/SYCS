@@ -1,3 +1,49 @@
+<!-- ===== v2.2.9 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.9</span>
+        <span class="release-title">New Premium Landing Page Integration</span>
+        <span class="release-date">2026-05-05</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> New Feature
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>Next-Gen Landing Page (index.html)</strong>
+                        <span class="detail">Launched a brand new, high-fidelity landing page designed to showcase the SYCS ecosystem. Featuring a sleek dual-panel layout with dynamic entrance animations for a premium first impression.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>Dedicated Design System (landing.css)</strong>
+                        <span class="detail">Developed a standalone design system for the landing page, incorporating high-quality typography (Outfit & Inter), smooth transitions, and a modern color palette.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Improvements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🚀</span>
+                    <div>
+                        <strong>Full Responsive Optimization</strong>
+                        <span class="detail">Ensured seamless adaptability across all screen sizes, from desktop workstations to mobile devices, maintaining visual integrity throughout.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.8 ===== -->
 <article class="release">
     <div class="release-header">

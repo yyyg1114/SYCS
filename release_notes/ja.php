@@ -38,6 +38,52 @@
     </div>
 </article>
 
+<!-- ===== v2.2.9 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.9</span>
+        <span class="release-title">プレミアムランディングページの導入</span>
+        <span class="release-date">2026-05-05</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 (New Feature)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>次世代ランディングページ (index.html) の導入</strong>
+                        <span class="detail">SYCS の魅力を最大限に伝えるための、モダンで洗練されたランディングページを新規公開しました。2パネル構成のレイアウトを採用し、プロジェクトの各機能を美しく紹介しています。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>専用デザインシステム (landing.css)</strong>
+                        <span class="detail">ランディングページ専用のスタイルシートを作成し、滑らかなアニメーション、Outfit/Inter フォントによる美麗なタイポグラフィ、そして一貫性のあるカラーパレットを実装しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善点 (Improvements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🚀</span>
+                    <div>
+                        <strong>レスポンシブ対応の強化</strong>
+                        <span class="detail">PC からスマートフォンまで、あらゆるデバイスでプロジェクトの機能紹介が美しく表示されるよう最適化されています。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.7 ===== -->
 <article class="release">
     <div class="release-header">

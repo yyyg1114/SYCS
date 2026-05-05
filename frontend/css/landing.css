@@ -1,0 +1,263 @@
+:root {
+    --primary: #5450e0;
+    --primary-hover: #443dc4;
+    --bg-dark: #000000;
+    --bg-light: #9390e8;
+    --text-dark: #ffffff;
+    --text-light: #1a1a1a;
+    --text-muted: #d4d4d4;
+    --card-bg: #7c79de;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+    background-color: var(--bg-dark);
+}
+
+.landing-container {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+}
+
+/* Left Panel - Hero */
+.left-panel {
+    flex: 1.2;
+    background-color: var(--bg-dark);
+    color: var(--text-dark);
+    padding: 4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.left-panel::before {
+    content: '';
+    position: absolute;
+    top: -10%;
+    right: -10%;
+    width: 40%;
+    height: 40%;
+    background: radial-gradient(circle, rgba(0, 230, 118, 0.15) 0%, transparent 70%);
+    z-index: 0;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.logo-container {
+    margin-bottom: 2.5rem;
+    animation: fadeInDown 0.8s ease-out;
+}
+
+.logo-img {
+    height: 56px;
+    filter: drop-shadow(0 0 10px rgba(0, 230, 118, 0.3));
+}
+
+.main-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.02em;
+    background: linear-gradient(to bottom, #ffffff 0%, #a0a0a0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+.description {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    color: #cccccc;
+    margin-bottom: 3rem;
+    animation: fadeInUp 0.8s ease-out 0.4s both;
+}
+
+.cta-group {
+    display: flex;
+    gap: 1rem;
+    animation: fadeInUp 0.8s ease-out 0.6s both;
+}
+
+.btn {
+    padding: 0.9rem 2.5rem;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: #ffffff;
+    border: 2px solid var(--primary);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px #0400e69d;
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: var(--text-dark);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-outline:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-3px);
+    border-color: #fff;
+}
+
+/* Right Panel - Features Scrollable */
+.right-panel {
+    flex: 0.8;
+    background-color: var(--bg-light);
+    color: var(--text-light);
+    padding: 4rem 3rem;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) #f0f0f0;
+}
+
+.right-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.right-panel::-webkit-scrollbar-track {
+    background: #f0f0f0;
+}
+
+.right-panel::-webkit-scrollbar-thumb {
+    background-color: var(--primary);
+    border-radius: 10px;
+}
+
+.features-header {
+    margin-bottom: 3rem;
+    animation: fadeInRight 0.8s ease-out;
+}
+
+.features-header h2 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+
+.features-header .subtitle {
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+.features-grid {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.feature-card {
+    background-color: var(--bg-light);
+    padding: 1.5rem;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: var(--transition);
+    animation: slideInRight 0.6s ease-out both;
+    border: 1px solid #00c853;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    background-color: #cfcfcf;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 230, 118, 0.2);
+}
+
+.feature-icon-box {
+    width: 50px;
+    height: 50px;
+    background-color: rgba(0, 230, 118, 0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.feature-info h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.feature-info p {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #000000;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInRight {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(50px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+    body {
+        overflow-y: auto;
+    }
+    .landing-container {
+        flex-direction: column;
+        height: auto;
+    }
+    .left-panel, .right-panel {
+        flex: none;
+        height: auto;
+        padding: 4rem 2rem;
+    }
+    .main-title {
+        font-size: 2.8rem;
+    }
+}
