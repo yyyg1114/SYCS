@@ -360,11 +360,14 @@ export function toggleOnlineUsers() {
 /**
  * Set Application Theme
  * @param {string} theme 'dark' | 'light'
+ * @param {boolean} showToastNotify Whether to show a toast notification
  */
-export function setTheme(theme) {
+export function setTheme(theme, showToastNotify = true) {
   document.body.className = theme === "light" ? "light-theme" : "";
   localStorage.setItem("sycs_theme", theme);
-  showToast(t("settings", "設定"), t("theme_changed", "テーマを変更しました"), "info");
+  if (showToastNotify) {
+    showToast(t("settings", "設定"), t("theme_changed", "テーマを変更しました"), "info");
+  }
 }
 
 let deferredPrompt;

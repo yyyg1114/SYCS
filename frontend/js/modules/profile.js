@@ -6,6 +6,68 @@ import { api } from './api.js';
 import { showToast } from './ui.js';
 import { t } from './utils.js';
 
+const PERSIST_PREFIX = 'sycs_profile_';
+const PERSIST_KEYS = [
+  'edit-banner-input',
+  'edit-layout-input',
+  'edit-twitter-input',
+  'edit-accent-input',
+  'edit-github-input',
+  'edit-bio-input',
+  'edit-keywords-input',
+  'modal-status-input',
+  'sycs_theme'
+];
+
+/**
+ * Save a single input value to localStorage
+ * @param {string} id 
+ * @param {string} value 
+ */
+export function persistProfileInput(id, value) {
+  localStorage.setItem(PERSIST_PREFIX + id, value);
+}
+
+/**
+ * Load all persisted values from localStorage and apply them to the UI
+ */
+export function loadPersistedProfileInputs() {
+  PERSIST_KEYS.forEach(id => {
+    const value = localStorage.getItem(PERSIST_PREFIX + id);
+    if (value !== null) {
+      const input = document.getElementById(id);
+      if (input) {
+        input.value = value;
+      }
+      // Trigger previews
+      if (id === 'edit-banner-input') updatePreviewBanner(value);
+      if (id === 'edit-layout-input') updatePreviewLayout(value);
+      if (id === 'edit-accent-input') updateAccentColor(value);
+      if (id === 'edit-bio-input') updatePreviewBio(value);
+      if (id === 'modal-status-input') updatePreviewStatus(value);
+      if (id === 'sycs_theme') setTheme(value);
+    }
+  });
+}
+
+/**
+ * Clear all persisted profile values from localStorage
+ */
+export function clearPersistedProfileInputs() {
+  PERSIST_KEYS.forEach(id => {
+    localStorage.removeItem(PERSIST_PREFIX + id);
+  });
+}
+
+/**
+ * Set theme and persist it
+ * @param {string} theme 
+ */
+export function setTheme(theme) {
+  import('./ui.js').then(m => m.setTheme(theme, false)); // false = don't show toast for preview
+  persistProfileInput('sycs_theme', theme);
+}
+
 /**
  * Preview avatar before upload
  * @param {HTMLInputElement} input 
@@ -49,6 +111,7 @@ export function updatePreviewBanner(color) {
   if (banner) {
     banner.style.background = color;
   }
+  persistProfileInput('edit-banner-input', color);
 }
 
 /**
@@ -92,6 +155,7 @@ export function updatePreviewLayout(layout) {
   if (card) {
     card.dataset.layout = layout;
   }
+  persistProfileInput('edit-layout-input', layout);
 }
 
 /**
@@ -101,6 +165,7 @@ export function updatePreviewLayout(layout) {
 export function updateAccentColor(color) {
   document.documentElement.style.setProperty("--accent-color", color);
   document.documentElement.style.setProperty("--accent-hover", color + "dd");
+  persistProfileInput('edit-accent-input', color);
 }
 
 /**
@@ -112,6 +177,7 @@ export function updatePreviewBio(bio) {
   if (preview) {
     preview.innerText = bio;
   }
+  persistProfileInput('edit-bio-input', bio);
 }
 
 /**
@@ -123,6 +189,7 @@ export function updatePreviewStatus(status) {
   if (indicator) {
     indicator.className = `discord-status-indicator status-${status}`;
   }
+  persistProfileInput('modal-status-input', status);
 }
 
 /**
@@ -149,8 +216,17 @@ export async function saveProfile() {
   formData.append("social_links", JSON.stringify(social));
   formData.append("notification_keywords", document.getElementById("edit-keywords-input").value);
 
+  const pendingTheme = localStorage.getItem(PERSIST_PREFIX + 'sycs_theme');
+  if (pendingTheme) {
+    formData.append("theme_preference", JSON.stringify({ theme: pendingTheme }));
+  }
+
   const res = await api("update_profile", "POST", formData);
   if (res && res.success) {
+    if (pendingTheme) {
+      localStorage.setItem('sycs_theme', pendingTheme);
+    }
+    clearPersistedProfileInputs();
     showToast(t("success", "成功"), t("profile_updated", "プロフィールを更新しました"), "success");
     location.reload();
   } else {

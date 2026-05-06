@@ -30,7 +30,10 @@ window.toggleSearch = (s) => import('./modules/ui.js').then(m => m.toggleSearch(
 window.updateMyStatus = (s) => import('./modules/ui.js').then(m => m.updateMyStatus(s));
 window.searchMessages = () => import('./modules/chat.js').then(m => m.searchMessages());
 window.toggleFavorite = () => import('./modules/chat.js').then(m => m.toggleFavorite(currentThreadId));
-window.showProfileModal = () => import('./modules/ui.js').then(m => m.showModal("profile-modal"));
+window.showProfileModal = () => import('./modules/ui.js').then(m => {
+    m.showModal("profile-modal");
+    window.loadPersistedProfileInputs();
+});
 window.showAttachmentGallery = () => import('./modules/ui.js').then(m => m.showAttachmentGallery());
 window.showPinnedMessages = () => import('./modules/ui.js').then(m => m.showPinnedMessages());
 window.toggleGPS = () => import('./modules/ui.js').then(m => m.toggleGPS());
@@ -69,6 +72,8 @@ window.updatePreviewLayout = (l) => import('./modules/profile.js').then(m => m.u
 window.updateAccentColor = (c) => import('./modules/profile.js').then(m => m.updateAccentColor(c));
 window.updatePreviewBio = (b) => import('./modules/profile.js').then(m => m.updatePreviewBio(b));
 window.updatePreviewStatus = (s) => import('./modules/profile.js').then(m => m.updatePreviewStatus(s));
+window.loadPersistedProfileInputs = () => import('./modules/profile.js').then(m => m.loadPersistedProfileInputs());
+window.persistProfileInput = (id, v) => import('./modules/profile.js').then(m => m.persistProfileInput(id, v));
 window.saveProfile = () => import('./modules/profile.js').then(m => m.saveProfile());
 window.saveThreadSettings = () => import('./modules/chat.js').then(m => m.saveThreadSettings());
 window.showGroupCreationDialog = () => import('./modules/chat.js').then(m => m.showGroupCreationDialog());
@@ -90,6 +95,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initApp() {
+    // Apply Theme
+    let themeToApply = localStorage.getItem('sycs_theme');
+    if (!themeToApply && currentUserTheme && typeof currentUserTheme === 'object' && currentUserTheme.theme) {
+        themeToApply = currentUserTheme.theme;
+    }
+    if (themeToApply) {
+        import('./modules/ui.js').then(m => m.setTheme(themeToApply, false));
+    }
+
     const threadList = document.getElementById("thread-list");
     if (threadList) {
         loadThreads(th => switchThread(th.id, th.name, th.creator_id));

@@ -3,6 +3,17 @@
 /**
  * SYCS Modals Include
  */
+$currentUserStatus = $currentUserStatus ?? 'offline';
+$currentUserCustomStatus = $currentUserCustomStatus ?? '';
+$currentUserBio = $currentUserBio ?? '';
+$currentUserAvatar = $currentUserAvatar ?? '';
+$currentUserBanner = $currentUserBanner ?? '#6366f1';
+$currentUserBannerUrl = $currentUserBannerUrl ?? '';
+$currentUserProfileLayout = $currentUserProfileLayout ?? 'classic';
+$currentUserSocialLinks = $currentUserSocialLinks ?? [];
+$currentUserThemePref = $currentUserThemePref ?? [];
+$currentUserKeywords = $currentUserKeywords ?? '';
+$currentUserData = $currentUserData ?? ['notification_keywords' => $currentUserKeywords];
 ?>
 
 <!-- Group Creation Modal -->
@@ -25,101 +36,104 @@
             <div class="profile-edit-header">
                 <h2 style="margin:0; font-size:1.5rem; font-weight:700;"><?= __('user_settings') ?></h2>
             </div>
-            
+
             <div class="profile-edit-body">
 
-            <div class="modal-form-group">
-                <label class="modal-label"><?= __('avatar') ?></label>
-                <div style="display:flex; align-items:center; gap:15px;">
-                    <button class="btn-primary" onclick="document.getElementById('edit-avatar-input').click()" style="width:auto; padding:8px 16px;">
-                        <?= __('change_avatar') ?>
-                    </button>
-                    <button class="btn-secondary" id="btn-remove-avatar" onclick="removeAvatarPreview()" style="width:auto; background:#333; display:none;">
-                        <?= __('remove') ?>
-                    </button>
-                    <input type="file" id="edit-avatar-input" hidden accept="image/*" onchange="previewAvatar(this)">
-                </div>
-            </div>
-
-            <div class="modal-form-group">
-                <label class="modal-label"><?= __('banner') ?></label>
-                <div style="display:flex; flex-direction:column; gap:10px;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="color" id="edit-banner-input" class="modal-input" style="width:60px; height:40px; padding:2px;"
-                            oninput="updatePreviewBanner(this.value)" value="<?= htmlspecialchars($currentUserBanner) ?>">
-                        <button class="btn-premium-primary" onclick="document.getElementById('edit-banner-img-input').click()" style="flex:1;">
-                            <?= __('select_image') ?>
+                <div class="modal-form-group">
+                    <label class="modal-label"><?= __('avatar') ?></label>
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <button class="btn-primary" onclick="document.getElementById('edit-avatar-input').click()" style="width:auto; padding:8px 16px;">
+                            <?= __('change_avatar') ?>
                         </button>
-                        <button class="btn-premium-primary" onclick="removeBanner()" style="background:#f87171; flex:0.4;">
+                        <button class="btn-secondary" id="btn-remove-avatar" onclick="removeAvatarPreview()" style="width:auto; background:#333; display:none;">
                             <?= __('remove') ?>
                         </button>
-                        <input type="file" id="edit-banner-img-input" hidden accept="image/*" onchange="previewBannerImage(this)">
+                        <input type="file" id="edit-avatar-input" hidden accept="image/*" onchange="previewAvatar(this)">
                     </div>
                 </div>
-            </div>
 
-            <div class="modal-form-group">
-                <label class="modal-label"><?= __('profile_layout') ?></label>
-                <select id="edit-layout-input" class="modal-input" onchange="updatePreviewLayout(this.value)">
-                    <option value="classic" <?= $currentUserProfileLayout === 'classic' ? 'selected' : '' ?>><?= __('layout_classic') ?></option>
-                    <option value="modern" <?= $currentUserProfileLayout === 'modern' ? 'selected' : '' ?>><?= __('layout_modern') ?></option>
-                    <option value="compact" <?= $currentUserProfileLayout === 'compact' ? 'selected' : '' ?>><?= __('layout_compact') ?></option>
-                </select>
-            </div>
-
-            <div class="modal-form-group">
-                <label class="modal-label">Twitter</label>
-                <input type="text" id="edit-twitter-input" class="modal-input" placeholder="@username"
-                    value="<?= htmlspecialchars($currentUserSocialLinks['twitter'] ?? '') ?>">
-            </div>
-
-            <div class="modal-form-group">
-                <label class="modal-label"><?= __('theme_settings') ?></label>
-                <div style="display:flex; gap:10px;">
-                    <button class="btn-premium-primary" onclick="setTheme('dark')" style="flex:1;"><?= __('dark') ?></button>
-                    <button class="btn-premium-primary" onclick="setTheme('light')" style="flex:1;"><?= __('light') ?></button>
+                <div class="modal-form-group">
+                    <label class="modal-label"><?= __('banner') ?></label>
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <input type="color" id="edit-banner-input" class="modal-input" style="width:60px; height:40px; padding:2px;"
+                                oninput="updatePreviewBanner(this.value)" value="<?= htmlspecialchars($currentUserBanner) ?>">
+                            <button class="btn-premium-primary" onclick="document.getElementById('edit-banner-img-input').click()" style="flex:1;">
+                                <?= __('select_image') ?>
+                            </button>
+                            <button class="btn-premium-primary" onclick="removeBanner()" style="background:#f87171; flex:0.4;">
+                                <?= __('remove') ?>
+                            </button>
+                            <input type="file" id="edit-banner-img-input" hidden accept="image/*" onchange="previewBannerImage(this)">
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="modal-form-group">
-                <label class="modal-label"><?= __('accent_color') ?></label>
-                <input type="color" id="edit-accent-input" class="modal-input" style="height: 40px; padding: 5px;"
-                    oninput="updateAccentColor(this.value)" value="#6366f1">
-            </div>
+                <div class="modal-form-group">
+                    <label class="modal-label"><?= __('profile_layout') ?></label>
+                    <select id="edit-layout-input" class="modal-input" onchange="updatePreviewLayout(this.value)">
+                        <option value="classic" <?= $currentUserProfileLayout === 'classic' ? 'selected' : '' ?>><?= __('layout_classic') ?></option>
+                        <option value="modern" <?= $currentUserProfileLayout === 'modern' ? 'selected' : '' ?>><?= __('layout_modern') ?></option>
+                        <option value="compact" <?= $currentUserProfileLayout === 'compact' ? 'selected' : '' ?>><?= __('layout_compact') ?></option>
+                    </select>
+                </div>
 
-            <div class="modal-form-group">
-                <label class="modal-label"><?= __('github_username') ?></label>
-                <input type="text" id="edit-github-input" class="modal-input" placeholder="example_git"
-                    value="<?= htmlspecialchars($currentUserSocialLinks['github'] ?? '') ?>">
-            </div>
+                <div class="modal-form-group">
+                    <label class="modal-label">Twitter</label>
+                    <input type="text" id="edit-twitter-input" class="modal-input" placeholder="@username"
+                        oninput="persistProfileInput('edit-twitter-input', this.value)"
+                        value="<?= htmlspecialchars($currentUserSocialLinks['twitter'] ?? '') ?>">
+                </div>
 
-            <div class="modal-form-group">
-                <label class="modal-label"><?= __('bio') ?></label>
-                <textarea id="edit-bio-input" class="modal-textarea" placeholder="<?= __('bio_placeholder') ?>"
-                    oninput="updatePreviewBio(this.value)"><?= htmlspecialchars($currentUserBio) ?></textarea>
-            </div>
+                <div class="modal-form-group">
+                    <label class="modal-label"><?= __('theme_settings') ?></label>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-premium-primary" onclick="setTheme('dark')" style="flex:1;"><?= __('dark') ?></button>
+                        <button class="btn-premium-primary" onclick="setTheme('light')" style="flex:1;"><?= __('light') ?></button>
+                    </div>
+                </div>
 
-            <div class="modal-form-group">
-                <label class="modal-label"><?= __('notification_keywords') ?></label>
-                <input type="text" id="edit-keywords-input" class="modal-input" placeholder="<?= __('notification_keywords_placeholder') ?>"
-                    value="<?= htmlspecialchars($currentUserData['notification_keywords'] ?? '') ?>">
-                <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:5px;">
-                    <?= __('notification_keywords_desc') ?>
-                </p>
-            </div>
+                <div class="modal-form-group">
+                    <label class="modal-label"><?= __('accent_color') ?></label>
+                    <input type="color" id="edit-accent-input" class="modal-input" style="height: 40px; padding: 5px;"
+                        oninput="updateAccentColor(this.value)" value="#6366f1">
+                </div>
 
-            <div class="modal-form-group">
-                <label class="modal-label"><?= __('status') ?></label>
-                <select id="modal-status-input" class="modal-input" onchange="updatePreviewStatus(this.value)">
-                    <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>><?= __('status_online') ?></option>
-                    <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>><?= __('status_busy') ?></option>
-                    <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>><?= __('status_not_allowed') ?></option>
-                    <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>><?= __('status_step_out') ?></option>
-                    <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>><?= __('status_away') ?></option>
-                    <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>><?= __('status_offline') ?></option>
-                    <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>><?= __('status_going_away') ?></option>
-                </select>
-            </div>
+                <div class="modal-form-group">
+                    <label class="modal-label"><?= __('github_username') ?></label>
+                    <input type="text" id="edit-github-input" class="modal-input" placeholder="example_git"
+                        oninput="persistProfileInput('edit-github-input', this.value)"
+                        value="<?= htmlspecialchars($currentUserSocialLinks['github'] ?? '') ?>">
+                </div>
+
+                <div class="modal-form-group">
+                    <label class="modal-label"><?= __('bio') ?></label>
+                    <textarea id="edit-bio-input" class="modal-textarea" placeholder="<?= __('bio_placeholder') ?>"
+                        oninput="updatePreviewBio(this.value)"><?= htmlspecialchars($currentUserBio) ?></textarea>
+                </div>
+
+                <div class="modal-form-group">
+                    <label class="modal-label"><?= __('notification_keywords') ?></label>
+                    <input type="text" id="edit-keywords-input" class="modal-input" placeholder="<?= __('notification_keywords_placeholder') ?>"
+                        oninput="persistProfileInput('edit-keywords-input', this.value)"
+                        value="<?= htmlspecialchars($currentUserData['notification_keywords'] ?? '') ?>">
+                    <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:5px;">
+                        <?= __('notification_keywords_desc') ?>
+                    </p>
+                </div>
+
+                <div class="modal-form-group">
+                    <label class="modal-label"><?= __('status') ?></label>
+                    <select id="modal-status-input" class="modal-input" onchange="updatePreviewStatus(this.value)">
+                        <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>><?= __('status_online') ?></option>
+                        <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>><?= __('status_busy') ?></option>
+                        <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>><?= __('status_not_allowed') ?></option>
+                        <option value="step_out" <?= $currentUserStatus === 'step_out' ? 'selected' : '' ?>><?= __('status_step_out') ?></option>
+                        <option value="away" <?= $currentUserStatus === 'away' ? 'selected' : '' ?>><?= __('status_away') ?></option>
+                        <option value="offline" <?= $currentUserStatus === 'offline' ? 'selected' : '' ?>><?= __('status_offline') ?></option>
+                        <option value="going_away" <?= $currentUserStatus === 'going_away' ? 'selected' : '' ?>><?= __('status_going_away') ?></option>
+                    </select>
+                </div>
 
             </div> <!-- End profile-edit-body -->
 
