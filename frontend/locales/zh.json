@@ -85,6 +85,7 @@
     "theme_settings": "主题设置",
     "dark": "深色",
     "light": "浅色",
+    "night": "暗黑",
     "accent_color": "强调色",
     "notification_keywords": "通知关键词 (逗号分隔)",
     "notification_keywords_placeholder": "提及,紧急,重要",

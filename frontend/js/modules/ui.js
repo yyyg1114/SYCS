@@ -358,20 +358,35 @@ export function toggleOnlineUsers() {
 }
 
 /**
- * Set Application Theme
- * @param {string} theme 'dark' | 'light'
- * @param {boolean} showToastNotify Whether to show a toast notification
+ * アプリケーションのテーマを設定
+ * @param {'dark' | 'light'} theme
+ * @param {boolean} [showToastNotify=true] トースト通知を表示するかどうか
  */
 export function setTheme(theme, showToastNotify = true) {
-  document.body.className = theme === "light" ? "light-theme" : "";
+  const isLight = theme === "light";
+  const isNight = theme === "night";
+  // クラスの付け替え（他のクラスを破壊しない！）
+  document.body.classList.toggle("light-theme", isLight);
+  document.body.classList.toggle("dark-theme", !isLight);
+  document.body.classList.toggle("night-theme", isNight);
+
+  // 永続化
   localStorage.setItem("sycs_theme", theme);
+
+  // 通知（showToastNotifyが真の時だけ実行）
   if (showToastNotify) {
-    showToast(t("settings", "設定"), t("theme_changed", "テーマを変更しました"), "info");
+    showToast(
+      t("settings", "設定"), 
+      t("theme_changed", "テーマを変更しました"), 
+      "info"
+    );
   }
 }
 
+/** 
+ * PWAなどのインストール待機用（続きの処理用） 
+ */
 let deferredPrompt;
-
 /**
  * Handle PWA install prompt
  */

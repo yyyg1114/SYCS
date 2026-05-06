@@ -90,6 +90,7 @@ $currentUserData = $currentUserData ?? ['notification_keywords' => $currentUserK
                     <div style="display:flex; gap:10px;">
                         <button class="btn-premium-primary" onclick="setTheme('dark')" style="flex:1;"><?= __('dark') ?></button>
                         <button class="btn-premium-primary" onclick="setTheme('light')" style="flex:1;"><?= __('light') ?></button>
+                        <button class="btn-premium-primary" onclick="setTheme('night')" style="flex:1;"><?= __('night') ?></button>
                     </div>
                 </div>
 

@@ -85,6 +85,7 @@
     "theme_settings": "テーマ設定",
     "dark": "ダーク",
     "light": "ライト",
+    "night": "ナイト",
     "accent_color": "アクセントカラー",
     "notification_keywords": "通知キーワード (カンマ区切り)",
     "notification_keywords_placeholder": "メンション,緊急,重要",

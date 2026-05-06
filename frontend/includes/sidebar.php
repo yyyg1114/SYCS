@@ -24,7 +24,7 @@ if (!isset($currentUserStatus)) {
         </div>
         <div class="sidebar-secondary">
             <div class="release-notes">
-                <a href="../release_notes/release_notes.php" target="_blank" style="font-size: 0.8rem; margin-left: 100px; align-items: end; text-decoration: none; color: var(--text-primary); background-color: var(--accent-hover); border-radius: 4px; padding: 2px 4px;"><?= __('release_notes') ?></a>
+                <a href="../release_notes/release_notes.php" target="_blank" style="font-size: 0.8rem; margin-left: 100px; align-items: end; text-decoration: none; color: #fff; background-color: var(--accent-hover); border-radius: 4px; padding: 2px 4px;"><?= __('release_notes') ?></a>
             </div>
         </div>
         <nav>

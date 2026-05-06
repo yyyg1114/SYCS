@@ -85,6 +85,7 @@
     "theme_settings": "Theme Settings",
     "dark": "Dark",
     "light": "Light",
+    "night": "Night",
     "accent_color": "Accent Color",
     "notification_keywords": "Notification Keywords (comma-separated)",
     "notification_keywords_placeholder": "mention,urgent,important",

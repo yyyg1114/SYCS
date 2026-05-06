@@ -7,6 +7,7 @@
         currentUserTheme: <?= json_encode($currentUserThemePref) ?>,
         userKeywords: <?= json_encode($currentUserKeywords) ?>,
         translations: <?= json_encode(I18n::getInstance()->getTranslations()) ?>,
-        csrfToken: <?= json_encode($_SESSION['csrf_token']) ?>
+        csrfToken: <?= json_encode($_SESSION['csrf_token']) ?>,
+
     };
 </script>
