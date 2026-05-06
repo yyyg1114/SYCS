@@ -33,7 +33,7 @@ body {
     flex: 1.2;
     background-color: var(--bg-dark);
     color: var(--text-dark);
-    padding: 4rem;
+    padding: 3rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -60,7 +60,7 @@ body {
 }
 
 .logo-container {
-    margin-bottom: 2.5rem;
+    margin-bottom: 3rem;
     animation: fadeInDown 0.8s ease-out;
 }
 
@@ -70,10 +70,10 @@ body {
 }
 
 .main-title {
-    font-size: 3.5rem;
+    font-size: 3rem;
     font-weight: 800;
     line-height: 1.2;
-    margin-bottom: 1.5rem;
+    margin-bottom: 3rem;
     letter-spacing: -0.02em;
     background: linear-gradient(to bottom, #ffffff 0%, #a0a0a0 100%);
     -webkit-background-clip: text;
@@ -141,12 +141,12 @@ body {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    scrollbar-width: thin;
+    scrollbar-width: 30px;
     scrollbar-color: var(--primary) #f0f0f0;
 }
 
 .right-panel::-webkit-scrollbar {
-    width: 6px;
+    width: 20px;
 }
 
 .right-panel::-webkit-scrollbar-track {
@@ -154,8 +154,8 @@ body {
 }
 
 .right-panel::-webkit-scrollbar-thumb {
-    background-color: var(--primary);
-    border-radius: 10px;
+    background-color: #00c853;
+    border-radius: 20px;
 }
 
 .features-header {
@@ -171,7 +171,7 @@ body {
 
 .features-header .subtitle {
     color: var(--text-muted);
-    font-size: 1rem;
+    font-size: 1.3rem;
 }
 
 .features-grid {
@@ -259,5 +259,46 @@ body {
     }
     .main-title {
         font-size: 2.8rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .left-panel, .right-panel {
+        padding: 4rem 2rem;
+
+    }
+    .main-title{
+        font-size: 3rem;        
+    }
+    .description{
+        font-size: 1.3rem;
+    }
+    .cta-group {
+        flex-direction: row;
+        justify-content: center;
+    }
+    .btn {
+        padding: 1rem 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .left-panel, .right-panel {
+        padding: 4rem 2rem;
+        align-items: center;
+
+    }
+    .main-title{
+        font-size: 2.4rem;        
+    }
+    .description{
+        font-size: 1.2rem;
+    }
+    .cta-group {
+        flex-direction: column;
+        gap: 2.0rem;
+    }
+    .btn {
+        padding: 1rem 1.5rem;
     }
 }
