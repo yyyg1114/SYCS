@@ -6,6 +6,139 @@
  * This file is included by release_notes.php
  */
 ?>
+
+<!-- ===== v2.2.13 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.13</span>
+        <span class="release-title">プライバシーポリシーページ、Aboutページ、利用規約ページの追加</span>
+        <span class="release-date">2026-05-07</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能(New Feature)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📝</span>
+                    <div>
+                        <strong>プライバシーポリシーページ、Aboutページ、利用規約ページの追加</strong>
+                        <span class="detail">プライバシーポリシーページ、Aboutページ、利用規約ページを追加しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.12 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.12</span>
+        <span class="release-title">カラーテーマ追加</span>
+        <span class="release-date">2026-05-06</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI & デザイン (UI & Design)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>ナイトテーマカラーの追加</strong>
+                        <span class="detail">ナイトテーマのカラーを追加しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.11 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.11</span>
+        <span class="release-title">ユーザープロフィール設定の動作変更</span>
+        <span class="release-date">2026-05-06</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> ユーザープロフィール設定システム改修
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>ユーザープロフィール設定モーダルの動作変更</strong>
+                        <span class="detail">ユーザープロフィール設定モーダルの動作を変更しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.10 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.10</span>
+        <span class="release-title">ランディングページのスタイル改修</span>
+        <span class="release-date">2026-05-06</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI & デザイン (UI & Design)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>専用デザインシステム (landing.css)</strong>
+                        <span class="detail">ランディングページ専用のスタイルシートを作成し、滑らかなアニメーション、Outfit/Inter フォントによる美麗なタイポグラフィ、そして一貫性のあるカラーパレットを実装しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.9 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.9</span>
+        <span class="release-title">ランディングページ追加</span>
+        <span class="release-date">2026-05-05</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 (New Feature)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>ランディングページ追加</strong>
+                        <span class="detail">SYCSの魅力を最大限に伝えるための、モダンで洗練されたランディングページを新規公開しました。2パネル構成のレイアウトを採用し、プロジェクトの各機能を美しく紹介しています。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>専用デザインシステム (landing.css)</strong>
+                        <span class="detail">ランディングページ専用のスタイルシートを作成し、滑らかなアニメーション、Outfit/Inter フォントによる美麗なタイポグラフィ、そして一貫性のあるカラーパレットを実装しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.8 ===== -->
 <article class="release">
     <div class="release-header">

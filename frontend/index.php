@@ -129,6 +129,41 @@ if ($isLoggedIn) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+
+    <head>
+        <!-- CSSの読み込みなど -->
+
+        <script>
+            (function() {
+                try {
+                    // 保存された設定を爆速で取得
+                    const savedTheme = localStorage.getItem("sycs_theme");
+                    // 設定がない場合はOSの好み（ダークモード設定）をリスペクト
+                    const supportDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+                    const theme = savedTheme || (supportDarkMode ? "dark" : "light");
+
+                    if (theme === "light") {
+                        document.documentElement.classList.add("light-theme");
+                        document.documentElement.classList.remove("dark-theme");
+                        document.documentElement.classList.remove("night-theme");
+                    } else if (theme === "night") {
+                        document.documentElement.classList.add("night-theme");
+                        document.documentElement.classList.remove("light-theme");
+                        document.documentElement.classList.remove("dark-theme");
+                    } else {
+                        document.documentElement.classList.add("dark-theme");
+                        document.documentElement.classList.remove("light-theme");
+                        document.documentElement.classList.remove("night-theme");
+                    }
+                } catch (e) {
+                    // localStorageが使えない環境でもエラーで止めないのがプロの嗜み
+                    console.error("Theme initialization failed", e);
+                }
+            })();
+        </script>
+    </head>
+
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
