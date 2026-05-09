@@ -8,6 +8,7 @@ import { showToast, updateMyStatus } from './modules/ui.js';
 import { renderMessageNode } from './modules/message.js';
 import { loadThreads, loadGroupThreads, loadMessages, loadGroupMessages, updateFavoriteStatus } from './modules/chat.js';
 import { initSocket, socket } from './modules/socket.js';
+import { initNotifications, showBrowserNotification, requestNotificationPermission } from './modules/notifications.js';
 
 // --- Emoji Picker state ---
 let emojiPickerTarget = null;
@@ -87,6 +88,7 @@ window.handleInputKey = handleInputKey;
 window.cancelUpload = cancelUpload;
 window.closeEmojiPicker = closeEmojiPicker;
 window.toggleReactionPicker = toggleReactionPicker;
+window.requestNotificationPermission = requestNotificationPermission;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -115,8 +117,29 @@ async function initApp() {
             if (container && data.threadId == currentThreadId) {
                 loadMessages(currentThreadId, container, {currentUserName, currentUserId}, getMessageCallbacks());
             }
+            // Show notification if it's not from current user
+            if (data.userId != currentUserId) {
+                showBrowserNotification(`New message in ${data.threadName || 'Thread'}`, {
+                    body: `${data.username}: ${data.content}`,
+                    tag: `thread-${data.threadId}`
+                });
+            }
+        },
+        onNewDm: (data) => {
+            const isDmVisible = document.getElementById("dm-pane").classList.contains("active");
+            if (isDmVisible) {
+                // If DM pane is active, we might want to refresh or rely on modules/dm.js
+                // modules/dm.js likely handles its own socket listeners or we can add it here
+            }
+            showBrowserNotification(`New DM from ${data.username}`, {
+                body: data.content,
+                tag: `dm-${data.userId}`
+            });
         }
     });
+
+    // Initialize Notifications & SW
+    initNotifications();
 }
 
 function setupEventListeners() {

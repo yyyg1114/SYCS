@@ -1,3 +1,135 @@
+<!-- ===== v2.2.14 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.14</span>
+        <span class="release-title">ule RefactoriPWA Strengthening & Notification Modng</span>
+        <span class="release-date">2026-05-09</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> Major Updates
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔔</span>
+                    <div>
+                        <strong>Notification Module Refactoring</strong>
+                        <span class="detail">Decoupled notification logic into a standalone module (`notifications.js`), improving reliability and future scalability.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>Enhanced PWA Caching</strong>
+                        <span class="detail">Updated Service Worker to cache modular CSS and core scripts, significantly boosting offline performance.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.13 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.13</span>
+        <span class="release-title">New Documentation Pages</span>
+        <span class="release-date">2026-05-07</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> New Content
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📝</span>
+                    <div>
+                        <strong>About, Privacy Policy, & Terms</strong>
+                        <span class="detail">Added official pages for project information and legal compliance.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.12 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.12</span>
+        <span class="release-title">Night Theme Expansion</span>
+        <span class="release-date">2026-05-06</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI & Design
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>Night Theme Color Palette</strong>
+                        <span class="detail">Introduced new color schemes for the Night theme to improve accessibility and aesthetics.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.11 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.11</span>
+        <span class="release-title">Profile Settings Improvements</span>
+        <span class="release-date">2026-05-06</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> UX Refinement
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>Refined Modal Interaction</strong>
+                        <span class="detail">Improved the behavior and transition of the user profile settings modal.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.10 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.10</span>
+        <span class="release-title">Landing Page Visual Update</span>
+        <span class="release-date">2026-05-06</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI & Design
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>Styling Refinements</strong>
+                        <span class="detail">Polished the landing page design for better visual appeal.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.9 ===== -->
 <article class="release">
     <div class="release-header">

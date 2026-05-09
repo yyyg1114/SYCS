@@ -191,5 +191,10 @@
     "da_invalid_request": "Invalid request.",
     "da_password_required": "Please enter your password.",
     "da_wrong_password": "Incorrect password.",
-    "da_delete_failed": "Failed to delete the account."
+    "da_delete_failed": "Failed to delete the account.",
+    "notification_settings": "Notification Settings",
+    "enable_push_notifications": "Enable Push Notifications",
+    "push_notifications_desc": "Receive notifications even when the browser is closed or the app is in the background.",
+    "notification_granted": "Notifications enabled.",
+    "notification_denied": "Notifications denied. Please enable them in your browser settings."
 }

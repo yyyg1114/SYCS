@@ -8,6 +8,138 @@
 ?>
 
 
+<!-- ===== v2.3.0 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.3.0</span>
+        <span class="release-title">PWA 强化与通知模块重构</span>
+        <span class="release-date">2026-05-09</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 重大更新
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔔</span>
+                    <div>
+                        <strong>通知模块重构</strong>
+                        <span class="detail">将通知逻辑拆分为独立模块 (`notifications.js`)，提升了系统的可靠性和未来的可扩展性。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>PWA 缓存增强</strong>
+                        <span class="detail">更新了服务工作线程，将模块化 CSS 和核心脚本纳入预缓存，显著提升了离线性能。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.14 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.14</span>
+        <span class="release-title">新增文档页面</span>
+        <span class="release-date">2026-05-09</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新增内容
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📝</span>
+                    <div>
+                        <strong>关于、隐私政策与服务条款</strong>
+                        <span class="detail">新增了官方项目介绍页面以及完善的法律合规文档。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.12 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.12</span>
+        <span class="release-title">暗夜主题配色扩展</span>
+        <span class="release-date">2026-05-06</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI 与设计
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>暗夜主题新配色</strong>
+                        <span class="detail">为暗夜主题引入了新的配色方案，优化了视觉美感。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.11 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.11</span>
+        <span class="release-title">个人设置交互优化</span>
+        <span class="release-date">2026-05-06</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 体验改进
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>优化弹窗交互</strong>
+                        <span class="detail">改进了用户个人设置弹窗的运行逻辑和过渡动画。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.10 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.10</span>
+        <span class="release-title">着陆页视觉微调</span>
+        <span class="release-date">2026-05-06</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI 与设计
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>样式优化</strong>
+                        <span class="detail">对着陆页的设计进行了细致的打磨，提升了整体视觉效果。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.9 ===== -->
 <article class="release">
     <div class="release-header">

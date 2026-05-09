@@ -191,5 +191,10 @@
     "da_invalid_request": "不正なリクエストです。",
     "da_password_required": "パスワードを入力してください。",
     "da_wrong_password": "パスワードが正しくありません。",
-    "da_delete_failed": "アカウントの削除に失敗しました。"
+    "da_delete_failed": "アカウントの削除に失敗しました。",
+    "notification_settings": "通知設定",
+    "enable_push_notifications": "プッシュ通知を有効にする",
+    "push_notifications_desc": "ブラウザを閉じているときでも、新着メッセージの通知を受け取ることができます。",
+    "notification_granted": "通知が許可されました。",
+    "notification_denied": "通知が拒否されました。ブラウザの設定から許可してください。"
 }

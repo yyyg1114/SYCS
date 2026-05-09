@@ -77,6 +77,7 @@ margin-bottom: 3rem;
 letter-spacing: -0.02em;
 background: linear-gradient(to bottom, #ffffff 0%, #a0a0a0 100%);
 -webkit-background-clip: text;
+background-clip: text;
 -webkit-text-fill-color: transparent;
 animation: fadeInUp 0.8s ease-out 0.2s both;
 }
@@ -202,6 +203,25 @@ box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
 border-color: rgba(0, 230, 118, 0.2);
 }
 
+.developer {
+background-color: var(--bg-light);
+padding: 1.5rem;
+border-radius: 20px;
+display: flex;
+flex-direction: column;
+gap: 1rem;
+transition: var(--transition);
+animation: slideInRight 0.6s ease-out both;
+border: 1px solid #00c853;
+}
+
+.developer:hover {
+transform: translateY(-5px);
+background-color: #cfcfcf;
+box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+border-color: rgba(0, 230, 118, 0.2);
+}
+
 .feature-icon-box {
 width: 50px;
 height: 50px;
@@ -218,12 +238,14 @@ color: var(--primary);
 font-size: 1.25rem;
 font-weight: 700;
 margin-bottom: 0.5rem;
+
 }
 
-.feature-info p {
+.feature-info p .link {
 font-size: 0.95rem;
 line-height: 1.6;
 color: #000000;
+text-decoration: none;
 }
 
 /* Animations */

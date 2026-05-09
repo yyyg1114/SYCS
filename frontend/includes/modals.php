@@ -95,6 +95,16 @@ $currentUserData = $currentUserData ?? ['notification_keywords' => $currentUserK
                 </div>
 
                 <div class="modal-form-group">
+                    <label class="modal-label"><?= __('notification_settings') ?></label>
+                    <button class="btn-premium-primary" onclick="requestNotificationPermission()" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <span>🔔</span> <?= __('enable_push_notifications') ?>
+                    </button>
+                    <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:5px;">
+                        <?= __('push_notifications_desc') ?>
+                    </p>
+                </div>
+
+                <div class="modal-form-group">
                     <label class="modal-label"><?= __('accent_color') ?></label>
                     <input type="color" id="edit-accent-input" class="modal-input" style="height: 40px; padding: 5px;"
                         oninput="updateAccentColor(this.value)" value="#6366f1">

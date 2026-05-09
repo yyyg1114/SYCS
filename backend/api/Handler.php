@@ -641,20 +641,47 @@ class ApiHandler
     private function sendDirectMessage()
     {
         $this->verifyCsrf();
-        $rid = $this->getPost('receiver_id', 0);
+        $rid = (int)$this->getPost('receiver_id', 0);
         $con = $this->getPost('content', '');
         $att = $this->handleFileUpload();
         $stmt = $this->mysqli->prepare("INSERT INTO direct_messages (sender_id, receiver_id, content, attachment_path) VALUES (?, ?, ?, ?)");
         $stmt->bind_param("iiss", $this->userId, $rid, $con, $att);
         $stmt->execute();
+        $msgId = $stmt->insert_id;
+
+        // Get sender name for notification
+        $uStmt = $this->mysqli->prepare("SELECT username FROM users WHERE id = ?");
+        $uStmt->bind_param("i", $this->userId);
+        $uStmt->execute();
+        $senderName = $uStmt->get_result()->fetch_assoc()['username'] ?? 'User';
+
+        $messageData = [
+            'id' => $msgId,
+            'sender_id' => $this->userId,
+            'username' => $senderName,
+            'content' => $con,
+            'attachment_path' => $att,
+            'created_at' => date('Y-m-d H:i:s')
+        ];
+
+        // Notify Realtime Server
+        notifyRealtimeServer('new_dm', ['receiverId' => $rid, 'message' => $messageData]);
+
+        // Send Push Notification
+        sendPushNotification($rid, [
+            'title' => 'New DM from ' . $senderName,
+            'body' => $con,
+            'data' => ['url' => 'index.php?tab=dm', 'senderId' => $this->userId]
+        ]);
+
         echo json_encode(['success' => true]);
     }
 
     private function sendMessage()
     {
         $this->verifyCsrf();
-        $tid = $this->getPost('thread_id');
-        $gtid = $this->getPost('group_thread_id');
+        $tid = (int)$this->getPost('thread_id');
+        $gtid = (int)$this->getPost('group_thread_id');
         $con = $this->getPost('content', '');
         $replyToId = !empty($this->getPost('reply_to_id')) ? (int)$this->getPost('reply_to_id') : null;
         $att = $this->handleFileUpload();
@@ -663,7 +690,46 @@ class ApiHandler
         );
         $stmt->bind_param("iiissi", $tid, $gtid, $this->userId, $con, $att, $replyToId);
         $stmt->execute();
-        echo json_encode(['success' => true, 'id' => $stmt->insert_id]);
+        $msgId = $stmt->insert_id;
+
+        // Get sender name and thread name
+        $uStmt = $this->mysqli->prepare("SELECT username FROM users WHERE id = ?");
+        $uStmt->bind_param("i", $this->userId);
+        $uStmt->execute();
+        $senderName = $uStmt->get_result()->fetch_assoc()['username'] ?? 'User';
+
+        $threadName = 'Thread';
+        if ($tid > 0) {
+            $tStmt = $this->mysqli->prepare("SELECT name FROM threads WHERE id = ?");
+            $tStmt->bind_param("i", $tid);
+            $tStmt->execute();
+            $threadName = $tStmt->get_result()->fetch_assoc()['name'] ?? 'Thread';
+        }
+
+        $messageData = [
+            'id' => $msgId,
+            'threadId' => $tid,
+            'groupThreadId' => $gtid,
+            'userId' => $this->userId,
+            'username' => $senderName,
+            'threadName' => $threadName,
+            'content' => $con,
+            'attachment_path' => $att,
+            'reply_to_id' => $replyToId,
+            'created_at' => date('Y-m-d H:i:s')
+        ];
+
+        // Notify Realtime Server
+        if ($tid > 0) {
+            notifyRealtimeServer('new_message', ['threadId' => $tid, 'message' => $messageData]);
+        } elseif ($gtid > 0) {
+            notifyRealtimeServer('new_group_message', ['groupThreadId' => $gtid, 'message' => $messageData]);
+        }
+
+        // For threads, we could send push to all participants, but for now let's just do real-time
+        // Or we could send to users who have certain keywords (as mentioned in the code)
+
+        echo json_encode(['success' => true, 'id' => $msgId]);
     }
 
     private function deleteMessage()

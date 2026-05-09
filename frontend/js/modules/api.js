@@ -31,18 +31,32 @@ export async function api(path, method = "GET", body = null) {
   if (method === "POST") {
     if (!body) body = new FormData();
 
-    if (!(body instanceof FormData)) {
-      const formData = new FormData();
-      for (const key in body) {
-        formData.append(key, body[key]);
+    if (typeof body === "string") {
+      // Assume JSON
+      opts.headers = { "Content-Type": "application/json" };
+      // CSRF token needs to be added to JSON if it's an object
+      try {
+          const parsed = JSON.parse(body);
+          if (typeof parsed === "object") {
+              parsed.csrf_token = csrfToken;
+              body = JSON.stringify(parsed);
+          }
+      } catch (e) {}
+      opts.body = body;
+    } else {
+      if (!(body instanceof FormData)) {
+        const formData = new FormData();
+        for (const key in body) {
+          formData.append(key, body[key]);
+        }
+        body = formData;
       }
-      body = formData;
-    }
 
-    if (!body.has("csrf_token")) {
-      body.append("csrf_token", csrfToken);
+      if (!body.has("csrf_token")) {
+        body.append("csrf_token", csrfToken);
+      }
+      opts.body = body;
     }
-    opts.body = body;
   } else if (body) {
     opts.body = body;
   }

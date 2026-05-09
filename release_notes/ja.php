@@ -7,6 +7,66 @@
  */
 ?>
 
+<!-- ===== v2.2.14 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.14</span>
+        <span class="release-title">PWA 強化、通知モジュールの刷新、法的ドキュメントの整備</span>
+        <span class="release-date">2026-05-09</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 & 強化 (New Features & Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔔</span>
+                    <div>
+                        <strong>通知システムのモジュール化</strong>
+                        <span class="detail">通知機能を独立したモジュール (`notifications.js`) に分離し、プッシュ通知の安定性と拡張性を向上させました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">📄</span>
+                    <div>
+                        <strong>「SYCS について」と「プライバシーポリシー」の追加</strong>
+                        <span class="detail">プロジェクトの詳細を紹介する About ページと、法的遵守のためのプライバシーポリシーページを新規公開しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌐</span>
+                    <div>
+                        <strong>多言語対応の強化 (i18n)</strong>
+                        <span class="detail">ロケールファイル (`en.json`, `ja.json`) を更新し、新機能に対応した翻訳を追加しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> PWA & 安定性 (PWA & Stability)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>サービスワーカーの最適化</strong>
+                        <span class="detail">キャッシュ戦略を刷新し、モジュール化された最新の CSS 群とメインスクリプトを事前キャッシュ対象に追加。オフライン時の読み込み速度と信頼性が大幅に向上しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>API ハンドラの堅牢化</strong>
+                        <span class="detail">バックエンドの `Handler.php` におけるエラー処理と入出力の整合性をさらに強化しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.13 ===== -->
 <article class="release">
     <div class="release-header">

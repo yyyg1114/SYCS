@@ -5,7 +5,10 @@ const DYNAMIC_CACHE = CACHE_VERSION + "-dynamic";
 
 // 静的アセット（事前キャッシュ対象）
 const STATIC_ASSETS = [
-  "./css/style.css",
+  "./css/base.css",
+  "./css/layout.css",
+  "./css/components.css",
+  "./css/modals.css",
   "./css/style-index.css",
   "./assets/img/SYCS_favicon.svg",
   "./assets/img/SYCS_Logo.svg",
@@ -21,6 +24,7 @@ const STATIC_ASSETS = [
   "./assets/img/reply.svg",
   "./assets/img/screen_share.svg",
   "./assets/img/trash.svg",
+  "./js/index.js",
   "./js/webrtc.js",
   "./js/locate.js",
 ];
@@ -249,7 +253,7 @@ self.addEventListener("push", function (event) {
     ],
   };
 
-  event.waitUntil(self.registration.showNotification(data.title, options));
+  event.waitUntil(self.registration.showNotification(data.title || "SYCS", options));
 });
 
 // 通知クリック
