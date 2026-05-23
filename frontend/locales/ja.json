@@ -8,6 +8,7 @@
     "unknown_error": "不明なエラーが発生しました。",
     "system_error": "システムエラーが発生しました。",
     "server_error_json": "サーバーエラー (JSON) が発生しました。",
+    "server_empty_response": "サーバーからのレスポンスが空です。",
     "network_error": "ネットワークエラーが発生しました。",
     "connection_failed": "接続に失敗しました。",
     "enter_group_name": "グループ名を入力してください。",

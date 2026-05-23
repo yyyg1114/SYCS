@@ -6,6 +6,58 @@
  * This file is included by release_notes.php
  */
 ?>
+<!-- ===== v2.2.15 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.15</span>
+        <span class="release-title">モダンWeb標準に基づいたダイアログの強化とプレミアムアニメーションの導入</span>
+        <span class="release-date">2026-05-23</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 & 強化 (New Features & Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>宣言的クローズ (Light-dismiss) のサポート</strong>
+                        <span class="detail">各種ダイアログ（設定、ギャラリー、ブロックリスト、ショートカット等）に <code>closedby="any"</code> 属性を追加。JSを使わずに背景（外側）をクリックするだけでスムーズに閉じられるモダンUXを実現しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>グローバルなJSフォールバックの実装</strong>
+                        <span class="detail">Safariなど一部の <code>closedby</code> 未対応ブラウザでも背景クリックでダイアログが正しく閉じるよう、イベントデリゲーションを利用した軽量なフォールバックロジックをJS初期化時に追加しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI & デザイン (UI & Design)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>@starting-styleを用いたプレミアムアニメーション</strong>
+                        <span class="detail">CSSの <code>@starting-style</code>、<code>transition-behavior: allow-discrete</code>、<code>overlay</code> プロパティを使用し、モーダルの開閉時における双方向の滑らかなフェード＆拡大縮小アニメーションをピュアCSSで実装。バックドロップ（背景）のぼかし効果も滑らかに遷移します。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">♿</span>
+                    <div>
+                        <strong>視覚的アクセシビリティ対応 (Reduced Motion)</strong>
+                        <span class="detail">OSやブラウザでアニメーションの軽減設定 (<code>prefers-reduced-motion</code>) が有効な環境において、自動的に余分な動き（拡大縮小）を排除し、シンプルなフェードイン・フェードアウトにフォールバックするよう配慮しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
 
 <!-- ===== v2.2.14 ===== -->
 <article class="release">

@@ -187,6 +187,12 @@ class ApiHandler
                     break;
             }
         } catch (\Exception $e) {
+            $code = 500;
+            if ($e->getMessage() === 'Invalid CSRF Token') {
+                $code = 403;
+            }
+            http_response_code($code);
+            echo json_encode(['success' => false, 'error' => 'API Error: ' . $e->getMessage()]);
             return;
         }
         return;
@@ -196,8 +202,6 @@ class ApiHandler
     {
         $token = $this->getPost('csrf_token');
         if (!$token || !hash_equals($this->csrfToken, $token)) {
-            http_response_code(403);
-            echo json_encode(['error' => 'Invalid CSRF Token']);
             throw new \Exception('Invalid CSRF Token');
         }
     }
@@ -384,7 +388,7 @@ class ApiHandler
     private function editThread()
     {
         $this->verifyCsrf();
-        $tid = $this->getPost('thread_id', 0);
+        $tid = $this->getParam('thread_id', 0);
         $name = $this->getPost('name', '');
         $wh = $this->getPost('discord_webhook_url');
         $cat = $this->getPost('category', 'General');
@@ -397,7 +401,7 @@ class ApiHandler
     private function deleteThread()
     {
         $this->verifyCsrf();
-        $tid = $this->getPost('thread_id', 0);
+        $tid = $this->getParam('thread_id') ?? $this->getParam('id', 0);
         $stmt = $this->mysqli->prepare("DELETE FROM threads WHERE id = ? AND creator_id = ?");
         $stmt->bind_param("ii", $tid, $this->userId);
         $stmt->execute();
@@ -430,7 +434,7 @@ class ApiHandler
     private function togglePin(): void
     {
         $this->verifyCsrf();
-        $mid = (int)$this->getPost('message_id', 0);
+        $mid = (int)$this->getParam('message_id', 0);
         $stmt = $this->mysqli->prepare("UPDATE messages SET is_pinned = NOT is_pinned WHERE id = ?");
         $stmt->bind_param("i", $mid);
         $stmt->execute();
@@ -454,8 +458,8 @@ class ApiHandler
     private function updateTypingStatus()
     {
         $this->verifyCsrf();
-        $tid = $this->getPost('thread_id');
-        $isTyping = ($this->getPost('is_typing', '0')) === '1';
+        $tid = $this->getParam('thread_id');
+        $isTyping = ($this->getParam('is_typing', '0')) === '1';
         $stmt = $this->mysqli->prepare("UPDATE users SET typing_thread_id = ?, typing_at = ? WHERE id = ?");
         $tval = $isTyping ? $tid : null;
         $aval = $isTyping ? date('Y-m-d H:i:s') : null;
@@ -486,8 +490,8 @@ class ApiHandler
     private function editMessage()
     {
         $this->verifyCsrf();
-        $mid = (int)$this->getPost('message_id', 0);
-        $did = (int)$this->getPost('dm_id', 0);
+        $mid = (int)$this->getParam('message_id', 0);
+        $did = (int)$this->getParam('dm_id', 0);
         $con = $this->getPost('content', '');
 
         $stmt = null;
@@ -641,7 +645,7 @@ class ApiHandler
     private function sendDirectMessage()
     {
         $this->verifyCsrf();
-        $rid = (int)$this->getPost('receiver_id', 0);
+        $rid = (int)$this->getParam('receiver_id', 0);
         $con = $this->getPost('content', '');
         $att = $this->handleFileUpload();
         $stmt = $this->mysqli->prepare("INSERT INTO direct_messages (sender_id, receiver_id, content, attachment_path) VALUES (?, ?, ?, ?)");
@@ -680,15 +684,20 @@ class ApiHandler
     private function sendMessage()
     {
         $this->verifyCsrf();
-        $tid = (int)$this->getPost('thread_id');
-        $gtid = (int)$this->getPost('group_thread_id');
+        // 0や空文字の場合はNULLとして扱う（外部キー制約対策）
+        $rawTid = $this->getParam('thread_id');
+        $rawGtid = $this->getParam('group_thread_id');
         $con = $this->getPost('content', '');
         $replyToId = !empty($this->getPost('reply_to_id')) ? (int)$this->getPost('reply_to_id') : null;
         $att = $this->handleFileUpload();
+
+        $tidVal = ($rawTid && (int)$rawTid > 0) ? (int)$rawTid : null;
+        $gtidVal = ($rawGtid && (int)$rawGtid > 0) ? (int)$rawGtid : null;
+
         $stmt = $this->mysqli->prepare(
             "INSERT INTO messages (thread_id, group_thread_id, user_id, content, attachment_path, reply_to_id) VALUES (?, ?, ?, ?, ?, ?)"
         );
-        $stmt->bind_param("iiissi", $tid, $gtid, $this->userId, $con, $att, $replyToId);
+        $stmt->bind_param("iiissi", $tidVal, $gtidVal, $this->userId, $con, $att, $replyToId);
         $stmt->execute();
         $msgId = $stmt->insert_id;
 
@@ -699,17 +708,17 @@ class ApiHandler
         $senderName = $uStmt->get_result()->fetch_assoc()['username'] ?? 'User';
 
         $threadName = 'Thread';
-        if ($tid > 0) {
+        if ($tidVal > 0) {
             $tStmt = $this->mysqli->prepare("SELECT name FROM threads WHERE id = ?");
-            $tStmt->bind_param("i", $tid);
+            $tStmt->bind_param("i", $tidVal);
             $tStmt->execute();
             $threadName = $tStmt->get_result()->fetch_assoc()['name'] ?? 'Thread';
         }
 
         $messageData = [
             'id' => $msgId,
-            'threadId' => $tid,
-            'groupThreadId' => $gtid,
+            'threadId' => $tidVal,
+            'groupThreadId' => $gtidVal,
             'userId' => $this->userId,
             'username' => $senderName,
             'threadName' => $threadName,
@@ -719,15 +728,16 @@ class ApiHandler
             'created_at' => date('Y-m-d H:i:s')
         ];
 
-        // Notify Realtime Server
-        if ($tid > 0) {
-            notifyRealtimeServer('new_message', ['threadId' => $tid, 'message' => $messageData]);
-        } elseif ($gtid > 0) {
-            notifyRealtimeServer('new_group_message', ['groupThreadId' => $gtid, 'message' => $messageData]);
+        // Notify Realtime Server & Push (Try-Catch to prevent main flow from breaking)
+        try {
+            if ($tidVal > 0) {
+                notifyRealtimeServer('new_message', ['threadId' => $tidVal, 'message' => $messageData]);
+            } elseif ($gtidVal > 0) {
+                notifyRealtimeServer('new_group_message', ['groupThreadId' => $gtidVal, 'message' => $messageData]);
+            }
+        } catch (\Exception $e) {
+            error_log("Realtime notification failed: " . $e->getMessage());
         }
-
-        // For threads, we could send push to all participants, but for now let's just do real-time
-        // Or we could send to users who have certain keywords (as mentioned in the code)
 
         echo json_encode(['success' => true, 'id' => $msgId]);
     }
@@ -735,7 +745,7 @@ class ApiHandler
     private function deleteMessage()
     {
         $this->verifyCsrf();
-        $mid = $this->getPost('message_id', 0);
+        $mid = (int)$this->getParam('message_id', 0);
         $this->mysqli->query("DELETE FROM messages WHERE id = $mid AND user_id = $this->userId");
         echo json_encode(['success' => true]);
     }
@@ -784,7 +794,7 @@ class ApiHandler
     private function toggleFavorite()
     {
         $this->verifyCsrf();
-        $tid = (int)($this->getPost('thread_id', 0));
+        $tid = (int)($this->getParam('thread_id', 0));
         if ($tid <= 0) {
             echo json_encode(['success' => false, 'error' => 'Invalid thread ID']);
             return;
@@ -1005,9 +1015,30 @@ class ApiHandler
         return null;
     }
 
+    private function getParam(string $key, $default = null): mixed
+    {
+        // 1. POST
+        $val = filter_input(INPUT_POST, $key);
+        if ($val !== null) return $val;
+
+        // 2. JSON Body
+        $json = json_decode($this->getRawInput(), true);
+        if (is_array($json) && isset($json[$key])) return $json[$key];
+
+        // 3. GET Fallback
+        return filter_input(INPUT_GET, $key) ?? $default;
+    }
+
     private function getPost(string $key, $default = null): mixed
     {
-        return filter_input(INPUT_POST, $key) ?? $default;
+        $val = filter_input(INPUT_POST, $key);
+        if ($val === null) {
+            $json = json_decode($this->getRawInput(), true);
+            if (is_array($json) && isset($json[$key])) {
+                return $json[$key];
+            }
+        }
+        return $val ?? $default;
     }
 
     private function getGet(string $key, $default = null): mixed
@@ -1039,8 +1070,12 @@ class ApiHandler
         Session::getInstance()->set($key, $value);
     }
 
+    private $cachedRawInput = null;
     private function getRawInput()
     {
-        return file_get_contents('php://input');
+        if ($this->cachedRawInput === null) {
+            $this->cachedRawInput = file_get_contents('php://input');
+        }
+        return $this->cachedRawInput;
     }
 }

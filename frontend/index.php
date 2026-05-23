@@ -1,5 +1,5 @@
 <?php
-// v2.2.14
+// v2.2.15
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -32,7 +32,7 @@ db_init($mysqli);
 if (isset($_GET['api'])) {
     require_once __DIR__ . '/../backend/api/Handler.php';
     require_once __DIR__ . '/../backend/helpers.php';
-    ini_set('display_errors', 0);
+    ini_set('display_errors', 1);
     header('Content-Type: application/json');
 
     $userId = $_SESSION['user_id'] ?? null;
@@ -413,7 +413,7 @@ if ($isLoggedIn) {
             </section>
 
             <!-- Modals -->
-            <dialog id="add-friend-modal" class="modal"
+            <dialog id="add-friend-modal" class="modal" closedby="any"
                 style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
                 <div class="modal-content" style="min-width:400px;">
                     <h3><?= __('add_friend') ?></h3>
@@ -426,7 +426,7 @@ if ($isLoggedIn) {
                 </div>
             </dialog>
 
-            <dialog id="gallery-modal" class="modal"
+            <dialog id="gallery-modal" class="modal" closedby="any"
                 style="border:none; border-radius:12px; padding:0; background:var(--bg-color); color:var(--text-primary); width:90%; max-width:800px; max-height:80vh;">
                 <div style="display:flex; flex-direction:column; height:100%;">
                     <div style="padding:16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
@@ -439,7 +439,7 @@ if ($isLoggedIn) {
                 </div>
             </dialog>
 
-            <dialog id="pending-requests-modal" class="modal"
+            <dialog id="pending-requests-modal" class="modal" closedby="any"
                 style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
                 <div class="modal-content" style="min-width:400px;">
                     <h3><?= __('pending_requests') ?></h3>
@@ -473,7 +473,7 @@ if ($isLoggedIn) {
                 </div>
             </dialog>
 
-            <dialog id="blocked-users-modal" class="modal"
+            <dialog id="blocked-users-modal" class="modal" closedby="any"
                 style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
                 <div class="modal-content" style="min-width:400px;">
                     <h3><?= __('blocked_users') ?></h3>
@@ -486,7 +486,7 @@ if ($isLoggedIn) {
             </dialog>
 
             <!-- Pinned Messages Modal -->
-            <dialog id="pinned-messages-modal" class="modal"
+            <dialog id="pinned-messages-modal" class="modal" closedby="any"
                 style="border:none; border-radius:12px; padding:0; background:var(--bg-color); color:var(--text-primary); width:90%; max-width:720px; max-height:80vh;">
                 <div style="display:flex; flex-direction:column; height:100%;">
                     <div style="padding:16px 20px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; background:var(--bg-secondary);">
@@ -503,7 +503,7 @@ if ($isLoggedIn) {
             </dialog>
 
             <!-- Keyboard Shortcuts Help Modal -->
-            <dialog id="keyboard-shortcuts-modal" class="modal"
+            <dialog id="keyboard-shortcuts-modal" class="modal" closedby="any"
                 style="border:none; border-radius:12px; padding:24px; background:var(--accent-hover); color:var(--text-primary); width:90%; max-width:480px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                     <h3 style="margin:0; display:flex; align-items:center; gap:8px;"><span>⌨️</span> <?= __('keyboard_shortcuts') ?></h3>
@@ -533,7 +533,7 @@ if ($isLoggedIn) {
                 </div>
             </dialog>
 
-            <dialog id="thread-settings-modal" class="modal"
+            <dialog id="thread-settings-modal" class="modal" closedby="any"
                 style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
                 <div class="modal-content" style="min-width:400px;">
                     <h3><?= __('thread_settings') ?></h3>
@@ -557,7 +557,7 @@ if ($isLoggedIn) {
                 </div>
             </dialog>
             <!-- Media Upload Modal -->
-            <dialog id="media-upload-modal" class="modal media-upload-modal">
+            <dialog id="media-upload-modal" class="modal media-upload-modal" closedby="any">
                 <div class="modal-content" style="min-width: 450px; max-width: 600px;">
                     <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                         <h3 style="margin:0;"><?= __('send_file') ?></h3>

@@ -1,9 +1,14 @@
 <?php
+
 /**
  * Database Initialization and Migrations
  */
 
-function db_init($mysqli) {
+// Load SecurityUtil to avoid lint errors and ensure availability
+require_once __DIR__ . '/SecurityUtil.php';
+
+function db_init($mysqli)
+{
     // 27-31: Cleanup
     $mysqli->query("DELETE FROM messages WHERE expires_at IS NOT NULL AND expires_at < NOW()");
     $mysqli->query("DELETE FROM direct_messages WHERE expires_at IS NOT NULL AND expires_at < NOW()");
@@ -29,12 +34,12 @@ function db_init($mysqli) {
     $mysqli->query("ALTER TABLE users MODIFY COLUMN email VARCHAR(500)");
     $res = $mysqli->query("SHOW COLUMNS FROM users LIKE 'email_hash'");
     if ($res->num_rows === 0) $mysqli->query("ALTER TABLE users ADD COLUMN email_hash VARCHAR(64) NULL AFTER email");
-    
+
     $res = $mysqli->query("SHOW INDEX FROM users WHERE Key_name = 'idx_email_hash'");
     if ($res->num_rows === 0) $mysqli->query("CREATE INDEX idx_email_hash ON users(email_hash)");
 
     $cols = ['is_verified' => 'TINYINT DEFAULT 0', 'verification_token' => 'VARCHAR(255) NULL', 'reset_token' => 'VARCHAR(255) NULL', 'reset_expires' => 'DATETIME NULL'];
-    foreach($cols as $col => $def) {
+    foreach ($cols as $col => $def) {
         $res = $mysqli->query("SHOW COLUMNS FROM users LIKE '$col'");
         if ($res->num_rows === 0) $mysqli->query("ALTER TABLE users ADD COLUMN $col $def");
     }
@@ -42,9 +47,10 @@ function db_init($mysqli) {
     // 79-93: Default data
     $res = $mysqli->query("SELECT id FROM users WHERE id = 1");
     if ($res->num_rows === 0) {
+        $security = new \SecurityUtil();
         $hashedAdminPass = password_hash('admin_pass', PASSWORD_DEFAULT);
         $email = 'admin@example.com';
-        $encryptedEmail = SecurityUtil::encrypt($email);
+        $encryptedEmail = $security->encrypt($email);
         $emailHash = hash('sha256', $email);
         $mysqli->query("INSERT INTO users (id, email, email_hash, username, password, is_verified) VALUES (1, '$encryptedEmail', '$emailHash', 'admin', '$hashedAdminPass', 1)");
     }
@@ -54,7 +60,7 @@ function db_init($mysqli) {
     // 95-183: Additional tables
     $mysqli->query("CREATE TABLE IF NOT EXISTS messages (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        thread_id INT NOT NULL,
+        thread_id INT DEFAULT NULL,
         user_id INT NOT NULL,
         content TEXT,
         reply_to_id INT DEFAULT NULL,
@@ -167,6 +173,13 @@ function db_init($mysqli) {
         $mysqli->query("ALTER TABLE messages ADD FOREIGN KEY (group_thread_id) REFERENCES group_threads(id) ON DELETE CASCADE");
     }
 
+    // Ensure thread_id is nullable for group chat support
+    $res = $mysqli->query("SHOW COLUMNS FROM messages LIKE 'thread_id'");
+    $row = $res->fetch_assoc();
+    if ($row && $row['Null'] === 'NO') {
+        $mysqli->query("ALTER TABLE messages MODIFY COLUMN thread_id INT NULL");
+    }
+
     // 215-374: More Migrations
     $migrations = [
         ['threads', 'creator_id', 'INT DEFAULT 1'],
@@ -198,7 +211,7 @@ function db_init($mysqli) {
         ['messages', 'is_pinned', 'TINYINT(1) DEFAULT 0 AFTER attachment_path']
     ];
 
-    foreach($migrations as $m) {
+    foreach ($migrations as $m) {
         $res = $mysqli->query("SHOW COLUMNS FROM {$m[0]} LIKE '{$m[1]}'");
         if ($res->num_rows === 0) $mysqli->query("ALTER TABLE {$m[0]} ADD COLUMN {$m[1]} {$m[2]}");
     }

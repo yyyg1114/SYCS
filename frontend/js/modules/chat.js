@@ -31,6 +31,7 @@ export async function loadThreads(callback) {
     catThreads.forEach((th) => {
       const item = document.createElement("div");
       item.className = "thread-item";
+      item.dataset.id = th.id;
       item.textContent = "# " + th.name;
       item.onclick = () => callback(th);
       list.appendChild(item);
@@ -47,6 +48,7 @@ export async function loadGroupThreads(callback) {
     groups.forEach((g) => {
       const item = document.createElement("div");
       item.className = "thread-item";
+      item.dataset.id = g.id;
       item.textContent = "👥 " + g.name;
       item.onclick = () => callback(g);
       list.appendChild(item);
@@ -239,13 +241,13 @@ export function switchSidebarTab(tab) {
     if (groups) groups.style.display = "none";
     if (threadArea) threadArea.style.display = "block";
     if (groupArea) groupArea.style.display = "none";
-    loadThreads(th => window.switchThread(th.id, th.name, th.creator_id));
+    loadThreads(th => window.switchThread(th.id, th.name, th.creator_id, false));
   } else {
     if (threads) threads.style.display = "none";
     if (groups) groups.style.display = "block";
     if (threadArea) threadArea.style.display = "none";
     if (groupArea) groupArea.style.display = "block";
-    loadGroupThreads(g => window.switchThread(g.id, g.name, g.creator_id));
+    loadGroupThreads(g => window.switchThread(g.id, g.name, g.creator_id, true));
   }
 
   document.querySelectorAll(".sidebar-tabs .tab-btn").forEach(btn => {

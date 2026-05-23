@@ -17,7 +17,7 @@ $currentUserData = $currentUserData ?? ['notification_keywords' => $currentUserK
 ?>
 
 <!-- Group Creation Modal -->
-<dialog id="group-creation-modal" class="modal"
+<dialog id="group-creation-modal" class="modal" closedby="any"
     style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
     <h3><?= __('create_group') ?></h3>
     <input type="text" id="group-chat-name" class="chat-input" placeholder="<?= __('enter_group_name') ?>" style="width:100%; margin-bottom:10px;">
@@ -30,7 +30,7 @@ $currentUserData = $currentUserData ?? ['notification_keywords' => $currentUserK
 </dialog>
 
 <!-- User Profile Edit Modal -->
-<dialog id="profile-modal" class="profile-modal">
+<dialog id="profile-modal" class="profile-modal" closedby="any">
     <div class="profile-content">
         <div class="profile-edit-pane">
             <div class="profile-edit-header">
@@ -201,7 +201,7 @@ $currentUserData = $currentUserData ?? ['notification_keywords' => $currentUserK
 </dialog>
 
 <!-- User Profile View Modal -->
-<dialog id="user-profile-modal" class="profile-modal">
+<dialog id="user-profile-modal" class="profile-modal" closedby="any">
     <div class="profile-content" style="max-width: 450px;">
         <div class="profile-preview-pane" style="width: 100%;">
             <div class="discord-card" id="user-profile-card">

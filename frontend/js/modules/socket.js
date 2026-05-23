@@ -8,7 +8,18 @@ export function initSocket(userId, callbacks) {
   if (typeof io === 'undefined') return;
   
   socket = io('http://localhost:3000', {
-    query: { userId }
+    query: { userId },
+    transports: ['polling', 'websocket'], // Use polling first for better reliability
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    timeout: 20000
+  });
+
+  socket.on('connect_error', (error) => {
+    console.error('Socket.io connection error:', error.message || error);
+    if (callbacks.onConnectError) callbacks.onConnectError(error);
   });
 
   socket.on('connect', () => {

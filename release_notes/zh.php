@@ -7,6 +7,58 @@
  */
 ?>
 
+<!-- ===== v2.2.15 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.15</span>
+        <span class="release-title">基于现代化Web标准的对话框强化与高级动画引入</span>
+        <span class="release-date">2026-05-23</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新功能与强化 (New Features & Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>支持声明式点击背景关闭 (Light-dismiss)</strong>
+                        <span class="detail">在各种对话框（设置、附件库、置顶消息、快捷键等）中添加了 <code>closedby="any"</code> 属性。用户只需点击背景（对话框外侧）即可自动关闭，提供了极佳的现代化原生体验。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>全局 JS 兼容性回退机制</strong>
+                        <span class="detail">针对 Safari 等尚不支持 <code>closedby</code> 属性的浏览器，我们在 JS 初始化时使用事件委托技术加入了轻量级回退机制，确保多平台使用体验一致。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI 与设计 (UI & Design)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>使用 @starting-style 的高级双向过渡动画</strong>
+                        <span class="detail">利用 CSS 的 <code>@starting-style</code>、<code>transition-behavior: allow-discrete</code> 以及 <code>overlay</code> 属性，实现了仅通过纯 CSS 驱动的淡入淡出及缩放双向平滑过渡动画，背景遮罩的模糊过渡也更加柔和自然。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">♿</span>
+                    <div>
+                        <strong>无障碍动作减弱支持 (Reduced Motion)</strong>
+                        <span class="detail">当操作系统或浏览器开启减弱动态效果 (<code>prefers-reduced-motion</code>) 时，系统会自动过滤不必要的缩放变化，优雅回退至简练的淡入淡出。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
 
 <!-- ===== v2.3.0 ===== -->
 <article class="release">

@@ -20,13 +20,13 @@ function sendDiscordWebhook($webhookUrl, $username, $content, $avatarUrl = null,
     if ($avatarUrl) $data['avatar_url'] = $avatarUrl;
     $options = [
         'http' => [
-            'header'  => "Content-type: application/json\r\n",
-            'method'  => 'POST',
+            'header' => "Content-type: application/json\r\n",
+            'method' => 'POST',
             'content' => json_encode($data),
             'ignore_errors' => true
         ]
     ];
-    $context  = stream_context_create($options);
+    $context = stream_context_create($options);
     file_get_contents($webhookUrl, false, $context);
 }
 
@@ -46,43 +46,77 @@ function notifyRealtimeServer($type, $data)
     $payload = ['secret' => $secret, 'type' => $type, 'data' => $data];
     $options = [
         'http' => [
-            'header'  => "Content-type: application/json\r\n",
-            'method'  => 'POST',
+            'header' => "Content-type: application/json\r\n",
+            'method' => 'POST',
             'content' => json_encode($payload),
             'ignore_errors' => true
         ]
     ];
-    $context  = stream_context_create($options);
+    $context = stream_context_create($options);
     file_get_contents($url, false, $context);
 }
+
 
 function sendPushNotification($userId, $payload)
 {
     global $mysqli;
     require_once __DIR__ . '/EnvLoader.php';
-    $secret = getenv('REALTIME_SECRET_KEY') ?: getenv('SECRET_KEY');
-    if (!$secret) return;
-    $url = 'http://localhost:3000/api/push';
-    $stmt = $mysqli->prepare("SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?");
-    $stmt->bind_param("i", $userId);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    while ($sub = $res->fetch_assoc()) {
-        $pushPayload = [
-            'secret' => $secret,
-            'subscription' => ['endpoint' => $sub['endpoint'], 'keys' => ['p256dh' => $sub['p256dh'], 'auth' => $sub['auth']]],
-            'payload' => $payload
-        ];
-        $options = [
-            'http' => [
-                'header'  => "Content-type: application/json\r\n",
-                'method'  => 'POST',
-                'content' => json_encode($pushPayload),
-                'ignore_errors' => true
-            ]
-        ];
-        $context  = stream_context_create($options);
-        file_get_contents($url, false, $context);
+
+    $publicKey = getenv('VAPID_PUBLIC_KEY');
+    $privateKey = getenv('VAPID_PRIVATE_KEY');
+
+    if (!$publicKey || !$privateKey) {
+        error_log("VAPID keys not found in environment.");
+        return;
+    }
+
+    $auth = [
+        'VAPID' => [
+            'subject' => 'mailto:information.sycs@gmail.com',
+            'publicKey' => $publicKey,
+            'privateKey' => $privateKey,
+        ],
+    ];
+
+    try {
+        require_once __DIR__ . '/vendor/autoload.php';
+        $webPush = new \Minishlink\WebPush\WebPush($auth);
+
+        $stmt = $mysqli->prepare("SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+
+        $hasSubscriptions = false;
+        while ($sub = $res->fetch_assoc()) {
+            $subscription = \Minishlink\WebPush\Subscription::create([
+                'endpoint' => $sub['endpoint'],
+                'publicKey' => $sub['p256dh'],
+                'authToken' => $sub['auth'],
+            ]);
+
+            $webPush->queueNotification(
+                $subscription,
+                json_encode($payload)
+            );
+            $hasSubscriptions = true;
+        }
+
+        if ($hasSubscriptions) {
+            foreach ($webPush->flush() as $report) {
+                $endpoint = $report->getEndpoint();
+                if (!$report->isSuccess()) {
+                    error_log("[Push] Message failed to sent for subscription {$endpoint}: {$report->getReason()}");
+                    if ($report->isSubscriptionExpired()) {
+                        $stmtDel = $mysqli->prepare("DELETE FROM push_subscriptions WHERE endpoint = ?");
+                        $stmtDel->bind_param("s", $endpoint);
+                        $stmtDel->execute();
+                    }
+                }
+            }
+        }
+    } catch (\Exception $e) {
+        error_log("WebPush Error: " . $e->getMessage());
     }
 }
 

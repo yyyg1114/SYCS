@@ -20,7 +20,7 @@ class SecurityUtil
         // Content Security Policy
         // Note: 'unsafe-inline' is currently needed for some styles/scripts. 
         // Ideally should be removed in favor of nonces or separate files.
-        header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.socket.io https://unpkg.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cdnjs.cloudflare.com;");
+        header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.socket.io https://unpkg.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.socket.io https://unpkg.com http://localhost:3000 ws://localhost:3000 wss://localhost:3000 https://*.ngrok-free.app;");
 
         // HSTS (HTTP Strict Transport Security) - Only if HTTPS
         if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {

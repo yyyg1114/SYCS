@@ -1,3 +1,56 @@
+<!-- ===== v2.2.15 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.15</span>
+        <span class="release-title">Modern Dialog Enhancements & Premium Animations</span>
+        <span class="release-date">2026-05-23</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> New Features & Enhancements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>Declarative Light-dismiss Support</strong>
+                        <span class="detail">Added <code>closedby="any"</code> to various dialogs (Settings, Gallery, Pinned list, etc.). Users can now dismiss modals smoothly by clicking outside (on the backdrop), providing a modern, native UX.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Global JS Fallback for Safari</strong>
+                        <span class="detail">Implemented a lightweight event-delegation fallback logic during JS initialization for browsers that do not yet fully support the <code>closedby</code> attribute natively.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI & Design
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>@starting-style Premium Transitions</strong>
+                        <span class="detail">Utilized CSS <code>@starting-style</code>, <code>transition-behavior: allow-discrete</code>, and the <code>overlay</code> property to achieve ultra-smooth bidirectional entry and exit animations (fade & scale) purely via CSS.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">♿</span>
+                    <div>
+                        <strong>Reduced Motion Accessibility</strong>
+                        <span class="detail">Ensured automatic fallback to simple, clean fade transitions in environments where animation reduction (<code>prefers-reduced-motion</code>) is enabled.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.14 ===== -->
 <article class="release">
     <div class="release-header">

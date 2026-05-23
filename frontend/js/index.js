@@ -8,7 +8,7 @@ import { showToast, updateMyStatus } from './modules/ui.js';
 import { renderMessageNode } from './modules/message.js';
 import { loadThreads, loadGroupThreads, loadMessages, loadGroupMessages, updateFavoriteStatus } from './modules/chat.js';
 import { initSocket, socket } from './modules/socket.js';
-import { initNotifications, showBrowserNotification, requestNotificationPermission } from './modules/notifications.js';
+import { initNotifications, showBrowserNotification, requestNotificationPermission, updateTabBadge, resetTabBadge, trackUnread, clearUnread } from './modules/notifications.js';
 
 // --- Emoji Picker state ---
 let emojiPickerTarget = null;
@@ -16,6 +16,7 @@ let emojiPickerTarget = null;
 // --- Global State ---
 let currentThreadId = parseInt(window.SYCS_CONFIG.currentThreadId) || 1;
 let currentThreadCreatorId = window.SYCS_CONFIG.currentThreadCreatorId;
+let isGroupChat = false;
 const currentUserId = window.SYCS_CONFIG.currentUserId;
 const currentUserName = window.SYCS_CONFIG.currentUserName;
 const currentUserTheme = window.SYCS_CONFIG.currentUserTheme;
@@ -112,6 +113,19 @@ async function initApp() {
     }
     
     initSocket(currentUserId, {
+        onConnectError: (error) => {
+            console.warn('Realtime server is unreachable. Some features may be limited.');
+            // Only show toast once to avoid spamming
+            if (!window._socketErrorShown) {
+                showToast('Connection Error', 'Realtime server is offline. Notifications and live updates are disabled.', 'error');
+                window._socketErrorShown = true;
+            }
+        },
+        onConnect: () => {
+            console.log('Connected to realtime server');
+            window._socketErrorShown = false;
+            resetTabBadge();
+        },
         onNewMessage: (data) => {
             const container = document.getElementById("message-container");
             if (container && data.threadId == currentThreadId) {
@@ -123,6 +137,14 @@ async function initApp() {
                     body: `${data.username}: ${data.content}`,
                     tag: `thread-${data.threadId}`
                 });
+                
+                // Track unread thread
+                trackUnread(data.threadId);
+                
+                // Also update tab badge if window is not focused
+                if (document.visibilityState !== 'visible') {
+                    updateTabBadge();
+                }
             }
         },
         onNewDm: (data) => {
@@ -140,6 +162,11 @@ async function initApp() {
 
     // Initialize Notifications & SW
     initNotifications();
+
+    // Reset badge when window gets focus
+    window.addEventListener('focus', () => {
+        resetTabBadge();
+    });
 }
 
 function setupEventListeners() {
@@ -162,6 +189,32 @@ function setupEventListeners() {
             }
         });
     });
+
+    // Fallback for browsers without closedby support (e.g. Safari)
+    if (!('closedBy' in HTMLDialogElement.prototype)) {
+        document.addEventListener('click', (event) => {
+            const dialog = event.target.closest('dialog[closedby="any"]');
+            if (!dialog) return;
+
+            // When clicking the backdrop, the event target is the dialog element itself.
+            if (event.target !== dialog) return;
+
+            const rect = dialog.getBoundingClientRect();
+            const isDialogContent = (
+                rect.top <= event.clientY &&
+                event.clientY <= rect.top + rect.height &&
+                rect.left <= event.clientX &&
+                event.clientX <= rect.left + rect.width
+            );
+
+            if (isDialogContent) return;
+
+            // Clicked outside dialog content (backdrop), close the dialog
+            if (typeof dialog.close === "function") {
+                dialog.close();
+            }
+        });
+    }
 }
 
 function getMessageCallbacks() {
@@ -281,31 +334,47 @@ function getMessageCallbacks() {
         onToggleReaction: async (messageId, emoji) => {
             const res = await api("toggle_reaction", "POST", { message_id: messageId, emoji });
             if (res && res.success) {
-                loadMessages(
-                    currentThreadId,
-                    document.getElementById("message-container"),
-                    { currentUserName, currentUserId },
-                    getMessageCallbacks()
-                );
+                const container = document.getElementById("message-container");
+                if (isGroupChat) {
+                    loadGroupMessages(currentThreadId, container, {currentUserName, currentUserId}, getMessageCallbacks());
+                } else {
+                    loadMessages(currentThreadId, container, {currentUserName, currentUserId}, getMessageCallbacks());
+                }
             }
         }
     };
 }
 
-async function switchThread(id, name, creatorId) {
+async function switchThread(id, name, creatorId, isGroup = false) {
     id = parseInt(id);
     currentThreadId = id;
     currentThreadCreatorId = creatorId || 0;
+    isGroupChat = isGroup;
+
     // ui モジュールや他モジュールがアクセスできるよう SYCS_CONFIG も更新
     window.SYCS_CONFIG.currentThreadId = id;
     window.SYCS_CONFIG.currentThreadCreatorId = creatorId || 0;
-    document.getElementById("current-thread-name").innerText = name;
-    await loadMessages(id, document.getElementById("message-container"), {currentUserName, currentUserId}, getMessageCallbacks());
+    window.SYCS_CONFIG.isGroupChat = isGroup;
+
+    document.getElementById("current-thread-name").innerText = (isGroup ? "👥 " : "# ") + name;
+    
+    const container = document.getElementById("message-container");
+    if (isGroup) {
+        await loadGroupMessages(id, container, {currentUserName, currentUserId}, getMessageCallbacks());
+    } else {
+        await loadMessages(id, container, {currentUserName, currentUserId}, getMessageCallbacks());
+    }
+    
     await updateFavoriteStatus(id);
     
-    // Update Sidebar focus if needed
+    // Clear unread state
+    clearUnread(id);
+    
+    // Update Sidebar focus
     document.querySelectorAll(".thread-item").forEach(item => {
-        item.classList.toggle("active", item.textContent.includes(name));
+        const isThisItem = item.dataset.id == id && 
+                         ((isGroup && item.textContent.includes("👥")) || (!isGroup && item.textContent.includes("#")));
+        item.classList.toggle("active", isThisItem);
     });
 }
 
@@ -367,12 +436,12 @@ function toggleReactionPicker(event, messageId) {
             closeEmojiPicker();
             const res = await api("toggle_reaction", "POST", { message_id: messageId, emoji });
             if (res && res.success) {
-                loadMessages(
-                    currentThreadId,
-                    document.getElementById("message-container"),
-                    { currentUserName, currentUserId },
-                    getMessageCallbacks()
-                );
+                const container = document.getElementById("message-container");
+                if (isGroupChat) {
+                    loadGroupMessages(currentThreadId, container, {currentUserName, currentUserId}, getMessageCallbacks());
+                } else {
+                    loadMessages(currentThreadId, container, {currentUserName, currentUserId}, getMessageCallbacks());
+                }
             }
         };
         picker.appendChild(btn);
@@ -399,7 +468,11 @@ async function sendMessage() {
     if (!content && !window.pendingFile) return;
 
     const formData = new FormData();
-    formData.append("thread_id", currentThreadId);
+    if (isGroupChat) {
+        formData.append("group_thread_id", currentThreadId);
+    } else {
+        formData.append("thread_id", currentThreadId);
+    }
     formData.append("content", content);
     if (window.replyToId) formData.append("reply_to_id", window.replyToId);
     if (window.pendingFile) formData.append("attachment", window.pendingFile);
@@ -410,7 +483,13 @@ async function sendMessage() {
         input.value = "";
         cancelReply();
         cancelUpload();
-        loadMessages(currentThreadId, document.getElementById("message-container"), {currentUserName, currentUserId}, getMessageCallbacks());
+        
+        const container = document.getElementById("message-container");
+        if (isGroupChat) {
+            loadGroupMessages(currentThreadId, container, {currentUserName, currentUserId}, getMessageCallbacks());
+        } else {
+            loadMessages(currentThreadId, container, {currentUserName, currentUserId}, getMessageCallbacks());
+        }
     }
 }
 

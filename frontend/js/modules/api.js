@@ -66,6 +66,9 @@ export async function api(path, method = "GET", body = null) {
     const text = await res.text();
 
     try {
+      if (!text || text.trim() === "") {
+        throw new Error("Empty response from server");
+      }
       const json = JSON.parse(text);
       if (json && json.success === false) {
         showToastFn(
@@ -76,12 +79,15 @@ export async function api(path, method = "GET", body = null) {
       }
       return json;
     } catch (parseError) {
-      console.error("JSON parse error:", parseError, text);
-      const errorMsg = t("server_error_json", "サーバーエラー: JSONパースに失敗しました");
+      console.error("JSON parse error:", parseError, "Response text:", text);
+      const errorMsg = text.trim() === "" 
+        ? t("server_empty_response", "サーバーからのレスポンスが空です")
+        : t("server_error_json", "サーバーエラー: JSONパースに失敗しました");
+      
       showToastFn(t("system_error", "システムエラー"), errorMsg, "error");
       return {
         error: errorMsg,
-        details: text.substring(0, 500),
+        details: text ? text.substring(0, 500) : "No content",
       };
     }
   } catch (fetchError) {

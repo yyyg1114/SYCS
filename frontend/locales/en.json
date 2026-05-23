@@ -8,6 +8,7 @@
     "unknown_error": "An unknown error occurred.",
     "system_error": "A system error occurred.",
     "server_error_json": "A server error (JSON) occurred.",
+    "server_empty_response": "The server returned an empty response.",
     "network_error": "A network error occurred.",
     "connection_failed": "Connection failed.",
     "enter_group_name": "Please enter a group name.",

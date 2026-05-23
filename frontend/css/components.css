@@ -160,6 +160,44 @@
   background: var(--input-bg);
 }
 
+.unread-indicator {
+  background-color: #f87171;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.thread-item.unread {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.thread-item.unread::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 8px;
+  background: #ffffff;
+  border-radius: 0 4px 4px 0;
+  transition: height 0.2s ease;
+}
+
+.thread-item.unread:hover::before {
+  height: 20px;
+}
+
+.thread-item {
+  position: relative;
+}
+
 /* Messages */
 .message-group {
   display: flex;
