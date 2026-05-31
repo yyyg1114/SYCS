@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Unified App Header Component
  * Variables:
@@ -11,21 +12,21 @@
 ?>
 <header class="chat-header">
     <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
-    <?php if (isset($backAction)): ?>
-        <button class="icon-btn" onclick="<?= $backAction ?>" title="<?= __('back') ?>" style="margin-right:10px;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-        </button>
-    <?php else: ?>
-        <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="<?= __('menu') ?>">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
-        </button>
-    <?php endif; ?>
+        <?php if (isset($backAction)): ?>
+            <button class="icon-btn" onclick="<?= $backAction ?>" title="<?= __('back') ?>" style="margin-right:10px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+            </button>
+        <?php else: ?>
+            <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="<?= __('menu') ?>">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        <?php endif; ?>
 
         <?php if ($isThread ?? false): ?>
             <div class="thread-name-clickable" onclick="toggleThreadBrowser()">
@@ -33,13 +34,6 @@
                     title="<?= __('favorites') ?>">
                     ☆
                 </button>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="4" y1="9" x2="20" y2="9" />
-                    <line x1="4" y1="15" x2="20" y2="15" />
-                    <line x1="10" y1="3" x2="8" y2="21" />
-                    <line x1="16" y1="3" x2="14" y2="21" />
-                </svg>
                 <span id="current-thread-name"><?= htmlspecialchars($currentThreadName ?? __('general')) ?></span>
                 <svg class="dropdown-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

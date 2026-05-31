@@ -155,8 +155,8 @@
   display: flex;
   align-items: center;
   background-color: var(--header-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 10;
 }
 
@@ -190,7 +190,7 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(4px);
 }
 
 .input-wrapper:focus-within {
@@ -207,7 +207,7 @@
   height: 100%;
   z-index: 20;
   box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(6px);
 }
 
 .thread-browser.active {
@@ -301,7 +301,7 @@
   align-items: center;
   border-bottom: 1px solid var(--border-color);
   background: var(--header-bg);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(4px);
 }
 
 .search-results-list {
@@ -322,7 +322,7 @@
   z-index: 100;
   font-weight: 600;
   color: var(--accent-color);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
 }
 
 .reply-bar {
@@ -395,7 +395,7 @@
     inset: 0;
     background: rgba(0,0,0,0.5);
     z-index: 25;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(2px);
   }
   .sidebar-backdrop.active {
     display: block;

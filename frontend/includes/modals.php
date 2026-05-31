@@ -228,3 +228,44 @@ $currentUserData = $currentUserData ?? ['notification_keywords' => $currentUserK
         </div>
     </div>
 </dialog>
+
+<!-- Add Friend Modal -->
+<dialog id="add-friend-modal" class="modal" closedby="any"
+    style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
+    <div class="modal-content" style="min-width:400px;">
+        <h3><?= __('add_friend') ?></h3>
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="user-search-input" class="chat-input" placeholder="<?= __('search_user_placeholder') ?>">
+            <button class="btn-primary" onclick="searchUsers()"><?= __('search') ?></button>
+        </div>
+        <div id="user-search-results" style="max-height:300px; overflow-y:auto;"></div>
+        <button class="btn-secondary" onclick="document.getElementById('add-friend-modal').close()" style="width:100%; margin-top:10px;"><?= __('close') ?></button>
+    </div>
+</dialog>
+
+<!-- Pending Requests Modal -->
+<dialog id="pending-requests-modal" class="modal" closedby="any"
+    style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
+    <div class="modal-content" style="min-width:400px;">
+        <h3><?= __('pending_requests') ?></h3>
+        <div id="pending-requests-list-modal" class="thread-list"
+            style="max-height:300px; overflow-y:auto;"></div>
+        <div class="modal-actions" style="margin-top:10px; text-align:right;">
+            <button class="btn-secondary"
+                onclick="document.getElementById('pending-requests-modal').close()"><?= __('close') ?></button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Blocked Users Modal -->
+<dialog id="blocked-users-modal" class="modal" closedby="any"
+    style="border:none; border-radius:8px; padding:1rem; color:var(--text-primary);">
+    <div class="modal-content" style="min-width:400px;">
+        <h3><?= __('blocked_users') ?></h3>
+        <div id="blocked-users-list" class="thread-list" style="max-height:300px; overflow-y:auto;"></div>
+        <div class="modal-actions" style="margin-top:10px; text-align:right;">
+            <button class="btn-secondary"
+                onclick="document.getElementById('blocked-users-modal').close()"><?= __('close') ?></button>
+        </div>
+    </div>
+</dialog>

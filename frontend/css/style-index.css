@@ -296,9 +296,9 @@ body footer {
 
 /* Discord-style Profile Modal */
         .profile-modal {
-            background: rgba(30, 31, 35, 0.7);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            background: rgba(30, 31, 35, 0.9);
+            backdrop-filter: blur(6px) saturate(120%);
+            -webkit-backdrop-filter: blur(6px) saturate(120%);
             color: var(--text-primary);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 24px;
@@ -380,7 +380,7 @@ body footer {
         }
 
         .discord-card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-1px);
         }
 
         .discord-banner {
@@ -536,7 +536,7 @@ body footer {
 
         .btn-theme-selector:hover {
             background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-2px);
+            transform: translateY(-1px);
         }
 
         .settings-actions {
@@ -568,8 +568,8 @@ body footer {
         }
 
         .btn-premium-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.25);
             filter: brightness(1.1);
         }
 

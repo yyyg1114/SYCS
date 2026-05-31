@@ -50,7 +50,7 @@
     appearance: none;
     -webkit-appearance: none;
     transition: all 0.2s ease;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(2px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 

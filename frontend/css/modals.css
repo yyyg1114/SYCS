@@ -29,11 +29,11 @@ dialog.modal {
 }
 
 dialog.profile-modal {
-  background: rgba(30, 31, 35, 0.7);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(30, 31, 35, 0.9);
+  backdrop-filter: blur(6px) saturate(120%);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
   color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 24px;
   padding: 0;
   width: 820px;
@@ -90,8 +90,8 @@ dialog.profile-modal::backdrop {
 dialog.modal[open]::backdrop,
 dialog.profile-modal[open]::backdrop {
   background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px) saturate(120%);
-  -webkit-backdrop-filter: blur(4px) saturate(120%);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 
   @starting-style {
     background-color: rgba(0, 0, 0, 0);
@@ -170,7 +170,7 @@ dialog.profile-modal[open]::backdrop {
 .profile-edit-footer {
     padding: 24px 40px;
     background: rgba(30, 31, 35, 0.4);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(4px);
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     flex-shrink: 0;
 }
@@ -200,7 +200,7 @@ dialog.profile-modal[open]::backdrop {
 }
 
 .discord-card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-1px);
 }
 
 .discord-banner {
