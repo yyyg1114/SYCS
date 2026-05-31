@@ -39,21 +39,9 @@ function get_http_status_code_from_headers($headers)
 
 function notifyRealtimeServer($type, $data)
 {
-    require_once __DIR__ . '/EnvLoader.php';
-    $secret = getenv('REALTIME_SECRET_KEY') ?: getenv('SECRET_KEY');
-    if (!$secret) return;
-    $url = 'http://localhost:3000/api/notify';
-    $payload = ['secret' => $secret, 'type' => $type, 'data' => $data];
-    $options = [
-        'http' => [
-            'header' => "Content-type: application/json\r\n",
-            'method' => 'POST',
-            'content' => json_encode($payload),
-            'ignore_errors' => true
-        ]
-    ];
-    $context = stream_context_create($options);
-    file_get_contents($url, false, $context);
+    // SSE (Server-Sent Events) に移行済みのため、この関数は使用されません。
+    // realtime-server (Node.js) への接続は廃止されました。
+    // error_log("[SSE] notifyRealtimeServer called but is now a no-op: {$type}");
 }
 
 
