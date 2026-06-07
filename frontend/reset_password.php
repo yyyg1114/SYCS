@@ -96,7 +96,8 @@ if (!$user) {
             width: 100%;
             max-width: 420px;
             text-align: center;
-            animation: slideUp 0.6s ease-out;
+            animation: slideUp 0.8s ease-out;
+            view-transition-name: auth-card;
         }
 
         @keyframes slideUp {
@@ -238,6 +239,39 @@ if (!$user) {
 
             100% {
                 content: '...';
+            }
+        }
+
+        /* Page Transitions */
+        @view-transition {
+            navigation: auto;
+        }
+
+        ::view-transition-old(root) {
+            animation: 0.8s cubic-bezier(0.4, 0, 0.2, 1) both fade-out;
+        }
+
+        ::view-transition-new(root) {
+            animation: 0.8s cubic-bezier(0.4, 0, 0.2, 1) both fade-in;
+        }
+
+        @keyframes fade-out {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
             }
         }
     </style>

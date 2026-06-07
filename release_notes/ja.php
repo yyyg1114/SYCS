@@ -6,6 +6,96 @@
  * This file is included by release_notes.php
  */
 ?>
+
+<!-- ===== v2.2.18 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.18</span>
+        <span class="release-title">ページ遷移アニメーションの実装・</span>
+        <span class="release-date">2026-06-08</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI &amp; デザイン (UI &amp; Design)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎬</span>
+                    <div>
+                        <strong>View Transitions API によるページ遷移アニメーションの実装</strong>
+                        <span class="detail">CSS の <code>@view-transition</code> と <code>::view-transition-old/new</code> を活用し、index.html・about.html・privacy_policy.html・login.php・signup.php・reset_password.php 間のページ遷移にスムーズなフェード＆スライドアニメーションを適用しました。ネイティブアプリ並みの快適な画面切り替えを実現しています。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.17 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.17</span>
+        <span class="release-title">アニメーションの洗練・透明感の最適化・カラー視認性の全面向上</span>
+        <span class="release-date">2026-06-07</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI &amp; デザイン (UI &amp; Design)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>アニメーションの滑らか化</strong>
+                        <span class="detail">各種ボタン・モーダル・ウィジェットのトランジションを細かく見直し、より自然でなめらかな動きに調整しました。過剰な動きを排除しつつ、操作に対するフィードバックの質を高めています。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>透明感（グラスモーフィズム）の最適化と配色の視認性向上</strong>
+                        <span class="detail">透明・ぼかし効果が強すぎて読みにくかった箇所を調整し、可読性と操作性を両立。カラーのコントラストと明るさを全体的に改善し、より分かりやすく洗練されたビジュアルに刷新しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.16 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.16</span>
+        <span class="release-title">通知システムの SSE + Web Push ハイブリッド構成への移行</span>
+        <span class="release-date">2026-06-07</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 &amp; 強化 (New Features &amp; Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔔</span>
+                    <div>
+                        <strong>SSE + Web Push ハイブリッド通知の実装</strong>
+                        <span class="detail">従来の通知配信方式を全面刷新し、Server-Sent Events (SSE) とブラウザ標準の Web Push を組み合わせたハイブリッドアーキテクチャを採用。アプリがバックグラウンドにある場合でも確実に通知が届き、リアルタイム性とバッテリー効率を両立しています。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>通知の到達率と信頼性の向上</strong>
+                        <span class="detail">接続断・ネットワーク不安定時のフォールバック処理を強化し、通知の取りこぼしを大幅に低減しました。サービスワーカーとの連携を最適化し、プッシュ通知の応答速度も向上しています。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.15 ===== -->
 <article class="release">
     <div class="release-header">

@@ -7,6 +7,95 @@
  */
 ?>
 
+<!-- ===== v2.2.18 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.18</span>
+        <span class="release-title">页面切换动画 via View Transitions API</span>
+        <span class="release-date">2026-06-08</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI 与设计 (UI &amp; Design)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎬</span>
+                    <div>
+                        <strong>基于 View Transitions API 的页面切换动画</strong>
+                        <span class="detail">利用 CSS 的 <code>@view-transition</code> 与 <code>::view-transition-old/new</code>，为 index.html、about.html、privacy_policy.html、login.php、signup.php、reset_password.php 之间的页面跳转实现了流畅的淡入淡出与滑动动画，带来媲美原生 App 的导航体验。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.17 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.17</span>
+        <span class="release-title">动画优化、透明感调整与全系统配色可读性全面提升</span>
+        <span class="release-date">2026-06-07</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI 与设计 (UI &amp; Design)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>动画系统全面精调</strong>
+                        <span class="detail">逐项审查并优化了按钮、模态框、组件的过渡动画，去除了过度的动效，同时提升了用户交互反馈的质感，使整体体验更加自然流畅。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>毛玻璃效果优化与全系统配色对比度提升</strong>
+                        <span class="detail">大幅削减了影响可读性的过强模糊和透明效果，并全面改善了整体 UI 的色彩对比度与亮度，打造出更清晰、更易用、更精致的视觉设计。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.16 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.16</span>
+        <span class="release-title">通知系统迁移至 SSE + Web Push 混合架构</span>
+        <span class="release-date">2026-06-07</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新功能与强化 (New Features &amp; Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔔</span>
+                    <div>
+                        <strong>SSE + Web Push 混合通知架构</strong>
+                        <span class="detail">对通知推送基础设施进行了全面革新，采用 Server-Sent Events (SSE) 与浏览器标准 Web Push API 相结合的混合架构。即使应用处于后台，通知也能可靠送达，在实时性与电量效率之间取得了最优平衡。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>提升通知到达率与可靠性</strong>
+                        <span class="detail">加强了网络中断及不稳定时的降级处理逻辑，大幅减少了通知丢失的情况。同时优化了与 Service Worker 的协作方式，显著提升了推送通知的响应速度。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.15 ===== -->
 <article class="release">
     <div class="release-header">

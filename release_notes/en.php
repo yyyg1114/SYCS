@@ -1,3 +1,92 @@
+<!-- ===== v2.2.18 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.18</span>
+        <span class="release-title">Page Transition Animations via View Transitions API</span>
+        <span class="release-date">2026-06-08</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI &amp; Design
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎬</span>
+                    <div>
+                        <strong>Page Transition Animations via View Transitions API</strong>
+                        <span class="detail">Implemented smooth fade &amp; slide page transitions using CSS <code>@view-transition</code> and <code>::view-transition-old/new</code> across all key pages: index.html, about.html, privacy_policy.html, login.php, signup.php, and reset_password.php. The result is a native app-quality navigation experience.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.17 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.17</span>
+        <span class="release-title">Smoother Animations, Optimized Transparency &amp; Enhanced Color Visibility</span>
+        <span class="release-date">2026-06-07</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI &amp; Design
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>Refined Animation System</strong>
+                        <span class="detail">Audited and fine-tuned transitions across buttons, modals, and widgets. Eliminated excessive motion while improving the quality of interactive feedback for a more polished feel.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>Glassmorphism Optimization &amp; Color Contrast Overhaul</strong>
+                        <span class="detail">Reduced overly aggressive blur and transparency effects that were hurting readability. Improved color contrast and brightness across the entire UI, resulting in a cleaner, more accessible, and more refined visual design.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.16 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.16</span>
+        <span class="release-title">Migration to SSE + Web Push Hybrid Notification Architecture</span>
+        <span class="release-date">2026-06-07</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> New Features &amp; Enhancements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔔</span>
+                    <div>
+                        <strong>SSE + Web Push Hybrid Notification System</strong>
+                        <span class="detail">Completely overhauled the notification delivery infrastructure by adopting a hybrid architecture that combines Server-Sent Events (SSE) with the standard Web Push API. Notifications are now reliably delivered even when the app is in the background, balancing real-time responsiveness with battery efficiency.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>Improved Notification Reliability &amp; Delivery Rate</strong>
+                        <span class="detail">Enhanced fallback handling for network interruptions and unstable connections, drastically reducing missed notifications. Optimized Service Worker integration for faster push notification response times.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.15 ===== -->
 <article class="release">
     <div class="release-header">

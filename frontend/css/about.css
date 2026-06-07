@@ -67,6 +67,7 @@ animation: fadeInDown 0.8s ease-out;
 .logo-img {
 height: 56px;
 filter: drop-shadow(0 0 10px rgba(0, 230, 118, 0.3));
+view-transition-name: main-logo;
 }
 
 .main-title {
@@ -303,4 +304,25 @@ gap: 2.0rem;
 .btn {
 padding: 1rem 1.5rem;
 }
+}
+
+/* Page Transitions */
+@view-transition {
+navigation: auto;
+}
+
+::view-transition-old(root) {
+animation: 0.8s cubic-bezier(0.4, 0, 0.2, 1) both fade-out;
+}
+::view-transition-new(root) {
+animation: 0.8s cubic-bezier(0.4, 0, 0.2, 1) both fade-in;
+}
+
+@keyframes fade-out {
+from { opacity: 1; }
+to { opacity: 0; }
+}
+@keyframes fade-in {
+from { opacity: 0; }
+to { opacity: 1; }
 }

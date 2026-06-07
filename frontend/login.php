@@ -29,8 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
     $countByUser = 0;
     $stmtU = $mysqli->prepare(
         "SELECT COUNT(*) FROM login_attempts
-        WHERE identifier = ?
-        AND attempted_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
+    WHERE identifier = ?
+    AND attempted_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
     );
     if ($stmtU) {
         $stmtU->bind_param("si", $u, $lockWindow);
@@ -43,8 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
     $countByIp = 0;
     $stmtI = $mysqli->prepare(
         "SELECT COUNT(*) FROM login_attempts
-        WHERE identifier = ?
-        AND attempted_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
+    WHERE identifier = ?
+    AND attempted_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
     );
     if ($stmtI) {
         $stmtI->bind_param("si", $ip, $lockWindow);
@@ -412,7 +412,8 @@ if (isset($_GET['api'])) {
             width: 100%;
             max-width: 500px;
             text-align: center;
-            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            view-transition-name: auth-card;
         }
 
         @media (max-width: 480px) {
@@ -682,6 +683,39 @@ if (isset($_GET['api'])) {
             font-size: 0.8rem;
             color: var(--text-secondary);
             z-index: 2;
+        }
+
+        /* Page Transitions */
+        @view-transition {
+            navigation: auto;
+        }
+
+        ::view-transition-old(root) {
+            animation: 0.8s cubic-bezier(0.4, 0, 0.2, 1) both fade-out;
+        }
+
+        ::view-transition-new(root) {
+            animation: 0.8s cubic-bezier(0.4, 0, 0.2, 1) both fade-in;
+        }
+
+        @keyframes fade-out {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
     </style>
 </head>

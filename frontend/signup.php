@@ -101,6 +101,7 @@ if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
             width: 100%;
             max-width: 440px;
             text-align: center;
+            view-transition-name: auth-card;
         }
 
         h2 {
@@ -183,6 +184,39 @@ if (isset($_POST['email'], $_POST['username'], $_POST['password'])) {
 
         a:hover {
             color: var(--accent-hover);
+        }
+
+        /* Page Transitions */
+        @view-transition {
+            navigation: auto;
+        }
+
+        ::view-transition-old(root) {
+            animation: 0.8s cubic-bezier(0.4, 0, 0.2, 1) both fade-out;
+        }
+
+        ::view-transition-new(root) {
+            animation: 0.8s cubic-bezier(0.4, 0, 0.2, 1) both fade-in;
+        }
+
+        @keyframes fade-out {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
     </style>
     <?php if ($success): ?>
