@@ -1,10 +1,51 @@
-<!-- ===== v2.2.19 ===== -->
+<!-- ===== v2.2.20 ===== -->
 <article class="release">
     <div class="release-header">
-        <span class="version-badge">v2.2.19</span>
-        <span class="release-title">Friend Hub, User Profiles, Group Chat Detection, and Media Upload Preview</span>
+        <span class="version-badge">v2.2.20</span>
+        <span class="release-title">Authentication Hardening, Friend Request UX, and Chat Interface Polishing</span>
         <span class="release-date">2026-06-28</span>
     </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> New Features &amp; Enhancements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Authentication flow hardening</strong>
+                        <span class="detail">Wrapped login and signup processing in safer try/catch handling, improved lockout detection, and stabilized error paths for more reliable account access.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">👥</span>
+                    <div>
+                        <strong>Friend request and social interactions</strong>
+                        <span class="detail">Added friend search, send request, pending requests, and blocked user management to the social hub for smoother friend onboarding.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>Chat UI and favorites polish</strong>
+                        <span class="detail">Refined chat search rendering, group member picker behavior, and favorites panel rendering with safer DOM updates and clearer empty states.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔧</span>
+                    <div>
+                        <strong>Password reset UX improvements</strong>
+                        <span class="detail">Improved reset-password page messaging and the overall recovery experience for better user guidance.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.19 ===== -->
+<article class="release">
     <div class="release-body">
         <div class="section">
             <div class="section-title">

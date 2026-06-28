@@ -7,13 +7,54 @@
  */
 ?>
 
-<!-- ===== v2.2.19 ===== -->
+<!-- ===== v2.2.20 ===== -->
 <article class="release">
     <div class="release-header">
-        <span class="version-badge">v2.2.19</span>
-        <span class="release-title">フレンドハブ、ユーザープロフィール、グループチャット検出、メディアアップロードプレビューの強化</span>
+        <span class="version-badge">v2.2.20</span>
+        <span class="release-title">認証処理の強化、フレンドリクエスト UX、およびチャット UI の磨き上げ</span>
         <span class="release-date">2026-06-28</span>
     </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 &amp; 強化 (New Features &amp; Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>認証フローの強化</strong>
+                        <span class="detail">ログインとサインアップ処理に try/catch を導入し、ロックアウト検出とエラーパスを安定化させて信頼性を向上させました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">👥</span>
+                    <div>
+                        <strong>フレンドリクエストとソーシャル操作</strong>
+                        <span class="detail">ユーザー検索、申請送信、保留リクエスト、ブロックユーザー管理を追加し、フレンド関係の構築をよりスムーズにしました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>チャット UI とお気に入りの改善</strong>
+                        <span class="detail">チャット検索表示、グループメンバー選択、favorites パネルを安全な DOM 更新と明確な空状態表示に改善しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔧</span>
+                    <div>
+                        <strong>パスワードリセット UX の向上</strong>
+                        <span class="detail">リセットページのメッセージと復旧フローを改善し、より分かりやすい操作体験を提供します。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.19 ===== -->
+<article class="release">
     <div class="release-body">
         <div class="section">
             <div class="section-title">

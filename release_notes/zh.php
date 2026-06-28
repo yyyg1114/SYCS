@@ -7,13 +7,54 @@
  */
 ?>
 
-<!-- ===== v2.2.19 ===== -->
+<!-- ===== v2.2.20 ===== -->
 <article class="release">
     <div class="release-header">
-        <span class="version-badge">v2.2.19</span>
-        <span class="release-title">好友中心、用户资料、群组聊天检测与媒体上传预览</span>
+        <span class="version-badge">v2.2.20</span>
+        <span class="release-title">认证强化、好友请求体验与聊天界面优化</span>
         <span class="release-date">2026-06-28</span>
     </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新功能与增强 (New Features & Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>认证流程加固</strong>
+                        <span class="detail">为登录与注册处理加入更安全的 try/catch 逻辑，改善锁定检测与错误处理，提高账户访问可靠性。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">👥</span>
+                    <div>
+                        <strong>好友请求与社交交互</strong>
+                        <span class="detail">新增好友搜索、发送请求、待处理请求和已屏蔽用户管理，使社交操作更顺畅。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>聊天界面与收藏优化</strong>
+                        <span class="detail">通过更安全的 DOM 渲染和更清晰的空状态显示，优化聊天搜索、群组成员选择与收藏面板。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔧</span>
+                    <div>
+                        <strong>密码重置体验改进</strong>
+                        <span class="detail">改善重置密码页面的提示与恢复流程，提升操作引导与用户体验。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.19 ===== -->
+<article class="release">
     <div class="release-body">
         <div class="section">
             <div class="section-title">

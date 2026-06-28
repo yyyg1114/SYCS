@@ -13,40 +13,46 @@ if (!$token) {
     die("不正なアクセスです。トークンがありません。");
 }
 
-// Check token and expiry
-$stmt = $mysqli->prepare("SELECT id FROM users WHERE reset_token = ? AND reset_expires > NOW() LIMIT 1");
-$stmt->bind_param("s", $token);
-$stmt->execute();
-$res = $stmt->get_result();
-$user = $res->fetch_assoc();
+try {
+    // Check token and expiry
+    $stmt = $mysqli->prepare("SELECT id FROM users WHERE reset_token = ? AND reset_expires > NOW() LIMIT 1");
+    $stmt->bind_param("s", $token);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $user = $res->fetch_assoc();
 
-if (!$user) {
-    $message = "無効なトークンか、有効期限が切れています。再度リクエストしてください。";
-    $messageType = "error";
-} else if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'], $_POST['confirm_password'])) {
-    $password = $_POST['password'];
-    $confirm = $_POST['confirm_password'];
-
-    if ($password !== $confirm) {
-        $message = "パスワードが一致しません。";
+    if (!$user) {
+        $message = "無効なトークンか、有効期限が切れています。再度リクエストしてください。";
         $messageType = "error";
-    } else if (strlen($password) < 8) {
-        $message = "パスワードは8文字以上で入力してください。";
-        $messageType = "error";
-    } else {
-        $newPass = password_hash($password, PASSWORD_DEFAULT);
-        $upd = $mysqli->prepare("UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?");
-        $upd->bind_param("si", $newPass, $user['id']);
+    } else if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'], $_POST['confirm_password'])) {
+        $password = $_POST['password'];
+        $confirm = $_POST['confirm_password'];
 
-        if ($upd->execute()) {
-            $message = "パスワードを更新しました。3秒後にログイン画面へ移動します。";
-            $messageType = "success";
-            $success = true;
-        } else {
-            $message = "エラーが発生しました。時間を置いて再度お試しください。";
+        if ($password !== $confirm) {
+            $message = "パスワードが一致しません。";
             $messageType = "error";
+        } else if (strlen($password) < 8) {
+            $message = "パスワードは8文字以上で入力してください。";
+            $messageType = "error";
+        } else {
+            $newPass = password_hash($password, PASSWORD_DEFAULT);
+            $upd = $mysqli->prepare("UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?");
+            $upd->bind_param("si", $newPass, $user['id']);
+
+            if ($upd->execute()) {
+                $message = "パスワードを更新しました。3秒後にログイン画面へ移動します。";
+                $messageType = "success";
+                $success = true;
+            } else {
+                $message = "エラーが発生しました。時間を置いて再度お試しください。";
+                $messageType = "error";
+            }
         }
     }
+} catch (Exception $e) {
+    error_log('Reset password error: ' . $e->getMessage());
+    $message = __('unexpected_error', '予期しないエラーが発生しました。');
+    $messageType = 'error';
 }
 ?>
 <!DOCTYPE html>

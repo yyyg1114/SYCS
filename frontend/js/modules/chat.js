@@ -66,9 +66,11 @@ export async function loadMessages(threadId, container, context, callbacks) {
   }
 
   if (messages.length === 0) {
-    const div = document.createElement("div");
-    div.className = "empty-state";
-    div.innerHTML = `<p>${t("no_messages", "ｼｰﾝ...静かな場所ですね。")}</p>`;
+    const div = document.createElement('div');
+    div.className = 'empty-state';
+    const p = document.createElement('p');
+    p.textContent = t('no_messages', 'ｼｰﾝ...静かな場所ですね。');
+    div.appendChild(p);
     container.appendChild(div);
   } else if (Array.isArray(messages)) {
     const msgMap = {};
@@ -100,9 +102,11 @@ export async function loadGroupMessages(threadId, container, context, callbacks)
   }
 
   if (msgs.length === 0) {
-    const div = document.createElement("div");
-    div.className = "empty-state";
-    div.innerHTML = `<p>${t("no_group_messages", "グループメッセージはありません。")}</p>`;
+    const div = document.createElement('div');
+    div.className = 'empty-state';
+    const p = document.createElement('p');
+    p.textContent = t('no_group_messages', 'グループメッセージはありません。');
+    div.appendChild(p);
     container.appendChild(div);
   } else {
     const msgMap = {};
@@ -146,23 +150,34 @@ export async function searchMessages() {
   const list = document.getElementById("search-results-list");
   if (!list) return;
 
-  list.innerHTML = "";
+  list.textContent = '';
   if (!results || results.length === 0) {
-    list.innerHTML = `<div class="empty-state">${t("no_results", "見つかりませんでした。")}</div>`;
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = t('no_results', '見つかりませんでした。');
+    list.appendChild(empty);
   } else {
     results.forEach(m => {
-      const item = document.createElement("div");
-      item.className = "search-result-item";
-      item.innerHTML = `
-        <div class="result-meta">
-          <span class="result-user">${m.username || m.user || ''}</span>
-          <span class="result-date">${m.created_at || ''}</span>
-        </div>
-        <div class="result-content">${m.content || ''}</div>
-      `;
+      const item = document.createElement('div');
+      item.className = 'search-result-item';
+      const meta = document.createElement('div');
+      meta.className = 'result-meta';
+      const userSpan = document.createElement('span');
+      userSpan.className = 'result-user';
+      userSpan.textContent = m.username || m.user || '';
+      const dateSpan = document.createElement('span');
+      dateSpan.className = 'result-date';
+      dateSpan.textContent = m.created_at || '';
+      meta.appendChild(userSpan);
+      meta.appendChild(dateSpan);
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'result-content';
+      contentDiv.textContent = m.content || '';
+      item.appendChild(meta);
+      item.appendChild(contentDiv);
       item.onclick = () => {
         window.switchThread(m.thread_id, m.thread_name || m.thread_id);
-        document.getElementById("search-results-overlay").classList.remove("active");
+        document.getElementById('search-results-overlay').classList.remove('active');
       };
       list.appendChild(item);
     });
@@ -300,22 +315,32 @@ export async function showGroupCreationDialog() {
   const picker = document.getElementById("group-member-picker");
   if (!modal || !picker) return;
 
-  picker.innerHTML = `<div class="loading">${t("loading", "読み込み中...")}</div>`;
-  const friends = await api("get_friends");
-  picker.innerHTML = "";
+  picker.textContent = '';
+  const loading = document.createElement('div');
+  loading.className = 'loading';
+  loading.textContent = t('loading', '読み込み中...');
+  picker.appendChild(loading);
+  const friends = await api('get_friends');
+  picker.textContent = '';
   if (friends && friends.length > 0) {
     friends.forEach(f => {
-      const div = document.createElement("div");
-      div.className = "member-picker-item";
-      div.innerHTML = `
-        <label>
-          <input type="checkbox" name="members" value="${f.id}"> ${f.username}
-        </label>
-      `;
+      const div = document.createElement('div');
+      div.className = 'member-picker-item';
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.name = 'members';
+      input.value = f.id;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + (f.username || '')));
+      div.appendChild(label);
       picker.appendChild(div);
     });
   } else {
-    picker.innerHTML = `<div class="empty-state">${t("no_friends", "フレンドがいません")}</div>`;
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = t('no_friends', 'フレンドがいません');
+    picker.appendChild(empty);
   }
   modal.showModal();
 }
