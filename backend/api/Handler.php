@@ -118,11 +118,18 @@ class ApiHandler
                 case 'request_friend':
                     $this->requestFriend();
                     break;
+                case 'send_friend_request':
+                    $this->sendFriendRequestAction();
+                    break;
                 case 'accept_friend':
                     $this->acceptFriend();
                     break;
                 case 'get_friend_requests':
+                case 'get_pending_requests':
                     $this->getFriendRequests();
+                    break;
+                case 'handle_friend_request':
+                    $this->handleFriendRequestAction();
                     break;
                 case 'get_friends':
                     $this->getFriends();
@@ -770,6 +777,47 @@ class ApiHandler
         echo json_encode(['success' => true]);
     }
 
+    private function sendFriendRequestAction()
+    {
+        $this->verifyCsrf();
+        $tid = (int)$this->getPost('friend_id', $this->getPost('target_id', 0));
+        if ($tid > 0) {
+            $stmt = $this->mysqli->prepare("INSERT IGNORE INTO friends (user_id_1, user_id_2, status) VALUES (?, ?, 'pending')");
+            $stmt->bind_param("ii", $this->userId, $tid);
+            $stmt->execute();
+            $stmt->close();
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Invalid friend ID']);
+        }
+    }
+
+    private function handleFriendRequestAction()
+    {
+        $this->verifyCsrf();
+        $rid = (int)$this->getPost('request_id', 0);
+        $act = $this->getPost('action', '');
+        if ($rid > 0) {
+            if ($act === 'accept') {
+                $stmt = $this->mysqli->prepare("UPDATE friends SET status = 'accepted' WHERE id = ? AND user_id_2 = ?");
+                $stmt->bind_param("ii", $rid, $this->userId);
+                $stmt->execute();
+                $stmt->close();
+                echo json_encode(['success' => true]);
+            } elseif ($act === 'reject') {
+                $stmt = $this->mysqli->prepare("DELETE FROM friends WHERE id = ? AND user_id_2 = ?");
+                $stmt->bind_param("ii", $rid, $this->userId);
+                $stmt->execute();
+                $stmt->close();
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'error' => 'Invalid action']);
+            }
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Invalid request ID']);
+        }
+    }
+
     private function acceptFriend()
     {
         $this->verifyCsrf();
@@ -978,7 +1026,7 @@ class ApiHandler
 
     private function getOnlineUsers()
     {
-        $stmt = $this->mysqli->prepare("SELECT id, username, status FROM users WHERE status != 'offline' AND id != ?");
+        $stmt = $this->mysqli->prepare("SELECT id, username, status, avatar_url FROM users WHERE status != 'offline' AND id != ?");
         $stmt->bind_param("i", $this->userId);
         $stmt->execute();
         echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));

@@ -7,6 +7,52 @@
  */
 ?>
 
+<!-- ===== v2.2.19 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.19</span>
+        <span class="release-title">フレンドハブ、ユーザープロフィール、グループチャット検出、メディアアップロードプレビューの強化</span>
+        <span class="release-date">2026-06-28</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 &amp; 強化 (New Features &amp; Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">👥</span>
+                    <div>
+                        <strong>フレンド機能の拡張</strong>
+                        <span class="detail">送信、承認、拒否のフレンドリクエスト API を追加し、保留中リクエストの処理と DM ハブ内のフレンドリスト更新を実装しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧑‍💻</span>
+                    <div>
+                        <strong>ユーザープロフィールの改善</strong>
+                        <span class="detail">ユーザープロフィールモーダルに「フレンド申請」・保留中リクエスト・ブロックユーザー管理を追加し、より直接的なソーシャル操作を可能にしました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">📸</span>
+                    <div>
+                        <strong>メディアアップロードプレビューの追加</strong>
+                        <span class="detail">ドラッグ＆ドロップに対応した専用アップロードモーダルを追加し、ファイルプレビューとメタデータ表示で添付体験を改善しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>オンラインユーザー更新とグループチャット同期</strong>
+                        <span class="detail">オンラインユーザー一覧の 30 秒自動更新を有効化し、初期読み込み時にグループチャット判定を復元して正しいサイドバー状態を保持します。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.18 ===== -->
 <article class="release">
     <div class="release-header">

@@ -2,6 +2,7 @@
     window.SYCS_CONFIG = {
         currentThreadId: <?= json_encode($initialThreadId ?? 1) ?>,
         currentThreadCreatorId: <?= json_encode($currentThreadCreatorId ?? 0) ?>,
+        isGroupChat: <?= json_encode($isGroupChat ?? false) ?>,
         currentUserId: <?= json_encode($_SESSION['user_id'] ?? null) ?>,
         currentUserName: <?= json_encode($currentUser ?? null) ?>,
         currentUserTheme: <?= json_encode($currentUserThemePref ?? []) ?>,

@@ -202,7 +202,7 @@ $currentUserData = $currentUserData ?? ['notification_keywords' => $currentUserK
 
 <!-- User Profile View Modal -->
 <dialog id="user-profile-modal" class="profile-modal" closedby="any">
-    <div class="profile-content" style="max-width: 450px;">
+    <div class="profile-content" style="max-width: 600px;">
         <div class="profile-preview-pane" style="width: 100%;">
             <div class="discord-card" id="user-profile-card">
                 <div class="discord-banner" id="user-profile-banner"></div>
@@ -221,9 +221,12 @@ $currentUserData = $currentUserData ?? ['notification_keywords' => $currentUserK
                     <div id="user-profile-sns" style="display:flex; gap:10px; margin-top:8px;"></div>
                 </div>
             </div>
-            <div style="margin-top: 16px; display: flex; gap: 8px; margin-left: 15px;">
-                <button class="btn-primary" onclick="document.getElementById('user-profile-modal').close()" style="flex: 1;"><?= __('close') ?></button>
-                <button class="btn-primary" id="user-profile-dm-btn" style="flex: 1;"><?= __('send_dm') ?></button>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin: 10px 10px 10px 10px;">
+                <div style="display: flex; gap: 24px; width: 100%; margin-top: 15px;">
+                    <button class="btn-primary" id="user-profile-friend-btn"><?= __('add_friend') ?></button>
+                    <button class="btn-primary" id="user-profile-dm-btn"><?= __('send_dm') ?></button>
+                </div>
+                <button class="btn-secondary" onclick="document.getElementById('user-profile-modal').close()" style="width: 120%; margin-top: 15px; align-self: center;"><?= __('close') ?></button>
             </div>
         </div>
     </div>
@@ -266,6 +269,42 @@ $currentUserData = $currentUserData ?? ['notification_keywords' => $currentUserK
         <div class="modal-actions" style="margin-top:10px; text-align:right;">
             <button class="btn-secondary"
                 onclick="document.getElementById('blocked-users-modal').close()"><?= __('close') ?></button>
+        </div>
+    </div>
+</dialog>
+
+<!-- Media Upload Modal -->
+<dialog id="media-upload-modal" class="modal media-upload-modal" closedby="any">
+    <div class="modal-content" style="min-width: 450px; max-width: 600px;">
+        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0;"><?= __('send_file') ?></h3>
+            <button class="close-btn" onclick="closeMediaUploadModal()">
+                <p style="font-size: 20px; color: #ffffff; font-weight: bold; margin:0; padding:0; cursor:pointer; background-color: transparent; border: none; outline: none;">✕</p>
+            </button>
+        </div>
+
+        <div id="media-upload-dropzone" class="upload-dropzone" onclick="document.getElementById('modal-file-input').click()">
+            <div id="media-upload-preview-container" class="upload-preview-container">
+                <div class="upload-placeholder">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 15px;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p style="margin:0; color:var(--text-secondary);"><?= __('click_or_drag_to_select') ?></p>
+                </div>
+            </div>
+            <input type="file" id="modal-file-input" hidden onchange="handleMediaUploadFiles(this.files)">
+        </div>
+
+        <div class="modal-form-group" style="margin-top:20px;">
+            <label class="modal-label"><?= __('message_optional') ?></label>
+            <textarea id="modal-content-input" class="modal-textarea" placeholder="<?= __('bio_placeholder') ?>" rows="2" style="background:var(--input-bg); border:1px solid var(--border-color); color:white; border-radius:8px; padding:12px; width:100%; resize:none;"></textarea>
+        </div>
+
+        <div class="modal-actions" style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end;">
+            <button class="btn-secondary" onclick="closeMediaUploadModal()" style="padding:10px 30px;"><?= __('cancel') ?></button>
+            <button class="btn-primary" onclick="submitMediaUpload()" style="padding:10px 30px;"><?= __('send_file') ?></button>
         </div>
     </div>
 </dialog>

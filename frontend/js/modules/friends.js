@@ -95,6 +95,7 @@ export async function handleFriendRequest(requestId, action) {
   if (res && res.success) {
     showToast(t("success", "成功"), action === 'accept' ? t("accepted", "承認しました") : t("rejected", "拒否しました"), "success");
     showPendingRequestsModal(); // Refresh
+    loadFriends(); // Refresh friend list in hub
   }
 }
 
@@ -132,6 +133,7 @@ export async function blockUser(userId) {
   const res = await api("block_user", "POST", { block_id: userId });
   if (res && res.success) {
     showToast(t("success", "成功"), t("blocked", "ブロックしました"), "success");
+    loadFriends();
   }
 }
 
@@ -144,5 +146,45 @@ export async function unblockUser(userId) {
   if (res && res.success) {
     showToast(t("success", "成功"), t("unblocked", "ブロック解除しました"), "success");
     showBlockedModal(); // Refresh
+    loadFriends();
+  }
+}
+
+/**
+ * Load accepted friends and render to the hub list
+ */
+export async function loadFriends() {
+  const container = document.getElementById("hub-friend-list");
+  if (!container) return;
+
+  container.innerHTML = `<div class="loading">${t("loading", "読み込み中...")}</div>`;
+  const friends = await api("get_friends");
+  container.innerHTML = "";
+
+  if (friends && friends.length > 0) {
+    friends.forEach(friend => {
+      const item = document.createElement("div");
+      item.className = "thread-item friend-item";
+      item.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 10px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: background 0.2s;";
+      
+      const avatarUrl = friend.avatar_url ? friend.avatar_url : "assets/img/default_avatar.svg";
+      
+      item.innerHTML = `
+        <div class="user-meta" style="display:flex; align-items:center; gap:10px; flex:1;">
+          <img src="${avatarUrl}" class="avatar-mini" style="width:32px; height:32px; border-radius:50%; object-fit:cover;" onError="this.src='assets/img/default_avatar.svg'">
+          <div style="flex:1;">
+            <div class="user-name" style="font-weight:600; color:var(--text-primary);">${friend.username}</div>
+            <div class="user-status" style="font-size:0.75rem; color:var(--text-secondary);">${friend.custom_status || ''}</div>
+          </div>
+        </div>
+        <span class="status-indicator status-${friend.status || 'offline'}" style="width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+      `;
+      item.onclick = () => {
+        window.switchToDm(friend.id, friend.username);
+      };
+      container.appendChild(item);
+    });
+  } else {
+    container.innerHTML = `<div class="empty-state">${t("no_friends", "フレンドがいません")}</div>`;
   }
 }

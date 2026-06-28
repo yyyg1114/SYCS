@@ -4,7 +4,7 @@
 
 import { t, formatMessage, applyHighlighting, getAvatarElement, getSkeletonLoader } from './modules/utils.js';
 import { api } from './modules/api.js';
-import { showToast, updateMyStatus } from './modules/ui.js';
+import { showToast, updateMyStatus, loadOnlineUsers } from './modules/ui.js';
 import { renderMessageNode } from './modules/message.js';
 import { loadThreads, loadGroupThreads, loadMessages, loadGroupMessages, updateFavoriteStatus } from './modules/chat.js';
 import { initSocket, socket } from './modules/socket.js';
@@ -16,7 +16,7 @@ let emojiPickerTarget = null;
 // --- Global State ---
 let currentThreadId = parseInt(window.SYCS_CONFIG.currentThreadId) || 1;
 let currentThreadCreatorId = window.SYCS_CONFIG.currentThreadCreatorId;
-let isGroupChat = false;
+let isGroupChat = window.SYCS_CONFIG.isGroupChat || false;
 const currentUserId = window.SYCS_CONFIG.currentUserId;
 const currentUserName = window.SYCS_CONFIG.currentUserName;
 const currentUserTheme = window.SYCS_CONFIG.currentUserTheme;
@@ -45,7 +45,8 @@ window.closeModal = (id) => import('./modules/ui.js').then(m => m.closeModal(id)
 window.editCurrentThread = () => import('./modules/chat.js').then(m => m.editCurrentThread());
 window.deleteCurrentThread = () => import('./modules/chat.js').then(m => m.deleteCurrentThread());
 window.openMediaUploadModal = () => import('./modules/ui.js').then(m => m.showModal("media-upload-modal"));
-window.closeMediaUploadModal = () => import('./modules/ui.js').then(m => m.closeModal("media-upload-modal"));
+window.closeMediaUploadModal = () => import('./modules/ui.js').then(m => m.closeMediaUploadModal());
+window.submitMediaUpload = () => import('./modules/ui.js').then(m => m.submitMediaUpload());
 window.switchSidebarTab = (t) => import('./modules/chat.js').then(m => m.switchSidebarTab(t));
 window.switchTab = (t) => import('./modules/ui.js').then(m => m.switchTab(t));
 window.createThread = () => import('./modules/chat.js').then(m => m.createThread());
@@ -53,6 +54,7 @@ window.toggleOnlineUsers = () => import('./modules/ui.js').then(m => m.toggleOnl
 window.setTheme = (t) => import('./modules/ui.js').then(m => m.setTheme(t));
 window.toggleMute = () => import('./modules/ui.js').then(m => m.toggleMute());
 window.showAddFriendModal = () => import('./modules/friends.js').then(m => m.showAddFriendModal());
+window.loadFriends = () => import('./modules/friends.js').then(m => m.loadFriends());
 window.searchUsers = () => import('./modules/friends.js').then(m => m.searchUsers());
 window.sendFriendRequest = (id) => import('./modules/friends.js').then(m => m.sendFriendRequest(id));
 window.showPendingRequestsModal = () => import('./modules/friends.js').then(m => m.showPendingRequestsModal());
@@ -83,6 +85,7 @@ window.submitGroupCreation = () => import('./modules/chat.js').then(m => m.submi
 window.installPWA = () => import('./modules/ui.js').then(m => m.installPWA());
 window.dismissInstallBanner = () => import('./modules/ui.js').then(m => m.dismissInstallBanner());
 window.startMeeting = () => import('./modules/ui.js').then(m => m.startMeeting());
+window.showUserProfile = (id) => import('./modules/ui.js').then(m => m.showUserProfile(id));
 window.handleMediaUploadFiles = (f) => import('./modules/ui.js').then(m => m.handleMediaUploadFiles(f));
 window.cancelDmUpload = () => import('./modules/ui.js').then(m => m.cancelDmUpload());
 window.handleInputKey = handleInputKey;
@@ -110,6 +113,11 @@ async function initApp() {
     const threadList = document.getElementById("thread-list");
     if (threadList) {
         loadThreads(th => switchThread(th.id, th.name, th.creator_id));
+        if (window.SYCS_CONFIG.isGroupChat) {
+            import('./modules/chat.js').then(m => m.switchSidebarTab('groups'));
+        }
+        const initialName = document.getElementById("current-thread-name")?.innerText.replace(/^[#👥]\s*/, "") || "general";
+        switchThread(currentThreadId, initialName, currentThreadCreatorId, isGroupChat);
     }
     
     initSocket(currentUserId, {
@@ -162,6 +170,10 @@ async function initApp() {
 
     // Initialize Notifications & SW
     initNotifications();
+
+    // Load online users
+    loadOnlineUsers();
+    setInterval(loadOnlineUsers, 30000);
 
     // Reset badge when window gets focus
     window.addEventListener('focus', () => {

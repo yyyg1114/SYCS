@@ -16,6 +16,7 @@ let currentDmPartnerId = null;
  */
 export async function switchToDm(userId, userName) {
   currentDmPartnerId = userId;
+  window.currentDmPartnerId = userId;
   document.getElementById("dm-hub-view").style.display = "none";
   document.getElementById("dm-chat-view").style.display = "flex";
   document.getElementById("current-header-title").innerText = userName;
@@ -34,6 +35,7 @@ export async function switchToDm(userId, userName) {
  */
 export function backToHub() {
   currentDmPartnerId = null;
+  window.currentDmPartnerId = null;
   document.getElementById("dm-hub-view").style.display = "flex";
   document.getElementById("dm-chat-view").style.display = "none";
 }

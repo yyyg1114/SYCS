@@ -1,27 +1,51 @@
-<!-- ===== v2.2.18 ===== -->
+<!-- ===== v2.2.19 ===== -->
 <article class="release">
     <div class="release-header">
-        <span class="version-badge">v2.2.18</span>
-        <span class="release-title">Page Transition Animations via View Transitions API</span>
-        <span class="release-date">2026-06-08</span>
+        <span class="version-badge">v2.2.19</span>
+        <span class="release-title">Friend Hub, User Profiles, Group Chat Detection, and Media Upload Preview</span>
+        <span class="release-date">2026-06-28</span>
     </div>
     <div class="release-body">
         <div class="section">
             <div class="section-title">
-                <span class="dot dot-yellow"></span> UI &amp; Design
+                <span class="dot dot-green"></span> New Features &amp; Enhancements
             </div>
             <ul>
                 <li>
-                    <span class="icon">🎬</span>
+                    <span class="icon">👥</span>
                     <div>
-                        <strong>Page Transition Animations via View Transitions API</strong>
-                        <span class="detail">Implemented smooth fade &amp; slide page transitions using CSS <code>@view-transition</code> and <code>::view-transition-old/new</code> across all key pages: index.html, about.html, privacy_policy.html, login.php, signup.php, and reset_password.php. The result is a native app-quality navigation experience.</span>
+                        <strong>Expanded friend system support</strong>
+                        <span class="detail">Added backend API actions for sending, accepting, and rejecting friend requests, plus a pending requests flow and friend list refresh inside the DM hub.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧑‍💻</span>
+                    <div>
+                        <strong>User profile improvements</strong>
+                        <span class="detail">Enhanced the user profile modal with Add Friend support, pending request access, and blocked user management for more direct social interactions.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">📸</span>
+                    <div>
+                        <strong>Media upload preview experience</strong>
+                        <span class="detail">Added a dedicated upload modal with drag-and-drop support, file previews, and metadata display to simplify attaching media to conversations.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>Online user and group chat synchronization</strong>
+                        <span class="detail">Enabled online user list auto-refresh and restored group chat detection during initial load so the correct sidebar state is preserved.</span>
                     </div>
                 </li>
             </ul>
         </div>
     </div>
 </article>
+
+<!-- ===== v2.2.18 ===== -->
+<article class="release">
 
 <!-- ===== v2.2.17 ===== -->
 <article class="release">

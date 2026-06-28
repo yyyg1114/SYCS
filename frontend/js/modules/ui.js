@@ -2,7 +2,7 @@
  * SYCS UI Module
  */
 
-import { t } from './utils.js';
+import { t, getAvatarElement } from './utils.js';
 import { api, registerShowToast } from './api.js';
 
 /**
@@ -193,6 +193,10 @@ export function switchTab(tabName) {
   document.querySelectorAll(".content-pane").forEach(pane => {
     pane.classList.toggle("active", pane.id === `${tabName}-pane`);
   });
+
+  if (tabName === 'dm' && typeof window.loadFriends === 'function') {
+    window.loadFriends();
+  }
 }
 
 /**
@@ -219,7 +223,39 @@ export function showModal(id) {
   const modal = document.getElementById(id);
   if (modal && typeof modal.showModal === "function") {
     modal.showModal();
+    if (id === "media-upload-modal") {
+      setupDropzone();
+    }
   }
+}
+
+function setupDropzone() {
+  const dropzone = document.getElementById("media-upload-dropzone");
+  if (!dropzone) return;
+  if (dropzone.dataset.initialized) return;
+  dropzone.dataset.initialized = "true";
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('dragover');
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('dragover');
+    }, false);
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    handleMediaUploadFiles(files);
+  }, false);
 }
 
 /**
@@ -227,6 +263,10 @@ export function showModal(id) {
  * @param {string} id 
  */
 export function closeModal(id) {
+  if (id === "media-upload-modal") {
+    closeMediaUploadModal();
+    return;
+  }
   const modal = document.getElementById(id);
   if (modal && typeof modal.close === "function") {
     modal.close();
@@ -429,8 +469,137 @@ export function startMeeting() {
  * Handle Media Upload Files
  */
 export function handleMediaUploadFiles(files) {
-  console.log("Files selected:", files);
-  showToast(t("info", "情報"), t("upload_started", "ファイルのアップロードを開始します"), "info");
+  if (!files || files.length === 0) return;
+  const file = files[0];
+  window.pendingUploadFile = file;
+
+  const previewContainer = document.getElementById("media-upload-preview-container");
+  if (!previewContainer) return;
+
+  previewContainer.innerHTML = "";
+
+  const isImage = file.type.startsWith("image/");
+  if (isImage) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      previewContainer.innerHTML = `
+        <div style="position:relative; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+          <img src="${e.target.result}" style="max-width:100%; max-height:200px; border-radius:8px; object-fit:contain;">
+          <div style="margin-top:8px; font-size:0.85rem; color:var(--text-secondary); text-align:center; width:100%;">${file.name} (${formatBytes(file.size)})</div>
+        </div>
+      `;
+    };
+    reader.readAsDataURL(file);
+  } else {
+    previewContainer.innerHTML = `
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; width:100%;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 10px;">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+        <p style="margin:0; font-weight:600; color:var(--text-primary); text-align:center; word-break:break-all;">${file.name}</p>
+        <p style="margin:5px 0 0 0; font-size:0.8rem; color:var(--text-secondary);">${formatBytes(file.size)}</p>
+      </div>
+    `;
+  }
+}
+
+function formatBytes(bytes, decimals = 2) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+export function closeMediaUploadModal() {
+  const modal = document.getElementById("media-upload-modal");
+  if (modal && typeof modal.close === "function") {
+    modal.close();
+  }
+  // リセット
+  window.pendingUploadFile = null;
+  const fileInput = document.getElementById("modal-file-input");
+  if (fileInput) fileInput.value = "";
+  const contentInput = document.getElementById("modal-content-input");
+  if (contentInput) contentInput.value = "";
+  
+  const previewContainer = document.getElementById("media-upload-preview-container");
+  if (previewContainer) {
+    previewContainer.innerHTML = `
+      <div class="upload-placeholder">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 15px;">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <p style="margin:0; color:var(--text-secondary);">${t('click_or_drag_to_select', 'クリックまたはドラッグして選択')}</p>
+      </div>
+    `;
+  }
+}
+
+export async function submitMediaUpload() {
+  const contentInput = document.getElementById("modal-content-input");
+  const content = contentInput ? contentInput.value.trim() : "";
+  
+  if (!window.pendingUploadFile) {
+    showToast(t("error", "エラー"), t("select_file", "ファイルを選択してください"), "error");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("content", content);
+  formData.append("attachment", window.pendingUploadFile);
+  formData.append("csrf_token", window.SYCS_CONFIG?.csrfToken || "");
+
+  const isDmActive = document.getElementById("dm-pane") && document.getElementById("dm-pane").classList.contains("active");
+
+  let res;
+  if (isDmActive) {
+    const rid = window.currentDmPartnerId;
+    if (!rid) {
+      showToast(t("error", "エラー"), t("select_dm_partner", "送信先の相手が選択されていません"), "error");
+      return;
+    }
+    formData.append("receiver_id", rid);
+    res = await api("send_direct_message", "POST", formData);
+  } else {
+    const threadId = window.SYCS_CONFIG.currentThreadId;
+    const isGroup = window.SYCS_CONFIG.isGroupChat;
+    if (isGroup) {
+      formData.append("group_thread_id", threadId);
+    } else {
+      formData.append("thread_id", threadId);
+    }
+    res = await api("send_message", "POST", formData);
+  }
+
+  if (res && res.success) {
+    showToast(t("success", "成功"), t("sent_successfully", "送信が完了しました"), "success");
+    closeMediaUploadModal();
+
+    // UIを更新
+    if (isDmActive) {
+      if (typeof window.switchToDm === "function") {
+        window.switchToDm(window.currentDmPartnerId, document.getElementById("current-header-title").innerText);
+      }
+    } else {
+      const container = document.getElementById("message-container");
+      const currentUserName = window.SYCS_CONFIG.currentUserName;
+      const currentUserId = window.SYCS_CONFIG.currentUserId;
+      if (window.SYCS_CONFIG.isGroupChat) {
+        import('./chat.js').then(m => m.loadGroupMessages(window.SYCS_CONFIG.currentThreadId, container, {currentUserName, currentUserId}, {}));
+      } else {
+        import('./chat.js').then(m => m.loadMessages(window.SYCS_CONFIG.currentThreadId, container, {currentUserName, currentUserId}, {}));
+      }
+    }
+  } else {
+    showToast(t("error", "エラー"), (res && res.error) ? res.error : t("failed_to_send", "送信に失敗しました"), "error");
+  }
 }
 
 /**
@@ -461,3 +630,170 @@ export function toggleMute() {
 
 // Register toast function to API module
 registerShowToast(showToast);
+
+/**
+ * Load and render online users in sidebar
+ */
+export async function loadOnlineUsers() {
+  const list = document.getElementById("online-users-list");
+  if (!list) return;
+
+  const users = await api("get_online_users");
+  list.innerHTML = "";
+
+  if (Array.isArray(users) && users.length > 0) {
+    users.forEach((u) => {
+      const item = document.createElement("div");
+      item.className = "thread-item online-user-item";
+      item.style.cssText = "display: flex; align-items: center; gap: 10px; padding: 8px 16px; cursor: pointer; transition: background 0.2s;";
+      item.dataset.id = u.id;
+
+      // Avatar with status dot
+      const avatarEl = getAvatarElement(u.username, u.status || 'online', u.avatar_url);
+      avatarEl.style.cssText = "position: relative; flex-shrink: 0; width: 28px; height: 28px;";
+
+      const innerAvatar = avatarEl.querySelector(".avatar");
+      if (innerAvatar) {
+        innerAvatar.style.width = "28px";
+        innerAvatar.style.height = "28px";
+        innerAvatar.style.borderRadius = "50%";
+        innerAvatar.style.fontSize = "0.75rem";
+      }
+
+      const innerIndicator = avatarEl.querySelector(".status-indicator");
+      if (innerIndicator) {
+        innerIndicator.style.width = "10px";
+        innerIndicator.style.height = "10px";
+        innerIndicator.style.border = "1.5px solid var(--sidebar-bg, #1a1a2e)";
+        innerIndicator.style.bottom = "-1px";
+        innerIndicator.style.right = "-1px";
+      }
+
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = u.username;
+      nameSpan.style.cssText = "color: var(--text-primary); font-size: 0.9rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
+
+      item.appendChild(avatarEl);
+      item.appendChild(nameSpan);
+
+      item.onclick = () => {
+        if (typeof window.showUserProfile === "function") {
+          window.showUserProfile(u.id);
+        }
+      };
+
+      list.appendChild(item);
+    });
+  } else {
+    const empty = document.createElement("div");
+    empty.style.cssText = "padding: 12px 16px; font-size: 0.8rem; color: var(--text-muted); text-align: center;";
+    empty.textContent = t("no_online_users", "オンラインユーザーはいません");
+    list.appendChild(empty);
+  }
+}
+
+/**
+ * Show detailed user profile modal with options to send friend request or DM
+ * @param {number} userId 
+ */
+export async function showUserProfile(userId) {
+  const modal = document.getElementById("user-profile-modal");
+  if (!modal) return;
+
+  const usernameEl = document.getElementById("user-profile-username");
+  const bioEl = document.getElementById("user-profile-bio");
+  const bannerEl = document.getElementById("user-profile-banner");
+  const avatarContainer = document.getElementById("user-profile-avatar-container");
+  const statusIndicator = document.getElementById("user-profile-status-indicator");
+  const snsEl = document.getElementById("user-profile-sns");
+  const dmBtn = document.getElementById("user-profile-dm-btn");
+  const friendBtn = document.getElementById("user-profile-friend-btn");
+
+  if (usernameEl) usernameEl.textContent = t("loading", "読み込み中...");
+  if (bioEl) bioEl.textContent = "";
+  if (snsEl) snsEl.innerHTML = "";
+
+  showModal("user-profile-modal");
+
+  const res = await api(`get_user_profile&user_id=${userId}`);
+  if (res && !res.error) {
+    if (usernameEl) usernameEl.textContent = res.username || "";
+    if (bioEl) bioEl.textContent = res.bio || "";
+
+    // Banner
+    if (bannerEl) {
+      if (res.banner_url) {
+        bannerEl.style.background = `url('${res.banner_url}') center/cover`;
+      } else {
+        bannerEl.style.background = res.banner_color || '#6366f1';
+      }
+    }
+
+    // Avatar
+    if (avatarContainer) {
+      avatarContainer.innerHTML = "";
+      const avatarEl = getAvatarElement(res.username, "none", res.avatar_url);
+      const innerAvatar = avatarEl.querySelector(".avatar");
+      if (innerAvatar) {
+        innerAvatar.style.width = "90px";
+        innerAvatar.style.height = "90px";
+        innerAvatar.style.fontSize = "2rem";
+        innerAvatar.style.borderRadius = "50%";
+      }
+      avatarContainer.appendChild(avatarEl);
+    }
+
+    // Status Indicator
+    if (statusIndicator) {
+      statusIndicator.className = `discord-status-indicator status-${res.status || 'offline'}`;
+    }
+
+    // Custom Status
+    const customStatusEl = document.getElementById("user-profile-custom-status");
+    if (customStatusEl) {
+      customStatusEl.textContent = res.custom_status || "";
+    }
+
+    // Social links
+    if (snsEl && res.social_links) {
+      let social = res.social_links;
+      if (typeof social === 'string') {
+        try { social = JSON.parse(social); } catch(e) { social = {}; }
+      }
+      snsEl.innerHTML = "";
+      if (social && social.twitter) {
+        snsEl.innerHTML += `<a href="https://twitter.com/${encodeURIComponent(social.twitter)}" target="_blank" class="sns-link" style="color:var(--accent-color);">Twitter: ${social.twitter}</a>`;
+      }
+      if (social && social.github) {
+        snsEl.innerHTML += `<a href="https://github.com/${encodeURIComponent(social.github)}" target="_blank" class="sns-link" style="color:var(--accent-color); margin-left:10px;">GitHub: ${social.github}</a>`;
+      }
+    }
+
+    // DM Button click event
+    if (dmBtn) {
+      dmBtn.onclick = () => {
+        modal.close();
+        if (typeof window.switchToDm === "function") {
+          window.switchToDm(res.id, res.username);
+        }
+      };
+    }
+
+    // Friend request button click event
+    if (friendBtn) {
+      friendBtn.onclick = async () => {
+        const payload = new FormData();
+        payload.append("target_id", res.id);
+        const requestRes = await api("request_friend", "POST", payload);
+        if (requestRes && requestRes.success) {
+          showToast(t("success", "成功"), t("friend_request_sent", "フレンドリクエストを送信しました"), "success");
+        } else {
+          showToast(t("error", "エラー"), t("friend_request_failed", "リクエスト送信に失敗しました"), "error");
+        }
+      };
+    }
+  } else {
+    if (usernameEl) usernameEl.textContent = t("error", "エラー");
+    if (bioEl) bioEl.textContent = "プロフィールの取得に失敗しました。";
+  }
+}

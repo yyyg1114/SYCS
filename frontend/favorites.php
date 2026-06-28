@@ -92,7 +92,7 @@ if (isset($_GET['logout'])) {
             ?>
 
             <div class="scroller" style="flex:1; padding: 24px; overflow-y: auto;">
-                <div style="max-width: 800px; margin: 0;">
+                <div style="max-width: 1000px; margin: 0;">
                     <div style="margin-bottom: 32px;">
                         <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; margin-bottom: 8px;"><?= __('fav_threads') ?></h2>
                         <p style="color: var(--text-secondary); font-size: 0.9rem;"><?= __('fav_threads_desc') ?? 'お気に入りに登録したスレッドのリストです。' ?></p>
@@ -110,7 +110,9 @@ if (isset($_GET['logout'])) {
 
     <script src="js/widgets.js"></script>
     <script type="module">
-        import { loadFavorites } from './js/modules/favorites.js';
+        import {
+            loadFavorites
+        } from './js/modules/favorites.js';
         window.addEventListener('load', () => {
             loadFavorites();
         });

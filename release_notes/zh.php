@@ -7,6 +7,52 @@
  */
 ?>
 
+<!-- ===== v2.2.19 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.19</span>
+        <span class="release-title">好友中心、用户资料、群组聊天检测与媒体上传预览</span>
+        <span class="release-date">2026-06-28</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新功能与增强 (New Features & Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">👥</span>
+                    <div>
+                        <strong>增强好友系统支持</strong>
+                        <span class="detail">新增后端 API 的发送、接受、拒绝好友请求操作，并在 DM 中支持待处理请求流与好友列表刷新。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧑‍💻</span>
+                    <div>
+                        <strong>用户资料弹窗升级</strong>
+                        <span class="detail">用户资料弹窗新增添加好友、待处理请求和已屏蔽用户管理，提升社交交互体验。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">📸</span>
+                    <div>
+                        <strong>媒体上传预览体验</strong>
+                        <span class="detail">新增专用上传弹窗，支持拖放预览与文件元数据展示，使媒体发送更加直观。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>在线用户与群组聊天同步</strong>
+                        <span class="detail">开启在线用户列表自动刷新，并恢复初始加载时的群组聊天检测，确保正确的侧边栏状态。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.18 ===== -->
 <article class="release">
     <div class="release-header">

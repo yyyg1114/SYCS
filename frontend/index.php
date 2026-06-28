@@ -95,13 +95,32 @@ if ($isLoggedIn) {
     }
     $stmt->close();
 
+    $isGroupChat = false;
     $stmt = $mysqli->prepare("SELECT * FROM threads WHERE id = ?");
     $stmt->bind_param("i", $initialThreadId);
     $stmt->execute();
     $tres = $stmt->get_result();
     $threadRow = $tres->fetch_assoc();
-    $currentThreadName = $threadRow ? $threadRow['name'] : 'general';
-    $currentThreadCreatorId = $threadRow ? $threadRow['creator_id'] : 0;
+    if ($threadRow) {
+        $currentThreadName = $threadRow['name'];
+        $currentThreadCreatorId = $threadRow['creator_id'];
+    } else {
+        $stmt->close();
+        $stmt = $mysqli->prepare("SELECT * FROM group_threads WHERE id = ?");
+        $stmt->bind_param("i", $initialThreadId);
+        $stmt->execute();
+        $gtres = $stmt->get_result();
+        $gRow = $gtres->fetch_assoc();
+        if ($gRow) {
+            $currentThreadName = $gRow['name'];
+            $currentThreadCreatorId = $gRow['creator_id'];
+            $isGroupChat = true;
+        } else {
+            $currentThreadName = 'general';
+            $currentThreadCreatorId = 0;
+            $initialThreadId = 1;
+        }
+    }
     $stmt->close();
 }
 ?>
@@ -524,40 +543,7 @@ if ($isLoggedIn) {
                     </div>
                 </div>
             </dialog>
-            <!-- Media Upload Modal -->
-            <dialog id="media-upload-modal" class="modal media-upload-modal" closedby="any">
-                <div class="modal-content" style="min-width: 450px; max-width: 600px;">
-                    <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                        <h3 style="margin:0;"><?= __('send_file') ?></h3>
-                        <button class="close-btn" onclick="closeMediaUploadModal()">
-                            <p style="font-size: 20px; color: #000000; font-weight: bold; margin:0; padding:0; cursor:pointer; background-color: transparent; border: none; outline: none;">✕</p>
-                        </button>
-                    </div>
 
-                    <div id="media-upload-dropzone" class="upload-dropzone" onclick="document.getElementById('modal-file-input').click()">
-                        <div id="media-upload-preview-container" class="upload-preview-container">
-                            <div class="upload-placeholder">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); margin-bottom: 15px;">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="17 8 12 3 7 8"></polyline>
-                                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                                </svg>
-                                <p style="margin:0; color:var(--text-secondary);"><?= __('click_or_drag_to_select') ?></p>
-                            </div>
-                        </div>
-                        <input type="file" id="modal-file-input" hidden onchange="handleMediaUploadFiles(this.files)">
-                    </div>
-
-                    <div class="modal-form-group" style="margin-top:20px;">
-                        <label class="modal-label"><?= __('message_optional') ?></label>
-                        <textarea id="modal-content-input" class="modal-textarea" placeholder="<?= __('bio_placeholder') ?>" rows="2" style="background:var(--input-bg); border:1px solid var(--border-color); color:white; border-radius:8px; padding:12px; width:100%; resize:none;"></textarea>
-                    </div>
-
-                    <div class="modal-actions" style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end;">
-                        <button class="btn-secondary" onclick="closeMediaUploadModal()" style="padding:10px 30px;"><?= __('cancel') ?></button>
-                    </div>
-                </div>
-            </dialog>
             <section id="favorites-pane" class="content-pane" style="display:none;">
                 <aside class="thread-browser active"
                     style="margin-left:0; border-right:1px solid var(--border-color); display:block; position:relative;">
