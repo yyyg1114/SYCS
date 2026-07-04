@@ -36,14 +36,16 @@ if (!$isLoggedIn) {
 $currentUser = $_SESSION['user'];
 $currentUserStatus = 'online';
 $currentUserAvatar = '';
+$currentUserThemePref = [];
 
 if ($isLoggedIn) {
-    $stmt = $mysqli->prepare("SELECT status, avatar_url FROM users WHERE id = ?");
+    $stmt = $mysqli->prepare("SELECT status, avatar_url, theme_preference FROM users WHERE id = ?");
     $stmt->bind_param("i", $_SESSION['user_id']);
     $stmt->execute();
     if ($row = $stmt->get_result()->fetch_assoc()) {
         $currentUserStatus = $row['status'] ?: 'online';
         $currentUserAvatar = $row['avatar_url'];
+        $currentUserThemePref = json_decode($row['theme_preference'] ?: '{}', true);
     }
     $stmt->close();
 }
@@ -65,6 +67,32 @@ if (isset($_GET['logout'])) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        (function() {
+            try {
+                const savedTheme = localStorage.getItem("sycs_theme");
+                const supportDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
+                const theme = savedTheme || (supportDarkMode ? "dark" : "light");
+
+                if (theme === "light") {
+                    document.documentElement.classList.add("light-theme");
+                    document.documentElement.classList.remove("dark-theme");
+                    document.documentElement.classList.remove("night-theme");
+                } else if (theme === "night") {
+                    document.documentElement.classList.add("night-theme");
+                    document.documentElement.classList.remove("light-theme");
+                    document.documentElement.classList.remove("dark-theme");
+                } else {
+                    document.documentElement.classList.add("dark-theme");
+                    document.documentElement.classList.remove("light-theme");
+                    document.documentElement.classList.remove("night-theme");
+                }
+            } catch (e) {
+                console.error("Theme initialization failed", e);
+            }
+        })();
+    </script>
 
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/layout.css">
@@ -109,6 +137,7 @@ if (isset($_GET['logout'])) {
     <?php include 'includes/modals.php'; ?>
 
     <script src="js/widgets.js"></script>
+    <script src="js/index.js" type="module"></script>
     <script type="module">
         import {
             loadFavorites
