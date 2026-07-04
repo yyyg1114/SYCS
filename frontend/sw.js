@@ -5,10 +5,7 @@ const DYNAMIC_CACHE = CACHE_VERSION + "-dynamic";
 
 // 静的アセット（事前キャッシュ対象）
 const STATIC_ASSETS = [
-  "./css/base.css",
-  "./css/layout.css",
-  "./css/components.css",
-  "./css/modals.css",
+  "./css/bundle.min.css",
   "./css/style-index.css",
   "./assets/img/SYCS_favicon.svg",
   "./assets/img/SYCS_Logo.svg",

@@ -479,6 +479,46 @@ async function sendMessage() {
     const content = input.value.trim();
     if (!content && !window.pendingFile) return;
 
+    // 送信前に状態を確保（キャンセル後に使えるよう先にキャプチャ）
+    const replyToId = window.replyToId || null;
+    const replyUsername = replyToId ? document.getElementById("reply-target-name")?.innerText : null;
+    const pendingFile = window.pendingFile || null;
+
+    // ─── 楽観的UI更新: APIを待たず即座に仮メッセージを表示 ───
+    const tempId = "temp-" + Date.now();
+    const container = document.getElementById("message-container");
+    const m = {
+        id: tempId,
+        thread_id: isGroupChat ? null : currentThreadId,
+        group_thread_id: isGroupChat ? currentThreadId : null,
+        user_id: currentUserId,
+        username: currentUserName,
+        avatar_url: window.SYCS_CONFIG?.currentUserAvatar || null,
+        status: window.SYCS_CONFIG?.currentUserStatus || 'online',
+        content: content,
+        attachment_path: null,
+        reply_to_id: replyToId,
+        reply_username: replyUsername,
+        is_pinned: 0,
+        is_edited: 0,
+        reactions: [],
+        children: [],
+        created_at: new Date().toLocaleString('sv-SE').substring(0, 19)
+    };
+
+    // 入力欄を即時クリア（体感速度向上）
+    input.value = "";
+    cancelReply();
+    cancelUpload();
+
+    // 仮メッセージをDOMに追加し「送信中」スタイルを適用
+    renderMessageNode(m, container, {currentUserName, currentUserId}, getMessageCallbacks());
+    const tempEl = document.getElementById("message-" + tempId);
+    if (tempEl) tempEl.classList.add("message-pending");
+    container.scrollTop = container.scrollHeight;
+    // ────────────────────────────────────────────────────────
+
+    // バックグラウンドでAPIリクエスト実行
     const formData = new FormData();
     if (isGroupChat) {
         formData.append("group_thread_id", currentThreadId);
@@ -486,23 +526,57 @@ async function sendMessage() {
         formData.append("thread_id", currentThreadId);
     }
     formData.append("content", content);
-    if (window.replyToId) formData.append("reply_to_id", window.replyToId);
-    if (window.pendingFile) formData.append("attachment", window.pendingFile);
+    if (replyToId) formData.append("reply_to_id", replyToId);
+    if (pendingFile) formData.append("attachment", pendingFile);
 
-    const res = await api("send_message", "POST", formData);
+    try {
+        const res = await api("send_message", "POST", formData);
 
-    if (res && res.success) {
-        input.value = "";
-        cancelReply();
-        cancelUpload();
-        
-        const container = document.getElementById("message-container");
-        if (isGroupChat) {
-            loadGroupMessages(currentThreadId, container, {currentUserName, currentUserId}, getMessageCallbacks());
+        if (res && res.success) {
+            // 成功: 仮メッセージIDを本物のIDに差し替え、送信中スタイルを解除
+            if (tempEl) {
+                tempEl.id = "message-" + res.id;
+                tempEl.classList.remove("message-pending");
+                // 添付ファイルがあれば差し替え
+                if (res.attachment_path) {
+                    const { renderMessageNode: rmn } = await import('./modules/message.js');
+                    // 再描画は不要、ファイルのプレビューは既にローカルで見えているためスキップ
+                }
+            }
         } else {
-            loadMessages(currentThreadId, container, {currentUserName, currentUserId}, getMessageCallbacks());
+            // 失敗: 仮メッセージをエラー状態にする
+            _markMessageFailed(tempEl, content, pendingFile, replyToId);
         }
+    } catch (e) {
+        // 通信エラー: 同様にエラー状態にする
+        _markMessageFailed(tempEl, content, pendingFile, replyToId);
     }
+}
+
+/**
+ * 仮メッセージを「送信失敗」状態に変更し、再送信バナーを表示する
+ */
+function _markMessageFailed(el, content, pendingFile, replyToId) {
+    if (!el) return;
+    el.classList.remove("message-pending");
+    el.classList.add("message-failed");
+
+    const banner = document.createElement("div");
+    banner.className = "message-failed-banner";
+    banner.innerHTML = `⚠️ 送信に失敗しました。 <span style="text-decoration:underline;">再送信</span>`;
+    banner.onclick = () => {
+        el.remove();
+        // 入力欄にテキストを戻して再送信を促す
+        const input = document.getElementById("msg-input");
+        if (input) {
+            input.value = content;
+            input.focus();
+        }
+        if (replyToId) window.replyToId = replyToId;
+    };
+
+    const info = el.querySelector(".message-info");
+    if (info) info.appendChild(banner);
 }
 
 // キーボードショートカット

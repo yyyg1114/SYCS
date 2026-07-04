@@ -177,6 +177,7 @@ function renderAttachment(path, container) {
   if (isImage) {
     const img = document.createElement("img");
     img.src = path;
+    img.loading = "lazy";
     img.className = "preview-img";
     img.style.display = "block";
     img.style.marginTop = "10px";

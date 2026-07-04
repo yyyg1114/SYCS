@@ -146,8 +146,8 @@ if ($isLoggedIn) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" defer></script>
 
     <head>
         <!-- CSSの読み込みなど -->
@@ -183,19 +183,13 @@ if ($isLoggedIn) {
         </script>
     </head>
 
-    <link rel="stylesheet" href="css/base.css">
-    <link rel="stylesheet" href="css/layout.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/modals.css">
-    <link rel="stylesheet" href="css/indicators.css">
-    <link rel="stylesheet" href="css/markdown.css">
-    <link rel="stylesheet" href="css/map.css">
-    <link rel="stylesheet" href="css/widgets.css">
+    <?php require_once __DIR__ . '/build_css.php'; ?>
+    <link rel="stylesheet" href="css/bundle.min.css">
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <!-- highlight.js for Syntax Highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
     <?php include __DIR__ . '/includes/config.php'; ?>
 </head>
 
@@ -564,9 +558,9 @@ if ($isLoggedIn) {
         </main>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="js/webrtc.js"></script>
-    <script src="js/locate.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+    <script src="js/webrtc.js" defer></script>
+    <script src="js/locate.js" defer></script>
 
 
     <!-- PWA Installation Logic moved to integrated locations -->
@@ -576,7 +570,7 @@ if ($isLoggedIn) {
         <?= __('offline_msg') ?>
     </div>
     <script src="js/index.js" type="module"></script>
-    <script src="js/widgets.js"></script>
+    <script src="js/widgets.js" defer></script>
 </body>
 
 </html>

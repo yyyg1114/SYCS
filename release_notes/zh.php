@@ -7,6 +7,87 @@
  */
 ?>
 
+<!-- ===== v2.2.21 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.21</span>
+        <span class="release-title">乐观UI、消息回复功能与CSS架构重构</span>
+        <span class="release-date">2026-07-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新功能与增强 (New Features & Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>乐观 UI 与消息送达状态管理</strong>
+                        <span class="detail">消息即时显示在聊天窗口，送信中状态用 💬 指示符表示。若送达失败，会显示可恢复的错误横幅并支持重试，大幅提升了用户体验的流畅感与信任度。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">💬</span>
+                    <div>
+                        <strong>消息回复与提及功能</strong>
+                        <span class="detail">实现了完整的消息回复机制，包括回复目标跟踪、上下文显示和会话中的附件状态管理，使讨论更具线程式的组织性。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>附件处理与 API 改进</strong>
+                        <span class="detail">强化了后端 API 以准确跟踪和返回发送消息的附件路径，确保文件在聊天记录中正确保存和显示。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>安全性与格式化库集成</strong>
+                        <span class="detail">集成了 Marked.js（Markdown 渲染）、DOMPurify（XSS 防护）和 Highlight.js（代码高亮），实现了安全可靠的富文本内容展示。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI 与设计 (UI & Design)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎯</span>
+                    <div>
+                        <strong>账户删除页面重新设计</strong>
+                        <span class="detail">对删除账户页面进行了全面改版，改善了样式、视觉层级和密码确认流程，同时强化了安全请求头和错误提示。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">📦</span>
+                    <div>
+                        <strong>CSS 包优化与架构重构</strong>
+                        <span class="detail">将 delete_account.php 中的内联样式提取为外部 CSS，通过 build_css.php 实现自动化压缩与打包，并用 bundle.min.css 优化加载，大幅提升了可维护性与性能。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 基础设施与工具库 (Infrastructure & Utilities)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>CSS 构建自动化与工具库扩展</strong>
+                        <span class="detail">新增了乐观 UI 消息状态样式（.message-pending、.message-failed），扩展了工具函数以支持代码复用，并改进了 Service Worker 的离线支持能力。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.20 ===== -->
 <article class="release">
     <div class="release-header">

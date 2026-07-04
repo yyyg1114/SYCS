@@ -749,7 +749,7 @@ class ApiHandler
             error_log("Realtime notification failed: " . $e->getMessage());
         }
 
-        echo json_encode(['success' => true, 'id' => $msgId]);
+        echo json_encode(['success' => true, 'id' => $msgId, 'attachment_path' => $att]);
     }
 
     private function deleteMessage()

@@ -7,6 +7,87 @@
  */
 ?>
 
+<!-- ===== v2.2.21 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.21</span>
+        <span class="release-title">オプティミスティック UI、メッセージリプライ機能、CSS アーキテクチャの刷新</span>
+        <span class="release-date">2026-07-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 &amp; 強化 (New Features &amp; Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>オプティミスティック UI とメッセージの送信状態管理</strong>
+                        <span class="detail">メッセージが即座にチャットに表示され、送信中は 💬 インジケーターが表示されます。送信失敗時は復旧可能なエラーバナーが表示され、再試行機能で信頼性が向上しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">💬</span>
+                    <div>
+                        <strong>メッセージリプライとメンション機能</strong>
+                        <span class="detail">特定メッセージへのリプライ機能を実装し、リプライ対象の追跡、コンテキスト表示、会話中の添付ファイル管理に対応しました。より良いスレッド形式の会話が可能になります。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>添付ファイル処理と API の強化</strong>
+                        <span class="detail">バックエンド API を強化し、送信メッセージの添付ファイルパスを正確に追跡・返却することで、ファイルがチャット履歴に確実に保存・表示されるようになりました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>セキュリティと表示機能のライブラリ統合</strong>
+                        <span class="detail">Marked.js（Markdown レンダリング）、DOMPurify（XSS 対策）、Highlight.js（コード構文ハイライト）を統合し、安全で豊かなテキスト表示に対応しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI &amp; デザイン (UI &amp; Design)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎯</span>
+                    <div>
+                        <strong>アカウント削除ページの再設計</strong>
+                        <span class="detail">アカウント削除ページを完全に刷新し、スタイルの向上、視覚階層の改善、パスワード確認フローのセキュリティ強化を実施しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">📦</span>
+                    <div>
+                        <strong>CSS バンドル最適化とアーキテクチャの整理</strong>
+                        <span class="detail">delete_account.php のインラインスタイルを外部 CSS に抽出し、build_css.php による自動ミニ化・バンドル化を実装。bundle.min.css で最適化され、保守性とパフォーマンスが向上しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> インフラ &amp; ユーティリティ (Infrastructure &amp; Utilities)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>CSS ビルド自動化とユーティリティ関数の拡張</strong>
+                        <span class="detail">オプティミスティック UI 用の新しいメッセージ状態スタイル（.message-pending、.message-failed）を追加し、ユーティリティ関数を拡張。サービスワーカーも改善してオフライン対応を強化しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.20 ===== -->
 <article class="release">
     <div class="release-header">

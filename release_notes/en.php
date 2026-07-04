@@ -1,3 +1,84 @@
+<!-- ===== v2.2.21 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.21</span>
+        <span class="release-title">Optimistic UI, Message Reply Support, and CSS Architecture Refactor</span>
+        <span class="release-date">2026-07-04</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> New Features &amp; Enhancements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>Optimistic UI with message pending and failure states</strong>
+                        <span class="detail">Messages now appear instantly in the chat with a pending indicator (💬), providing immediate visual feedback. If delivery fails, users see a recoverable error banner with a retry option, improving perceived responsiveness and trust.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">💬</span>
+                    <div>
+                        <strong>Message reply and mention system</strong>
+                        <span class="detail">Added full support for replying to specific messages, including tracking reply targets, displaying reply context, and managing attachment state during conversations for better threaded discussions.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Attachment handling and API improvements</strong>
+                        <span class="detail">Enhanced backend API to properly track and return attachment paths for sent messages, ensuring files persist and display correctly in the chat history.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>Library integration for security and markup</strong>
+                        <span class="detail">Integrated Marked.js for markdown rendering, DOMPurify for XSS protection, and Highlight.js for code syntax highlighting to safely display rich formatted content.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI &amp; Design
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎯</span>
+                    <div>
+                        <strong>Account deletion page redesign</strong>
+                        <span class="detail">Fully redesigned the delete account page with enhanced styling, better visual hierarchy, and safer password confirmation flow with improved security headers and error messaging.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">📦</span>
+                    <div>
+                        <strong>CSS bundle optimization and architecture</strong>
+                        <span class="detail">Extracted inline styles from delete_account.php into external CSS, automated CSS minification and bundling via build_css.php, and optimized loading with bundle.min.css for improved maintainability and performance.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> Infrastructure &amp; Utilities
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>CSS build automation and utility expansion</strong>
+                        <span class="detail">Added new message state styling (.message-pending, .message-failed) for optimistic UI, expanded utility functions for better code reuse, and enhanced Service Worker for improved offline support.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.20 ===== -->
 <article class="release">
     <div class="release-header">

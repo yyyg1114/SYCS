@@ -222,6 +222,7 @@ export function getAvatarElement(name, status = "none", avatarUrl = null) {
   if (avatarUrl) {
     const img = document.createElement("img");
     img.src = avatarUrl;
+    img.loading = "lazy";
     img.style.width = "100%";
     img.style.height = "100%";
     img.style.borderRadius = "50%";

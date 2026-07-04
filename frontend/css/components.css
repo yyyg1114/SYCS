@@ -718,3 +718,38 @@
   color: white;
   padding: 10px;
 }
+
+/* --- Optimistic UI: message states --- */
+.message-pending {
+  opacity: 0.55;
+  transition: opacity 0.3s ease;
+}
+
+.message-pending .message-time::after {
+  content: ' ⏱';
+  font-size: 0.75em;
+  opacity: 0.7;
+}
+
+.message-failed {
+  opacity: 1;
+  border-left: 3px solid #ef4444;
+  padding-left: 8px;
+  background: rgba(239, 68, 68, 0.06);
+  border-radius: 0 4px 4px 0;
+}
+
+.message-failed-banner {
+  font-size: 0.75rem;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.message-failed-banner:hover {
+  opacity: 0.7;
+}
