@@ -20,6 +20,28 @@ const resolvedUsername = ref('')
 
 const activeTab = ref<'all' | 'images' | 'videos'>('all')
 const showFilter = ref(false)
+const showStickyBar = ref(false)
+const profileNameRef = ref<HTMLElement | null>(null)
+const profileHeaderState = useState<{displayName: string; username: string; avatarUrl: string | null} | null>('profile-header-state', () => null)
+
+function onScroll() {
+  if (!profileNameRef.value || !profile.value) return
+  const top = profileNameRef.value.getBoundingClientRect().top
+  showStickyBar.value = top < 58
+  profileHeaderState.value = top < 58 ? { displayName: profile.value.user.displayName, username: profile.value.user.username, avatarUrl: profile.value.user.avatarUrl } : null
+}
+
+onMounted(() => {
+  loadProfile()
+  const container = document.querySelector('main')
+  container?.addEventListener('scroll', onScroll, { passive: true })
+  onScroll()
+})
+onUnmounted(() => {
+  const container = document.querySelector('main')
+  container?.removeEventListener('scroll', onScroll)
+  profileHeaderState.value = null
+})
 
 async function loadProfile() {
   loading.value = true
@@ -144,7 +166,7 @@ function linkify(text: string) {
           </div>
           <div class="flex items-start justify-between">
             <div>
-              <h1 class="text-xl font-bold text-white">{{ profile.user.displayName }}</h1>
+              <h1 ref="profileNameRef" class="text-xl font-bold text-white">{{ profile.user.displayName }}</h1>
               <p class="text-slate-500">@{{ profile.user.username }}</p>
               <p v-if="profile.user.bio" class="mt-2 text-slate-300 text-sm">{{ profile.user.bio }}</p>
               <div v-if="settings.website || settings.github || settings.twitter" class="flex flex-wrap gap-3 mt-2">
