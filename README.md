@@ -1,0 +1,1 @@
+# SYCS Nuxt Remake

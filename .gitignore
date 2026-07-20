@@ -1,0 +1,8 @@
+node_modules/
+.output/
+.nuxt/
+dist/
+frontend/dist/
+backend/server/uploads/
+*.env
+.env.*
