@@ -96,7 +96,7 @@ async function toggleBookmark(postId: string) {
     <h1 class="text-2xl font-bold text-white">アクション</h1>
 
     <!-- Tabs -->
-    <div class="flex gap-1 bg-slate-800/30 rounded-xl p-1">
+    <div class="flex gap-1 bg-slate-800/30 rounded-xl p-1 sticky top-2 backdrop-blur-[10px] z-40">
       <button v-for="tab in tabs" :key="tab.key"
         @click="activeTab = tab.key"
         class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition"

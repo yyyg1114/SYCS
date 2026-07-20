@@ -22,13 +22,13 @@ const activeTab = ref<'all' | 'images' | 'videos'>('all')
 const showFilter = ref(false)
 const showStickyBar = ref(false)
 const profileNameRef = ref<HTMLElement | null>(null)
-const profileHeaderState = useState<{displayName: string; username: string; avatarUrl: string | null} | null>('profile-header-state', () => null)
+const profileHeaderState = useState<{displayName: string; username: string; avatarUrl: string | null; bannerUrl: string | null} | null>('profile-header-state', () => null)
 
 function onScroll() {
   if (!profileNameRef.value || !profile.value) return
   const top = profileNameRef.value.getBoundingClientRect().top
   showStickyBar.value = top < 58
-  profileHeaderState.value = top < 58 ? { displayName: profile.value.user.displayName, username: profile.value.user.username, avatarUrl: profile.value.user.avatarUrl } : null
+  profileHeaderState.value = top < 58 ? { displayName: profile.value.user.displayName, username: profile.value.user.username, avatarUrl: profile.value.user.avatarUrl, bannerUrl: profile.value.user.bannerUrl } : null
 }
 
 onMounted(() => {
@@ -124,7 +124,7 @@ async function toggleLike(postId: string) {
   try {
     if (p.liked) { await $fetch(`/api/posts/${postId}/unlike`, { method: 'POST' }); p.liked = false; p.likeCount = Math.max(0, (p.likeCount || 0) - 1) }
     else { await $fetch(`/api/posts/${postId}/like`, { method: 'POST' }); p.liked = true; p.likeCount = (p.likeCount || 0) + 1 }
-  } catch {}
+  } catch (e) { console.error('toggleLike error:', e) }
 }
 
 async function toggleRepost(postId: string) {
@@ -203,7 +203,7 @@ function linkify(text: string) {
       <SettingsModal v-if="isOwnProfile && showSettings" @close="showSettings = false; loadProfile()" />
 
       <!-- Tabs -->
-      <div class="flex items-center border-b border-slate-800 px-5">
+      <div class="flex items-center border-b border-slate-800 px-5 sticky top-0 backdrop-blur-[10px] z-40">
         <button v-for="tab in [{ key: 'all', label: '投稿' }, { key: 'images', label: '画像' }, { key: 'videos', label: '動画' }]" :key="tab.key"
           @click="activeTab = tab.key"
           class="px-4 py-3 text-sm font-medium transition border-b-2 -mb-[1px]"

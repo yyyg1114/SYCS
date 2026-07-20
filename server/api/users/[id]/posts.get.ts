@@ -56,6 +56,8 @@ export default defineEventHandler(async (event) => {
 
   const result = posts.map(p => ({
     ...p,
+    likeCount: p.likeCount ?? 0,
+    repostCount: p.repostCount ?? 0,
     user: userMap[p.userId] || null,
     attachments: attachMap[p.id] || [],
     liked: userLikes.has(p.id),
