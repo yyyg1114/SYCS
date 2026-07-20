@@ -7,11 +7,8 @@ const props = defineProps<{
 const route = useRoute()
 const isHomePage = computed(() => route.path === '/home')
 
-const showSettings = ref(false)
 const showMoreMenu = ref(false)
 const timeline = useTimeline()
-
-const { data: userData } = useFetch('/api/auth/me', { key: 'header-user' })
 
 const timelineTabs = [
   { key: 'recommended', label: 'オススメ' },
@@ -28,11 +25,6 @@ const extraTimelines = [
 function selectTab(key: string) {
   timeline.value = key
   showMoreMenu.value = false
-}
-
-async function handleLogout() {
-  await $fetch('/api/auth/signout', { method: 'POST' })
-  await navigateTo('/signin')
 }
 </script>
 
@@ -93,15 +85,6 @@ async function handleLogout() {
       </nav>
 
       <div class="flex items-center gap-2 ml-auto">
-        <NuxtLink to="/dm" class="p-1.5 hover:bg-slate-800 rounded-full transition text-slate-400 hover:text-white" title="DM">
-          <Icon name="lucide:message-square" class="w-4 h-4" />
-        </NuxtLink>
-        <button v-if="userData?.user" @click="showSettings = true" class="p-1.5 hover:bg-slate-800 rounded-full transition text-slate-400 hover:text-white" title="設定">
-          <Icon name="lucide:settings" class="w-4 h-4" />
-        </button>
-        <button v-if="userData?.user" @click="handleLogout" class="p-1.5 hover:bg-slate-800 rounded-full transition text-slate-500 hover:text-red-400" title="ログアウト">
-          <Icon name="lucide:log-out" class="w-4 h-4" />
-        </button>
       </div>
     </div>
 
@@ -109,7 +92,5 @@ async function handleLogout() {
     <div v-if="isServerPage && server?.bannerUrl" class="h-24 overflow-hidden">
       <img :src="server.bannerUrl" class="w-full h-full object-cover" />
     </div>
-
-    <SettingsModal v-if="showSettings" @close="showSettings = false" />
   </div>
 </template>

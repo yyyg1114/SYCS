@@ -1,12 +1,11 @@
 import { requireAuth } from '../../utils/auth'
-import { validateFile } from '../../utils/upload'
+import { validateFile, ensureDir } from '../../utils/upload'
 import { db } from '../../db'
 import * as schema from '../../db/schema'
 import { eq } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 import { extname, join } from 'path'
 import { writeFile } from 'fs/promises'
-import sharp from 'sharp'
 
 const UPLOAD_DIR = join(process.cwd(), 'public', 'uploads')
 
@@ -32,9 +31,8 @@ export default defineEventHandler(async (event) => {
   const name = `${randomUUID()}${ext}`
   const filePath = join(UPLOAD_DIR, name)
 
-  await sharp(file.data!)
-    .resize(1200, null, { fit: 'cover', withoutEnlargement: true })
-    .toFile(filePath)
+  await ensureDir()
+  await writeFile(filePath, file.data!)
 
   const url = `/uploads/${name}`
 

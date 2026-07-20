@@ -47,7 +47,8 @@ async function joinServer() {
   <Teleport to="body">
     <div class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="emit('close')">
       <div class="absolute inset-0 bg-black/60" />
-      <div class="relative bg-[#151a24] border border-slate-700 rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto p-6 space-y-4">
+      <div class="relative bg-[#151a24] border border-slate-700 rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto p-6 space-y-4"
+        :class="{ '!max-h-none': showCreateForm || showJoinForm }">
         <div class="flex items-center justify-between">
           <h2 class="text-xl font-bold text-white">サーバー一覧</h2>
           <button @click="emit('close')" class="text-slate-500 hover:text-white transition">
