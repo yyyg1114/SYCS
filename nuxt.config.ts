@@ -1,13 +1,29 @@
 import { defineNuxtConfig } from 'nuxt/config'
 
-// https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  
+  vite: {
+    server: {
+      watch: {
+        usePolling: true
+      }
+    }
+  },
+
+  watchers: {
+    chokidar: {
+      usePolling: true
+    }
+  },
+
   modules: [
     '@nuxtjs/tailwindcss',
-    '@nuxt/icon' // 先にここを最新のモジュール名にしておく！
+    '@nuxt/icon',
+    '@nuxtjs/color-mode'
   ],
+
   app: {
     head: {
       title: 'SYCS - Ultra Modern Chat & SNS',
@@ -21,6 +37,9 @@ export default defineNuxtConfig({
       ]
     }
   },
+
+  // コンポーネントの設定を削除（デフォルトで ~/components が自動認識されるため）
+  
   tailwindcss: {
     exposeConfig: true,
     viewer: true

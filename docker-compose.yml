@@ -7,7 +7,39 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - PORT=3000
       - HOST=0.0.0.0
+      - DATABASE_URL=postgres://sycs:sycs_password@db:5432/sycs
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - nuxt_cache:/app/.nuxt
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    container_name: sycs-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=sycs
+      - POSTGRES_PASSWORD=sycs_password
+      - POSTGRES_DB=sycs
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sycs"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  nuxt_cache:
