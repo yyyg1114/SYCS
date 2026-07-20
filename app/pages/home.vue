@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'auth' })
+definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const posts = ref([])
 const loading = ref(true)

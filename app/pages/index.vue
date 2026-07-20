@@ -1,10 +1,7 @@
 <script setup lang="ts">
-definePageMeta({ layout: false })
+definePageMeta({ layout: false, middleware: 'guest' })
 
-const { data: me } = await useFetch('/api/auth/me', { key: 'landing-auth' })
-onMounted(() => {
-  if (me.value?.user) navigateTo('/home')
-})
+const { data: me } = useFetch('/api/auth/me', { key: 'landing-auth', lazy: true })
 </script>
 
 <template>

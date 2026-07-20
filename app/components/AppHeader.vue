@@ -40,7 +40,7 @@ async function handleLogout() {
   <div>
     <!-- Main header row -->
     <div class="h-14 flex items-center px-4 gap-4">
-      <NuxtLink v-if="!isServerPage" to="/home" class="text-lg font-extrabold tracking-tighter shrink-0">
+      <NuxtLink v-if="!isServerPage" to="/" class="text-lg font-extrabold tracking-tighter shrink-0">
         SYCS<span class="text-indigo-500">.</span>
       </NuxtLink>
 
