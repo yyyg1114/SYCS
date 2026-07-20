@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   await initDb()
 
   const body = await readBody(event)
-  const { email, password } = body
+  const { email, password, rememberMe } = body
 
   if (!email || !password) {
     throw createError({ statusCode: 400, message: 'メールアドレスとパスワードを入力してください' })
@@ -25,8 +25,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'メールアドレスまたはパスワードが正しくありません' })
   }
 
-  const { token } = await createSession(user.id)
-  setAuthCookie(event, token)
+  const { token } = await createSession(user.id, rememberMe)
+  setAuthCookie(event, token, rememberMe)
 
   return {
     user: {

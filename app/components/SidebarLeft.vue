@@ -16,6 +16,11 @@ const { data: userData } = useFetch('/api/auth/me', { key: 'sidebar-user' })
       <Icon name="lucide:home" class="w-5 h-5 shrink-0" />
       <span class="text-sm truncate">ホーム</span>
     </NuxtLink>
+    <NuxtLink to="/dm" class="px-2 py-2 rounded-lg flex items-center gap-3 transition text-slate-400 hover:bg-slate-800/30 hover:text-slate-100"
+      :class="route.path.startsWith('/dm') ? 'bg-slate-800/50 text-white font-medium' : ''">
+      <Icon name="lucide:message-square" class="w-5 h-5 shrink-0" />
+      <span class="text-sm truncate">DM</span>
+    </NuxtLink>
     <NuxtLink to="/notifications" class="px-2 py-2 rounded-lg flex items-center gap-3 transition text-slate-400 hover:bg-slate-800/30 hover:text-slate-100">
       <Icon name="lucide:bell" class="w-5 h-5 shrink-0" />
       <span class="text-sm truncate">通知</span>

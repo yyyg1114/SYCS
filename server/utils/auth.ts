@@ -37,19 +37,19 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash)
 }
 
-export async function createSession(userId: string): Promise<{ token: string }> {
+export async function createSession(userId: string, rememberMe = false): Promise<{ token: string }> {
   const sessionId = randomUUID()
   const token = await createToken({ userId, sessionId })
   return { token }
 }
 
-export function setAuthCookie(event: any, token: string) {
+export function setAuthCookie(event: any, token: string, rememberMe = false) {
   setCookie(event, 'sycs_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: SESSION_DURATION_MS / 1000,
+    maxAge: rememberMe ? 30 * 24 * 60 * 60 : SESSION_DURATION_MS / 1000,
   })
 }
 

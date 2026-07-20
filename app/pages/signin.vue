@@ -3,6 +3,7 @@ definePageMeta({ layout: false })
 
 const email = ref('')
 const password = ref('')
+const rememberMe = ref(false)
 const error = ref('')
 const loading = ref(false)
 
@@ -12,7 +13,7 @@ async function handleSubmit() {
   try {
     const res = await $fetch('/api/auth/signin', {
       method: 'POST',
-      body: { email: email.value, password: password.value },
+      body: { email: email.value, password: password.value, rememberMe: rememberMe.value },
     })
     if (res.user) await navigateTo('/home')
   } catch (e: any) {
@@ -49,6 +50,11 @@ async function handleSubmit() {
             class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
             placeholder="********" />
         </div>
+
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" v-model="rememberMe" class="w-4 h-4 rounded border-slate-600 text-indigo-600 focus:ring-indigo-500 bg-slate-800" />
+          <span class="text-sm text-slate-400">ログインを保持する</span>
+        </label>
 
         <button type="submit" :disabled="loading"
           class="w-full py-2.5 bg-indigo-600 rounded-lg font-bold hover:bg-indigo-700 transition disabled:opacity-50">

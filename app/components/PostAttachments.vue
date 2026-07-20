@@ -12,9 +12,9 @@ const props = defineProps<{
 
 const blurredMap = ref<Record<string, boolean>>({})
 
-// Initialize: blurred by default if blurUrl exists
+// Blur OFF by default
 for (const att of props.attachments) {
-  if (att.blurUrl) blurredMap.value[att.id] = true
+  blurredMap.value[att.id] = false
 }
 
 function toggleBlur(id: string) {
@@ -22,10 +22,9 @@ function toggleBlur(id: string) {
 }
 
 function displayUrl(att: any) {
-  // Always show watermarked version if it exists (viewers cannot remove)
-  if (att.watermarkUrl) return att.watermarkUrl
+  const base = att.watermarkUrl || att.url
   if (att.blurUrl && blurredMap.value[att.id]) return att.blurUrl
-  return att.url
+  return base
 }
 
 function isBlurred(att: any) {
@@ -57,7 +56,7 @@ function isAudio(mime: string) { return mime.startsWith('audio/') }
         </div>
       </template>
 
-      <video v-else-if="isVideo(att.mime)" :src="att.url" controls
+      <video v-else-if="isVideo(att.mime)" :src="att.url" controls preload="metadata"
         class="w-full h-48 object-cover bg-black" />
 
       <audio v-else-if="isAudio(att.mime)" :src="att.url" controls

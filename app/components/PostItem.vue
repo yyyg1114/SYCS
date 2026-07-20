@@ -47,6 +47,13 @@ function timeAgo(date: string) {
 }
 
 const isMine = computed(() => props.currentUserId === props.post.user.id)
+
+function linkify(text: string) {
+  return text.replace(
+    /(https?:\/\/[^\s]+)/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:underline">$1</a>'
+  )
+}
 </script>
 
 <template>
@@ -92,7 +99,7 @@ const isMine = computed(() => props.currentUserId === props.post.user.id)
           </div>
         </div>
 
-        <p class="text-slate-200 leading-relaxed whitespace-pre-wrap break-words">{{ post.content }}</p>
+        <p class="text-slate-200 leading-relaxed whitespace-pre-wrap break-words" v-html="linkify(post.content)" />
 
         <PostAttachments v-if="post.attachments?.length" :attachments="post.attachments" />
 

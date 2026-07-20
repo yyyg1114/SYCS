@@ -48,8 +48,8 @@ export default defineEventHandler(async (event) => {
     updatedAt: now,
   })
 
-  const { token } = await createSession(userId)
-  setAuthCookie(event, token)
+  const { token } = await createSession(userId, true)
+  setAuthCookie(event, token, true)
 
   return { user: { id: userId, email, username, displayName } }
 })
