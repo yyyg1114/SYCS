@@ -13,7 +13,7 @@ const members = computed(() => serverData.value?.members || [])
 </script>
 
 <template>
-  <aside class="p-4 overflow-y-auto">
+  <aside class="p-4 overflow-y-auto h-[calc(100vh-57px)] sticky top-14">
     <template v-if="isServerPage && members.length">
       <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">メンバー ({{ members.length }})</h3>
       <div class="space-y-2">

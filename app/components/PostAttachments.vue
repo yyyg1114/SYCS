@@ -12,9 +12,8 @@ const props = defineProps<{
 
 const blurredMap = ref<Record<string, boolean>>({})
 
-// Blur OFF by default
 for (const att of props.attachments) {
-  blurredMap.value[att.id] = false
+  blurredMap.value[att.id] = att.blurUrl ? true : false
 }
 
 function toggleBlur(id: string) {
@@ -43,7 +42,6 @@ function isAudio(mime: string) { return mime.startsWith('audio/') }
       <template v-if="isImage(att.mime)">
         <img :src="displayUrl(att)"
           class="w-full h-48 object-cover cursor-pointer transition duration-300"
-          :class="{ 'blur-xl': isBlurred(att) }"
           @click="att.blurUrl ? toggleBlur(att.id) : undefined" />
 
         <div v-if="att.blurUrl && blurredMap[att.id]"

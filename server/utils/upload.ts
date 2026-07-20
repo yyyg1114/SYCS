@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { writeFile, mkdir } from 'fs/promises'
+import { writeFile, mkdir, rename } from 'fs/promises'
 import { join, extname } from 'path'
 import sharp from 'sharp'
 
@@ -62,37 +62,51 @@ export async function saveFileWithWatermark(buffer: Buffer, filename: string, us
   let blurUrl: string | null = null
 
   if (IMAGE_TYPES.includes(ext)) {
-    try {
-      const blurName = `${randomUUID()}-blur${ext}`
-      const blurPath = join(UPLOAD_DIR, blurName)
-      await sharp(buffer).blur(40).jpeg({ quality: 30 }).toFile(blurPath)
-      blurUrl = `/uploads/${blurName}`
-    } catch {}
+    const metadata = await sharp(buffer).metadata()
+    const w = metadata.width || 800
+    const h = metadata.height || 600
+    const fontSize = Math.round(Math.min(w, h) / 8)
+    const svg = `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+      <text x="${w/2}" y="${h*0.5+fontSize*0.15}" text-anchor="middle"
+        fill="rgba(255,255,255,0.6)" font-size="${fontSize}px"
+        font-family="sans-serif" font-weight="bold"
+        transform="rotate(-25 ${w/2} ${h/2})">@${username}</text>
+    </svg>`
+    const svgBuffer = Buffer.from(svg)
 
-    // Generate watermarked version (embedded into image, not DOM)
     try {
-      const wmName = `${randomUUID()}-wm${ext}`
+      const wmBuffer = await sharp(buffer)
+        .composite([{ input: svgBuffer, top: 0, left: 0 }])
+        .jpeg({ quality: 90 })
+        .toBuffer()
+
+      const wmName = `${randomUUID()}-wm.jpg`
       const wmPath = join(UPLOAD_DIR, wmName)
-      const metadata = await sharp(buffer).metadata()
-      const w = metadata.width || 800
-      const h = metadata.height || 600
-      const fontSize = Math.min(w, h) / 12
-      const svg = `
-        <svg width="${w}" height="${h}">
-          <defs>
-            <style>
-              .t { fill: rgba(255,255,255,0.35); font-size: ${fontSize}px;
-                   font-family: sans-serif; font-weight: bold; }
-            </style>
-          </defs>
-          <text x="${w/2}" y="${h/2}" text-anchor="middle" dominant-baseline="central"
-                class="t" transform="rotate(-25, ${w/2}, ${h/2})">@${username}</text>
-        </svg>`
-      await sharp(buffer)
-        .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
-        .toFile(wmPath)
-      return { url: `/uploads/${name}`, blurUrl, watermarkUrl: `/uploads/${wmName}` }
-    } catch {}
+      await writeFile(wmPath, wmBuffer)
+
+      try {
+        await sharp(wmBuffer)
+          .withMetadata({
+            exif: { IFD0: { Artist: `@${username}`, Copyright: `@${username}` } },
+          })
+          .toFile(wmPath + '_tmp')
+        await rename(wmPath + '_tmp', wmPath)
+      } catch {}
+
+      const blurName = `${randomUUID()}-blur.jpg`
+      const blurPath = join(UPLOAD_DIR, blurName)
+      await sharp(wmBuffer).blur(40).jpeg({ quality: 30 }).toFile(blurPath)
+
+      return { url: `/uploads/${name}`, blurUrl: `/uploads/${blurName}`, watermarkUrl: `/uploads/${wmName}` }
+    } catch (e) {
+      console.error('Watermark failed:', e)
+      try {
+        const blurName = `${randomUUID()}-blur${ext}`
+        const blurPath = join(UPLOAD_DIR, blurName)
+        await sharp(buffer).blur(40).jpeg({ quality: 30 }).toFile(blurPath)
+        blurUrl = `/uploads/${blurName}`
+      } catch {}
+    }
   }
 
   return { url: `/uploads/${name}`, blurUrl, watermarkUrl: url }

@@ -156,13 +156,17 @@ async function confirmCrop() {
   const srcW = cw / s;
   const srcH = ch / s;
 
+  const scale = Math.min(window.devicePixelRatio || 1, 2);
+  const dw = Math.ceil(cw * scale);
+  const dh = Math.ceil(ch * scale);
+
   const canvas = document.createElement("canvas");
-  canvas.width = cw;
-  canvas.height = ch;
+  canvas.width = dw;
+  canvas.height = dh;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, cw, ch);
+  ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, dw, dh);
 
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, "image/jpeg", 0.92)

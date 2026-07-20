@@ -16,7 +16,7 @@ async function handleSignout() {
 </script>
 
 <template>
-  <aside class="flex flex-col border-r border-slate-800 bg-[#0b0f19] h-screen sticky top-0 px-3 py-4 overflow-y-auto">
+  <aside class="flex flex-col border-r border-slate-800 bg-[#0b0f19] h-[calc(100vh-57px)] sticky top-14 px-3 py-4 overflow-y-auto">
     <NuxtLink to="/home" class="px-2 py-2 rounded-lg flex items-center gap-3 transition"
       :class="route.path === '/home' ? 'bg-slate-800/50 text-white font-medium' : 'text-slate-400 hover:bg-slate-800/30'">
       <Icon name="lucide:home" class="w-5 h-5 shrink-0" />
@@ -56,7 +56,7 @@ async function handleSignout() {
 
     <ServerListModal v-if="showServerList" @close="showServerList = false" />
 
-    <div v-if="userData?.user" class="group relative mt-auto pt-4 border-t border-slate-800">
+    <div v-if="userData?.user" class="group relative pt-4 border-t border-slate-800 mt-auto">
       <!-- Hover popup above -->
       <div class="absolute bottom-full left-0 right-0 mb-2 bg-slate-900 border border-slate-800 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-1 z-50">
         <button class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800/50 transition">
@@ -66,7 +66,7 @@ async function handleSignout() {
       </div>
 
       <!-- User bar -->
-      <div class="flex items-center gap-1 px-2 py-2 rounded-lg group-hover:bg-slate-800/30 transition">
+      <div class="flex items-center gap-1 px-2 h-11 rounded-lg group-hover:bg-slate-800/30 transition">
         <NuxtLink :to="`/profile/@${userData.user.username}`" class="flex items-center gap-2 flex-1 min-w-0">
           <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
             {{ userData.user.displayName?.charAt(0) || '?' }}

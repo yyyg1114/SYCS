@@ -25,12 +25,13 @@ export default defineEventHandler(async (event) => {
     visibleTo: body.visibleTo ? JSON.stringify(body.visibleTo) : '[]',
   }).returning()
 
+  const values: any[] = []
+
   if (body.attachments?.length) {
-    const values = []
     for (const [i, a] of body.attachments.entries()) {
       const ext = extname(a.url)
       let url = a.url
-      let blurUrl = a.blurUrl || null
+      let blurUrl = (a.blur && a.blurUrl) || null
       let watermarkUrl: string | null = null
 
       if (a.watermark && IMAGE_EXTENSIONS.includes(ext)) {
@@ -53,7 +54,7 @@ export default defineEventHandler(async (event) => {
     await db.insert(schema.postAttachments).values(values)
   }
 
-  const postWithUser = { ...post, user, attachments: body.attachments || [], liked: false, reposted: false, bookmarked: false }
+  const postWithUser = { ...post, user, attachments: values, liked: false, reposted: false, bookmarked: false }
   emit('post:created', { post: postWithUser })
 
   return { post: postWithUser }

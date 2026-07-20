@@ -27,7 +27,7 @@ watch(() => route.params.id, loadServerHeader)
     />
     <div class="flex">
       <SidebarLeft v-if="!isServerPage" class="hidden min-[681px]:flex w-48 min-[1024px]:w-60 border-r border-slate-800 h-[calc(100vh-56px)] sticky top-14" />
-      <main class="flex-1 min-w-0 h-[calc(100vh-56px)] overflow-y-auto">
+      <main class="flex-1 min-w-0 h-[calc(100vh-58px)] overflow-y-auto">
         <slot />
       </main>
       <SidebarRight v-if="!isServerPage" class="hidden min-[1024px]:block w-[280px] border-l border-slate-800 h-[calc(100vh-56px)] sticky top-14" />
