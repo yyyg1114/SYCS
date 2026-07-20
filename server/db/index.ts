@@ -233,6 +233,30 @@ async function initDbInternal() {
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       )
     `)
+    // Migration: add new columns
+    await client.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS visibility TEXT DEFAULT 'public'`)
+    await client.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS visible_to TEXT DEFAULT '[]'`)
+    await client.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0`)
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS settings TEXT DEFAULT '{}'`)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS bookmarks (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        post_id TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS bookmarks_user_post_idx ON bookmarks(user_id, post_id)
+    `)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS post_views (
+        id TEXT PRIMARY KEY,
+        post_id TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+        user_id TEXT,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
   } finally {
     client.release()
   }

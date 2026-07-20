@@ -7,13 +7,19 @@ import { emit } from '../../utils/eventBus'
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
   const body = await readBody(event)
-  if (!body.content?.trim()) throw createError({ statusCode: 400, message: '本文を入力してください' })
+  if (!body.content?.trim() && !body.attachments?.length) {
+    throw createError({ statusCode: 400, message: '本文またはファイルを入力してください' })
+  }
 
   const postId = randomUUID()
 
   const [post] = await db.insert(schema.posts).values({
-    id: postId, userId: user.id, content: body.content,
+    id: postId,
+    userId: user.id,
+    content: body.content || '',
     imageUrl: body.imageUrl || null,
+    visibility: body.visibility || 'public',
+    visibleTo: body.visibleTo ? JSON.stringify(body.visibleTo) : '[]',
   }).returning()
 
   if (body.attachments?.length) {
@@ -27,7 +33,7 @@ export default defineEventHandler(async (event) => {
     )
   }
 
-  const postWithUser = { ...post, user, attachments: body.attachments || [], liked: false, reposted: false }
+  const postWithUser = { ...post, user, attachments: body.attachments || [], liked: false, reposted: false, bookmarked: false }
   emit('post:created', { post: postWithUser })
 
   return { post: postWithUser }

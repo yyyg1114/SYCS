@@ -9,66 +9,70 @@ const props = defineProps<{
   }>
 }>()
 
-const blurred = ref<Set<string>>(new Set())
-const watermarked = ref<Set<string>>(new Set())
+const blurredMap = ref<Record<string, boolean>>({})
+const watermarkMap = ref<Record<string, boolean>>({})
+
+// Watermark state determined by uploader (stored in db)
+// Here we check if the attachment has a watermarkUrl set
+// For now, we let the viewer toggle but the watermark is always rendered on the image server-side
+
+function isBlurred(id: string) {
+  return blurredMap.value[id] ?? true // default blurred if blurUrl exists
+}
 
 function toggleBlur(id: string) {
-  if (blurred.value.has(id)) blurred.value.delete(id)
-  else blurred.value.add(id)
-  blurred.value = new Set(blurred.value)
+  blurredMap.value = { ...blurredMap.value, [id]: !isBlurred(id) }
 }
 
-function toggleWatermark(id: string) {
-  if (watermarked.value.has(id)) watermarked.value.delete(id)
-  else watermarked.value.add(id)
-  watermarked.value = new Set(watermarked.value)
-}
-
-function isImage(mime: string) {
-  return mime.startsWith('image/')
-}
-
-function isVideo(mime: string) {
-  return mime.startsWith('video/')
-}
-
-function isAudio(mime: string) {
-  return mime.startsWith('audio/')
-}
+function isImage(mime: string) { return mime.startsWith('image/') }
+function isVideo(mime: string) { return mime.startsWith('video/') }
+function isAudio(mime: string) { return mime.startsWith('audio/') }
 </script>
 
 <template>
   <div v-if="attachments.length" class="mt-2 grid gap-1.5"
     :class="attachments.length === 1 ? 'grid-cols-1' : attachments.length <= 4 ? 'grid-cols-2' : 'grid-cols-3'">
     <div v-for="att in attachments" :key="att.id" class="relative group rounded-lg overflow-hidden bg-slate-900/50">
-      <img v-if="isImage(att.mime)" :src="blurred.has(att.id) && att.blurUrl ? att.blurUrl : att.url"
-        class="w-full h-48 object-cover transition duration-300"
-        :class="{ 'blur-xl': blurred.has(att.id) && !att.blurUrl }" />
+      <!-- Image -->
+      <template v-if="isImage(att.mime)">
+        <img :src="att.blurUrl && isBlurred(att.id) ? att.blurUrl : att.url"
+          class="w-full h-48 object-cover cursor-pointer transition duration-300"
+          :class="{ 'blur-xl': !att.blurUrl && isBlurred(att.id) }"
+          @click="att.blurUrl ? toggleBlur(att.id) : undefined" />
 
+        <!-- Blur reveal overlay -->
+        <div v-if="att.blurUrl && isBlurred(att.id)"
+          class="absolute inset-0 flex items-center justify-center cursor-pointer"
+          @click="toggleBlur(att.id)">
+          <div class="bg-black/50 backdrop-blur-sm rounded-full px-4 py-2 text-white text-sm font-bold flex items-center gap-2">
+            <Icon name="lucide:eye-off" class="w-4 h-4" />
+            閲覧するにはクリック
+          </div>
+        </div>
+      </template>
+
+      <!-- Video -->
       <video v-else-if="isVideo(att.mime)" :src="att.url" controls
         class="w-full h-48 object-cover bg-black" />
 
+      <!-- Audio -->
       <audio v-else-if="isAudio(att.mime)" :src="att.url" controls
         class="w-full h-12 mt-4 mx-2" />
 
+      <!-- Watermark overlay (viewers can NEVER remove this) -->
       <div v-if="isImage(att.mime)"
-        class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-        <button v-if="att.blurUrl" @click="toggleBlur(att.id)"
-          class="p-1.5 rounded-lg bg-black/60 text-white text-xs hover:bg-black/80 backdrop-blur-sm"
-          :title="blurred.has(att.id) ? 'ぼかし解除' : 'ぼかし'">
-          <Icon :name="blurred.has(att.id) ? 'lucide:eye' : 'lucide:eye-off'" class="w-3.5 h-3.5" />
-        </button>
-        <button @click="toggleWatermark(att.id)"
-          class="p-1.5 rounded-lg bg-black/60 text-white text-xs hover:bg-black/80 backdrop-blur-sm"
-          :title="watermarked.has(att.id) ? '透かし解除' : '透かし'">
-          <Icon :name="watermarked.has(att.id) ? 'lucide:images' : 'lucide:file-image'" class="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      <!-- Watermark overlay -->
-      <div v-if="watermarked.has(att.id) && isImage(att.mime)"
-        class="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-        <span class="text-white/20 text-4xl font-bold -rotate-30 tracking-widest text-shadow">SYCS</span>
+        class="absolute inset-0 pointer-events-none select-none overflow-hidden">
+        <div class="absolute inset-0 flex items-center justify-center">
+          <span class="text-white/10 text-3xl font-bold -rotate-30 tracking-widest"
+            style="text-shadow: 0 0 4px rgba(0,0,0,0.5); font-size: min(3rem, 10vw);">
+            SYCS
+          </span>
+        </div>
+        <!-- Repeat watermark across image -->
+        <div class="absolute top-2 left-2 text-white/20 text-[8px] font-bold rotate-30">SYCS</div>
+        <div class="absolute top-2 right-2 text-white/20 text-[8px] font-bold -rotate-30">SYCS</div>
+        <div class="absolute bottom-2 left-2 text-white/20 text-[8px] font-bold -rotate-30">SYCS</div>
+        <div class="absolute bottom-2 right-2 text-white/20 text-[8px] font-bold rotate-30">SYCS</div>
       </div>
     </div>
   </div>

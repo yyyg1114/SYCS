@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const emit = defineEmits<{
-  submit: [content: string, attachments?: Array<{ url: string; blurUrl?: string | null; type: string; mime: string }>]
+  submit: [content: string, attachments?: Array<any>, visibility?: string, visibleTo?: string[]]
 }>()
 
 const content = ref('')
@@ -8,6 +8,20 @@ const files = ref<Array<{ file: File; preview: string; url?: string; blurUrl?: s
 const uploading = ref(false)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
+const showPrivacy = ref(false)
+
+const visibility = ref('public')
+const visibleTo = ref<string[]>([])
+
+type VisibilityOption = { key: string; label: string; icon: string }
+const visibilityOptions: VisibilityOption[] = [
+  { key: 'public', label: 'すべての人に公開', icon: 'lucide:globe' },
+  { key: 'followers', label: 'フォロワーのみ', icon: 'lucide:users' },
+  { key: 'close_friends', label: '親しい友達のみ', icon: 'lucide:heart' },
+  { key: 'specific', label: '特定の人', icon: 'lucide:user-check' },
+]
+
+const selectedVis = computed(() => visibilityOptions.find(o => o.key === visibility.value))
 
 const MAX_FILES = 8
 const ALLOWED = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'video/webm', 'video/mp4', 'audio/mpeg', 'audio/ogg']
@@ -49,7 +63,7 @@ async function handleSubmit() {
   if (!content.value.trim() && !files.value.length) return
   uploading.value = true
   try {
-    let attachments: Array<{ url: string; blurUrl?: string | null; type: string; mime: string }> | undefined
+    let attachments: Array<any> | undefined
     if (files.value.length) {
       const formData = new FormData()
       for (const f of files.value) {
@@ -61,12 +75,14 @@ async function handleSubmit() {
       })
       attachments = res.files
     }
-    emit('submit', content.value, attachments)
+    emit('submit', content.value, attachments, visibility.value, visibleTo.value.length ? visibleTo.value : undefined)
     content.value = ''
     for (const f of files.value) {
       if (f.preview) URL.revokeObjectURL(f.preview)
     }
     files.value = []
+    visibility.value = 'public'
+    visibleTo.value = []
     nextTick(autoResize)
   } finally {
     uploading.value = false
@@ -112,7 +128,7 @@ function fileIcon(mime: string) {
         </div>
       </div>
 
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <div class="flex items-center gap-2">
           <button @click="fileInput?.click()" :disabled="files.length >= MAX_FILES || uploading"
             class="p-1.5 rounded-full text-slate-500 hover:text-indigo-400 hover:bg-slate-800/50 transition disabled:opacity-30"
@@ -120,12 +136,30 @@ function fileIcon(mime: string) {
             <Icon name="lucide:paperclip" class="w-4 h-4" />
           </button>
           <span v-if="files.length" class="text-[11px] text-slate-600">{{ files.length }}/{{ MAX_FILES }}</span>
+
+          <!-- Privacy selector -->
+          <div class="relative">
+            <button @click="showPrivacy = !showPrivacy"
+              class="p-1.5 rounded-full text-slate-500 hover:text-indigo-400 hover:bg-slate-800/50 transition text-xs flex items-center gap-1">
+              <Icon :name="selectedVis?.icon || 'lucide:globe'" class="w-3.5 h-3.5" />
+              <span class="hidden sm:inline">{{ selectedVis?.label || '公開' }}</span>
+            </button>
+            <div v-if="showPrivacy" class="absolute bottom-full left-0 mb-1 bg-slate-900 border border-slate-800 rounded-xl py-1.5 shadow-xl z-50 min-w-44"
+              @click.outside="showPrivacy = false">
+              <button v-for="opt in visibilityOptions" :key="opt.key"
+                @click="visibility = opt.key; showPrivacy = false"
+                class="w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition"
+                :class="visibility === opt.key ? 'text-indigo-400 bg-slate-800/50' : 'text-slate-400 hover:text-white hover:bg-slate-800/30'">
+                <Icon :name="opt.icon" class="w-4 h-4" />
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
         </div>
-        <button
-          @click="handleSubmit"
+
+        <button @click="handleSubmit"
           :disabled="(!content.trim() && !files.length) || uploading"
-          class="px-5 py-1.5 rounded-full bg-indigo-600 text-sm font-bold text-white hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-        >
+          class="px-5 py-1.5 rounded-full bg-indigo-600 text-sm font-bold text-white hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
           <Icon v-if="uploading" name="lucide:loader-2" class="w-3.5 h-3.5 animate-spin" />
           {{ uploading ? 'アップロード中...' : 'ポストする' }}
         </button>

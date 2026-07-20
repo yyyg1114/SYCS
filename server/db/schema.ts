@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, boolean, uniqueIndex, primaryKey } from 'drizzle-orm/pg-core'
+import { pgTable, text, integer, timestamp, boolean, uniqueIndex, jsonb } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
@@ -9,6 +9,7 @@ export const users = pgTable('users', {
   avatarUrl: text('avatar_url'),
   bannerUrl: text('banner_url'),
   bio: text('bio').default(''),
+  settings: text('settings').default('{}'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
@@ -37,8 +38,11 @@ export const posts = pgTable('posts', {
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
   imageUrl: text('image_url'),
+  visibility: text('visibility').default('public'),
+  visibleTo: text('visible_to').default('[]'),
   likeCount: integer('like_count').default(0),
   repostCount: integer('repost_count').default(0),
+  viewCount: integer('view_count').default(0),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
@@ -70,7 +74,6 @@ export const follows = pgTable('follows', {
   followerFollowingIdx: uniqueIndex('follows_follower_following_idx').on(t.followerId, t.followingId),
 }))
 
-// Community Servers
 export const servers = pgTable('servers', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -187,5 +190,21 @@ export const postAttachments = pgTable('post_attachments', {
   type: text('type').notNull().default('image'),
   mime: text('mime').notNull().default('image/png'),
   position: integer('position').default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})
+
+export const bookmarks = pgTable('bookmarks', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  postId: text('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  userPostIdx: uniqueIndex('bookmarks_user_post_idx').on(t.userId, t.postId),
+}))
+
+export const postViews = pgTable('post_views', {
+  id: text('id').primaryKey(),
+  postId: text('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
+  userId: text('user_id'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
