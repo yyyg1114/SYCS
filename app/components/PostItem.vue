@@ -100,7 +100,9 @@ const isMine = computed(() => props.currentUserId === props.post.user.id)
           <button @click="emit('toggleLike', post.id)"
             class="flex items-center gap-1.5 transition text-sm"
             :class="post.liked ? 'text-indigo-400' : 'hover:text-indigo-400'">
-            <Icon :name="post.liked ? 'lucide:heart' : 'lucide:heart'" class="w-4 h-4" :class="{ 'fill-current': post.liked }" />
+            <svg viewBox="0 0 24 24" class="w-4 h-4" :class="post.liked ? 'fill-indigo-400 stroke-indigo-400' : 'stroke-current fill-none'">
+              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+            </svg>
             <span>{{ post.likeCount || 0 }}</span>
           </button>
 
@@ -114,7 +116,10 @@ const isMine = computed(() => props.currentUserId === props.post.user.id)
           <button @click="emit('toggleBookmark', post.id)"
             class="flex items-center gap-1.5 transition text-sm"
             :class="post.bookmarked ? 'text-amber-400' : 'hover:text-amber-400'">
-            <Icon :name="post.bookmarked ? 'lucide:bookmark' : 'lucide:bookmark'" class="w-4 h-4" :class="{ 'fill-current': post.bookmarked }" />
+            <svg viewBox="0 0 24 24" class="w-4 h-4" :class="post.bookmarked ? 'fill-amber-400 stroke-amber-400' : 'stroke-current fill-none'">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span v-if="false">{{ post.repostCount || 0 }}</span>
           </button>
 
           <span v-if="showViewCount" class="flex items-center gap-1 text-xs text-slate-600 ml-auto">

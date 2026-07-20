@@ -3,34 +3,44 @@ definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const posts = ref<any[]>([])
 const loading = ref(true)
+const refreshing = ref(false)
 const postError = ref('')
 
 const timeline = useTimeline()
-const { connect, events } = useRealtime()
+const { connect, disconnect, events } = useRealtime()
 const { data: me } = useFetch('/api/auth/me', { key: 'home-me' })
+const userSettings = ref(JSON.parse(me.value?.user?.settings || '{}'))
+const refreshMode = computed(() => userSettings.value.refreshMode || 'auto')
 
 async function loadPosts() {
-  loading.value = true
+  if (refreshMode.value === 'manual') refreshing.value = true
+  else loading.value = true
   try {
     const data = await $fetch('/api/posts', { params: { limit: 50, timeline: timeline.value } })
     posts.value = data.posts
-    // Track views
     for (const p of data.posts) {
       $fetch(`/api/posts/${p.id}/view`, { method: 'POST' }).catch(() => {})
     }
   } finally {
     loading.value = false
+    refreshing.value = false
   }
 }
 
 onMounted(() => {
   loadPosts()
-  connect()
+  if (refreshMode.value === 'auto') connect()
 })
 
-watch(timeline, loadPosts)
+watch(timeline, () => {
+  disconnect()
+  loadPosts()
+  if (refreshMode.value === 'auto') connect()
+})
 
+// Auto mode: SSE events
 watch(events, (evts) => {
+  if (refreshMode.value !== 'auto') return
   for (const e of evts) {
     if (e.type === 'post:created' && e.post) {
       posts.value.unshift(e.post)
@@ -86,8 +96,7 @@ async function toggleBookmark(postId: string) {
   if (!p) return
   try {
     const res = await $fetch<{ bookmarked: boolean }>('/api/bookmarks/toggle', {
-      method: 'POST',
-      body: { postId },
+      method: 'POST', body: { postId },
     })
     p.bookmarked = res.bookmarked
   } catch {}
@@ -108,6 +117,16 @@ async function reportPost(postId: string) {
     <div v-if="postError" class="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm text-red-400">
       {{ postError }}
     </div>
+
+    <!-- Manual refresh button -->
+    <div v-if="refreshMode === 'manual'" class="flex justify-center">
+      <button @click="loadPosts" :disabled="refreshing"
+        class="px-6 py-2 rounded-full bg-slate-800 text-sm text-slate-300 hover:bg-slate-700 transition flex items-center gap-2 disabled:opacity-50">
+        <Icon name="lucide:refresh-ccw" class="w-4 h-4" :class="{ 'animate-spin': refreshing }" />
+        更新
+      </button>
+    </div>
+
     <div v-if="loading" class="text-center text-slate-500 py-8">読み込み中...</div>
     <template v-else>
       <div class="bg-slate-800/50 rounded-xl p-4">
@@ -118,6 +137,7 @@ async function reportPost(postId: string) {
           v-for="post in posts"
           :key="post.id"
           :post="post"
+          :show-view-count="userSettings.showViewCount ?? true"
           :current-user-id="me?.user?.id"
           @toggle-like="toggleLike"
           @toggle-repost="toggleRepost"

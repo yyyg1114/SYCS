@@ -4,7 +4,10 @@ const emit = defineEmits<{
 }>()
 
 const content = ref('')
-const files = ref<Array<{ file: File; preview: string; url?: string; blurUrl?: string | null; type: string; mime: string }>>([])
+const files = ref<Array<{
+  file: File; preview: string; url?: string; blurUrl?: string | null
+  type: string; mime: string; watermark: boolean
+}>>([])
 const uploading = ref(false)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -48,6 +51,7 @@ function onFileSelect(e: Event) {
       blurUrl: undefined,
       type: f.type.startsWith('image/') ? 'image' : f.type.startsWith('video/') ? 'video' : 'audio',
       mime: f.type,
+      watermark: false,
     })
   }
   input.value = ''
@@ -57,6 +61,10 @@ function removeFile(index: number) {
   const f = files.value[index]
   if (f.preview) URL.revokeObjectURL(f.preview)
   files.value.splice(index, 1)
+}
+
+function toggleWatermark(index: number) {
+  files.value[index].watermark = !files.value[index].watermark
 }
 
 async function handleSubmit() {
@@ -73,7 +81,10 @@ async function handleSubmit() {
         method: 'POST',
         body: formData,
       })
-      attachments = res.files
+      attachments = res.files.map((f, i) => ({
+        ...f,
+        watermark: files.value[i]?.watermark || false,
+      }))
     }
     emit('submit', content.value, attachments, visibility.value, visibleTo.value.length ? visibleTo.value : undefined)
     content.value = ''
@@ -122,9 +133,11 @@ function fileIcon(mime: string) {
           <button @click="removeFile(i)" class="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/60 text-white hover:bg-black/80">
             <Icon name="lucide:x" class="w-3 h-3" />
           </button>
-          <div class="absolute bottom-0 left-0 right-0 text-[9px] text-white/70 bg-black/50 px-1 truncate text-center">
-            {{ f.file.name.slice(0, 12) }}
-          </div>
+          <button v-if="f.type === 'image'" @click="toggleWatermark(i)"
+            class="absolute bottom-0.5 left-0.5 p-0.5 rounded text-[9px] transition"
+            :class="f.watermark ? 'bg-indigo-600 text-white' : 'bg-black/50 text-slate-400 hover:text-white'">
+            WM
+          </button>
         </div>
       </div>
 
@@ -137,7 +150,6 @@ function fileIcon(mime: string) {
           </button>
           <span v-if="files.length" class="text-[11px] text-slate-600">{{ files.length }}/{{ MAX_FILES }}</span>
 
-          <!-- Privacy selector -->
           <div class="relative">
             <button @click="showPrivacy = !showPrivacy"
               class="p-1.5 rounded-full text-slate-500 hover:text-indigo-400 hover:bg-slate-800/50 transition text-xs flex items-center gap-1">

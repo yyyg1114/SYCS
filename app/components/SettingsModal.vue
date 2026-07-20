@@ -18,6 +18,7 @@ const activeCategory = ref('profile')
 const categories = [
   { key: 'profile', label: 'プロフィール', icon: 'lucide:user' },
   { key: 'posts', label: '投稿設定', icon: 'lucide:edit-3' },
+  { key: 'timeline', label: 'タイムライン', icon: 'lucide:layout' },
   { key: 'privacy', label: 'プライバシー', icon: 'lucide:shield' },
   { key: 'notifications', label: '通知', icon: 'lucide:bell' },
 ]
@@ -25,6 +26,9 @@ const categories = [
 // Post button layout
 const buttonOrder = ref<string[]>(settings.value.postButtonOrder || ['like', 'repost', 'bookmark', 'view'])
 const showViewCount = ref(settings.value.showViewCount ?? true)
+
+// Timeline refresh mode
+const refreshMode = ref(settings.value.refreshMode || 'auto')
 
 const allButtons = [
   { key: 'like', label: 'いいね', icon: 'lucide:heart' },
@@ -76,7 +80,11 @@ async function save() {
     })
     await $fetch('/api/users/settings', {
       method: 'PUT',
-      body: { postButtonOrder: buttonOrder.value, showViewCount: showViewCount.value },
+      body: {
+        postButtonOrder: buttonOrder.value,
+        showViewCount: showViewCount.value,
+        refreshMode: refreshMode.value,
+      },
     })
     message.value = '保存しました'
     await refreshUser()
@@ -119,7 +127,7 @@ async function save() {
             {{ message }}
           </div>
 
-          <!-- Profile Settings -->
+          <!-- Profile -->
           <div v-if="activeCategory === 'profile'" class="space-y-4">
             <div class="flex items-center gap-4">
               <button @click="fileInput?.click()" class="relative group shrink-0" :disabled="uploadingAvatar">
@@ -184,6 +192,36 @@ async function save() {
             </div>
           </div>
 
+          <!-- Timeline Settings -->
+          <div v-if="activeCategory === 'timeline'" class="space-y-4">
+            <div>
+              <label class="block text-sm text-slate-400 mb-2">更新モード</label>
+              <p class="text-xs text-slate-600 mb-3">タイムラインの更新方法を選択します</p>
+              <div class="space-y-2">
+                <label class="flex items-center gap-3 p-3 bg-slate-800/30 rounded-lg cursor-pointer"
+                  :class="refreshMode === 'auto' ? 'ring-1 ring-indigo-500' : ''">
+                  <input type="radio" v-model="refreshMode" value="auto" class="sr-only" />
+                  <Icon name="lucide:radio" class="w-5 h-5 shrink-0"
+                    :class="refreshMode === 'auto' ? 'text-indigo-400' : 'text-slate-600'" />
+                  <div>
+                    <p class="text-sm font-medium text-white">自動更新</p>
+                    <p class="text-xs text-slate-500">新しい投稿が自動でタイムラインに表示されます</p>
+                  </div>
+                </label>
+                <label class="flex items-center gap-3 p-3 bg-slate-800/30 rounded-lg cursor-pointer"
+                  :class="refreshMode === 'manual' ? 'ring-1 ring-indigo-500' : ''">
+                  <input type="radio" v-model="refreshMode" value="manual" class="sr-only" />
+                  <Icon name="lucide:radio" class="w-5 h-5 shrink-0"
+                    :class="refreshMode === 'manual' ? 'text-indigo-400' : 'text-slate-600'" />
+                  <div>
+                    <p class="text-sm font-medium text-white">手動更新</p>
+                    <p class="text-xs text-slate-500">更新ボタンを押したときのみタイムラインを更新します</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
           <!-- Privacy Settings -->
           <div v-if="activeCategory === 'privacy'" class="space-y-4">
             <div class="p-3 bg-slate-800/30 rounded-lg">
@@ -196,7 +234,7 @@ async function save() {
             </div>
           </div>
 
-          <!-- Notification Settings -->
+          <!-- Notifications -->
           <div v-if="activeCategory === 'notifications'" class="space-y-4">
             <div class="p-3 bg-slate-800/30 rounded-lg">
               <p class="text-sm font-medium text-white">通知設定</p>
