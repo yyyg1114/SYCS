@@ -59,7 +59,7 @@ function linkify(text: string) {
 <template>
   <div class="p-4 bg-slate-800/30 border border-slate-800 rounded-xl hover:bg-slate-800/50 transition">
     <div class="flex gap-3">
-      <NuxtLink :to="`/profile/${post.user.id}`" class="shrink-0">
+      <NuxtLink :to="`/profile/@${post.user.username}`" class="shrink-0">
         <img v-if="post.user.avatarUrl" :src="post.user.avatarUrl" class="w-10 h-10 rounded-full object-cover" />
         <div v-else class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">
           {{ post.user.displayName.charAt(0) }}
@@ -67,7 +67,7 @@ function linkify(text: string) {
       </NuxtLink>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 mb-1">
-          <NuxtLink :to="`/profile/${post.user.id}`" class="font-bold text-white hover:underline truncate">
+          <NuxtLink :to="`/profile/@${post.user.username}`" class="font-bold text-white hover:underline truncate">
             {{ post.user.displayName }}
           </NuxtLink>
           <span class="text-slate-500 text-sm shrink-0">@{{ post.user.username }} · {{ timeAgo(post.createdAt) }}</span>

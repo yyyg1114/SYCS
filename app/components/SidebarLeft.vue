@@ -2,11 +2,17 @@
 const route = useRoute()
 
 const showServerList = ref(false)
+const showSettings = ref(false)
 
 const { data: serversData } = useFetch('/api/servers', { key: 'sidebar-servers' })
 const servers = computed(() => serversData.value?.servers || [])
 
 const { data: userData } = useFetch('/api/auth/me', { key: 'sidebar-user' })
+
+async function handleSignout() {
+  await $fetch('/api/auth/signout', { method: 'POST' })
+  await navigateTo('/')
+}
 </script>
 
 <template>
@@ -50,13 +56,36 @@ const { data: userData } = useFetch('/api/auth/me', { key: 'sidebar-user' })
 
     <ServerListModal v-if="showServerList" @close="showServerList = false" />
 
-    <div v-if="userData?.user" class="mt-auto pt-4 border-t border-slate-800 flex items-center gap-2 px-2 py-2">
-      <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-        {{ userData.user.displayName?.charAt(0) || '?' }}
+    <div v-if="userData?.user" class="group relative mt-auto pt-4 border-t border-slate-800">
+      <!-- Hover popup above -->
+      <div class="absolute bottom-full left-0 right-0 mb-2 bg-slate-900 border border-slate-800 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-1 z-50">
+        <button class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800/50 transition">
+          <Icon name="lucide:user-plus" class="w-4 h-4 shrink-0" />
+          アカウントを追加
+        </button>
       </div>
-      <NuxtLink :to="`/profile/${userData.user.id}`" class="text-sm text-slate-400 hover:text-white truncate">
-        @{{ userData.user.username }}
-      </NuxtLink>
+
+      <!-- User bar -->
+      <div class="flex items-center gap-1 px-2 py-2 rounded-lg group-hover:bg-slate-800/30 transition">
+        <NuxtLink :to="`/profile/@${userData.user.username}`" class="flex items-center gap-2 flex-1 min-w-0">
+          <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+            {{ userData.user.displayName?.charAt(0) || '?' }}
+          </div>
+          <span class="text-sm text-slate-400 group-hover:text-white truncate">@{{ userData.user.username }}</span>
+        </NuxtLink>
+
+        <!-- Hover buttons -->
+        <div class="hidden group-hover:flex items-center gap-0.5">
+          <button @click="showSettings = true" class="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800/50 transition" title="設定">
+            <Icon name="lucide:settings" class="w-4 h-4" />
+          </button>
+          <button @click="handleSignout" class="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-800/50 transition" title="サインアウト">
+            <Icon name="lucide:log-out" class="w-4 h-4" />
+          </button>
+        </div>
+      </div>
     </div>
+
+    <SettingsModal v-if="showSettings" @close="showSettings = false" />
   </aside>
 </template>

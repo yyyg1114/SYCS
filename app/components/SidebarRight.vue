@@ -17,7 +17,7 @@ const members = computed(() => serverData.value?.members || [])
     <template v-if="isServerPage && members.length">
       <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">メンバー ({{ members.length }})</h3>
       <div class="space-y-2">
-        <NuxtLink v-for="m in members" :key="m.userId" :to="`/profile/${m.userId}`"
+        <NuxtLink v-for="m in members" :key="m.userId" :to="`/profile/@${m.user?.username || m.userId}`"
           class="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition">
           <div class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold shrink-0">
             {{ m.user?.displayName?.charAt(0) || '?' }}
@@ -28,7 +28,7 @@ const members = computed(() => serverData.value?.members || [])
     </template>
 
     <template v-else-if="userData?.user">
-      <NuxtLink :to="`/profile/${userData.user.id}`" class="flex items-center gap-3 p-3 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition">
+      <NuxtLink :to="`/profile/@${userData.user.username}`" class="flex items-center gap-3 p-3 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition">
         <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold shrink-0">
           {{ userData.user.displayName?.charAt(0) || '?' }}
         </div>

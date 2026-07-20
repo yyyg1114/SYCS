@@ -81,7 +81,7 @@ async function save() {
         github: github.value, twitter: twitter.value, website: website.value,
       },
     })
-    message.value = '保存しました'; await refreshUser()
+    message.value = '保存しました'; await refreshUser(); await refreshNuxtData()
   } catch (e: any) { message.value = e.data?.message || '保存に失敗しました' }
   finally { saving.value = false }
 }
