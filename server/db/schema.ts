@@ -177,3 +177,15 @@ export const serverInvites = pgTable('server_invites', {
   expiresAt: timestamp('expires_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
+
+export const postAttachments = pgTable('post_attachments', {
+  id: text('id').primaryKey(),
+  postId: text('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
+  url: text('url').notNull(),
+  blurUrl: text('blur_url'),
+  watermarkUrl: text('watermark_url'),
+  type: text('type').notNull().default('image'),
+  mime: text('mime').notNull().default('image/png'),
+  position: integer('position').default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})

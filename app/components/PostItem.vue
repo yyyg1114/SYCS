@@ -7,6 +7,7 @@ const props = defineProps<{
     likeCount?: number
     repostCount?: number
     createdAt: string
+    attachments?: Array<any>
     user: {
       id: string
       username: string
@@ -39,11 +40,7 @@ function timeAgo(date: string) {
   <div class="p-4 bg-slate-800/30 border border-slate-800 rounded-xl hover:bg-slate-800/50 transition">
     <div class="flex gap-3">
       <NuxtLink :to="`/profile/${post.user.id}`" class="shrink-0">
-        <img
-          v-if="post.user.avatarUrl"
-          :src="post.user.avatarUrl"
-          class="w-10 h-10 rounded-full object-cover"
-        />
+        <img v-if="post.user.avatarUrl" :src="post.user.avatarUrl" class="w-10 h-10 rounded-full object-cover" />
         <div v-else class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">
           {{ post.user.displayName.charAt(0) }}
         </div>
@@ -56,7 +53,8 @@ function timeAgo(date: string) {
           <span class="text-slate-500 text-sm shrink-0">@{{ post.user.username }} · {{ timeAgo(post.createdAt) }}</span>
         </div>
         <p class="text-slate-200 leading-relaxed whitespace-pre-wrap break-words">{{ post.content }}</p>
-        <img v-if="post.imageUrl" :src="post.imageUrl" class="mt-2 rounded-lg max-h-80 object-cover" />
+        <img v-if="post.imageUrl && !post.attachments?.length" :src="post.imageUrl" class="mt-2 rounded-lg max-h-80 object-cover" />
+        <PostAttachments v-if="post.attachments?.length" :attachments="post.attachments" />
         <div class="flex items-center gap-4 mt-3 text-slate-500">
           <button @click="emit('like', post.id)" class="flex items-center gap-1.5 hover:text-indigo-400 transition text-sm">
             <Icon name="lucide:heart" class="w-4 h-4" />

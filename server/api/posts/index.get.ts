@@ -59,9 +59,7 @@ export default defineEventHandler(async (event) => {
   const where = userIds ? inArray(schema.posts.userId, userIds) : undefined
 
   const posts = await db.query.posts.findMany({
-    limit, offset,
-    where,
-    orderBy,
+    limit, offset, where, orderBy,
   })
 
   const postUserIds = [...new Set(posts.map(p => p.userId))]
@@ -69,7 +67,24 @@ export default defineEventHandler(async (event) => {
     ? await db.query.users.findMany({ where: inArray(schema.users.id, postUserIds) })
     : []
   const postUserMap = Object.fromEntries(postUsers.map(u => [u.id, u]))
-  const postsWithUsers = posts.map(p => ({ ...p, user: postUserMap[p.userId] || null }))
 
-  return { posts: postsWithUsers }
+  const postIds = posts.map(p => p.id)
+  const attachments = postIds.length
+    ? await db.query.postAttachments.findMany({
+        where: inArray(schema.postAttachments.postId, postIds),
+        orderBy: [schema.postAttachments.position],
+      })
+    : []
+  const attachMap: Record<string, any[]> = {}
+  for (const a of attachments) {
+    if (!attachMap[a.postId]) attachMap[a.postId] = []
+    attachMap[a.postId].push(a)
+  }
+
+  const postsWithMeta = posts.map(p => ({
+    ...p, user: postUserMap[p.userId] || null,
+    attachments: attachMap[p.id] || [],
+  }))
+
+  return { posts: postsWithMeta }
 })

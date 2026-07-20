@@ -1,11 +1,12 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
-const posts = ref([])
+const posts = ref<any[]>([])
 const loading = ref(true)
 const postError = ref('')
 
 const timeline = useTimeline()
+const { connect, events } = useRealtime()
 
 async function loadPosts() {
   loading.value = true
@@ -17,13 +18,29 @@ async function loadPosts() {
   }
 }
 
-onMounted(loadPosts)
-watch(timeline, loadPosts)
+onMounted(() => {
+  loadPosts()
+  connect()
+})
 
-async function createPost(content: string, imageUrl?: string) {
+watch(timeline, () => {
+  loadPosts()
+})
+
+// Real-time: new post arrives → prepend to feed
+watch(events, (evts) => {
+  for (const e of evts) {
+    if (e.type === 'post:created' && e.post) {
+      posts.value.unshift(e.post)
+    }
+  }
+  events.value = []
+}, { deep: true })
+
+async function createPost(content: string, attachments?: Array<any>) {
   postError.value = ''
   try {
-    await $fetch('/api/posts', { method: 'POST', body: { content, imageUrl } })
+    await $fetch('/api/posts', { method: 'POST', body: { content, attachments } })
     await loadPosts()
   } catch (e: any) {
     postError.value = e.data?.message || '投稿に失敗しました'
@@ -32,15 +49,19 @@ async function createPost(content: string, imageUrl?: string) {
 
 async function likePost(postId: string) {
   await $fetch(`/api/posts/${postId}/like`, { method: 'POST' })
+  const p = posts.value.find(x => x.id === postId)
+  if (p) p.likeCount = (p.likeCount || 0) + 1
 }
 
 async function repostPost(postId: string) {
   await $fetch(`/api/posts/${postId}/repost`, { method: 'POST' })
+  const p = posts.value.find(x => x.id === postId)
+  if (p) p.repostCount = (p.repostCount || 0) + 1
 }
 
 async function deletePost(postId: string) {
   await $fetch(`/api/posts/${postId}`, { method: 'DELETE' })
-  await loadPosts()
+  posts.value = posts.value.filter(p => p.id !== postId)
 }
 </script>
 

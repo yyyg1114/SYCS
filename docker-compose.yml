@@ -17,6 +17,7 @@ services:
       - .:/app
       - /app/node_modules
       - nuxt_cache:/app/.nuxt
+      - uploads:/app/public/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -43,3 +44,4 @@ services:
 volumes:
   pgdata:
   nuxt_cache:
+  uploads:

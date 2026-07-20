@@ -220,6 +220,19 @@ async function initDbInternal() {
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       )
     `)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS post_attachments (
+        id TEXT PRIMARY KEY,
+        post_id TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+        url TEXT NOT NULL,
+        blur_url TEXT,
+        watermark_url TEXT,
+        type TEXT NOT NULL DEFAULT 'image',
+        mime TEXT NOT NULL DEFAULT 'image/png',
+        position INTEGER DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
   } finally {
     client.release()
   }
