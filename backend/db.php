@@ -21,7 +21,7 @@ if ($dbHost === false || $dbUser === false || $dbPass === false || $dbName === f
     die("Internal Server Error: Database configuration is missing.");
 }
 
-$mysqli = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+$mysqli = new mysqli('p:' . $dbHost, $dbUser, $dbPass, $dbName);
 
 if ($mysqli->connect_error) {
     die("DB connection failed: " . $mysqli->connect_error);

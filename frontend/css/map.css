@@ -7,7 +7,7 @@
 }
 
 .leaflet-container {
-    background: #111 !important;
+    background: var(--bg-color) !important;
 }
 
 .leaflet-popup-content-wrapper,

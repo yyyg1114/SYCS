@@ -7,6 +7,66 @@
  */
 ?>
 
+<!-- ===== v2.2.22 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.22</span>
+        <span class="release-title">データベース高速化、テーマ洗練、CSS ビルドキャッシュ</span>
+        <span class="release-date">2026-07-22</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 &amp; 強化 (New Features &amp; Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🗄️</span>
+                    <div>
+                        <strong>永続的 DB 接続とインデックス管理</strong>
+                        <span class="detail">MySQL を永続接続に変更し、メッセージ、ダイレクトメッセージ、シグナリングテーブルのインデックスを自動管理してクエリ性能を向上させました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>期限切れ DM のクリーンアップ</strong>
+                        <span class="detail">バックエンドに期限切れダイレクトメッセージの削除処理を追加し、データベースの健全性とストレージ管理を強化しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI &amp; デザイン (UI &amp; Design)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>テーマシステムとモーダルの磨き上げ</strong>
+                        <span class="detail">ライト / ダーク / ナイトテーマをグローバルに統合し、プロフィールモーダルやオーバーレイのスタイルをさらに磨きました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> インフラ &amp; ユーティリティ (Infrastructure &amp; Utilities)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📦</span>
+                    <div>
+                        <strong>CSS ビルドキャッシュと高速再生成</strong>
+                        <span class="detail">CSS バンドルの再生成を制御するキャッシュフラグとディレクトリを導入し、不要なビルドを回避してアセット生成を高速化しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.21 ===== -->
 <article class="release">
     <div class="release-header">
@@ -79,8 +139,8 @@
                 <li>
                     <span class="icon">⚙️</span>
                     <div>
-                        <strong>CSS ビルド自動化とユーティリティ関数の拡張</strong>
-                        <span class="detail">オプティミスティック UI 用の新しいメッセージ状態スタイル（.message-pending、.message-failed）を追加し、ユーティリティ関数を拡張。サービスワーカーも改善してオフライン対応を強化しました。</span>
+                        <strong>バックエンドのクリーンアップ、インデックス、および CSS ビルド自動化</strong>
+                        <span class="detail">期限切れメッセージのクリーンアップとクエリインデックス管理をバックエンドに追加し、CSS ビルド自動化、オプティミスティック UI メッセージ状態、ユーティリティ改善を継続しました。</span>
                     </div>
                 </li>
             </ul>

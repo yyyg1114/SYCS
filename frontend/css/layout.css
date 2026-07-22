@@ -110,7 +110,7 @@
   margin-top: auto;
   padding: 20px;
   border-top: 1px solid var(--border-color);
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--sidebar-widgets-bg);
 }
 
 .user-block {
@@ -167,30 +167,31 @@
 
 .chat-messages {
   flex-grow: 1;
-  padding: 20px;
+  padding: 16px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   scroll-behavior: smooth;
 }
 
 .chat-input-area {
-  padding: 10px 20px 20px 20px;
-  background: transparent;
+  padding: 10px 18px 18px 18px;
+  background: var(--input-bg);
+  border-top: 1px solid var(--border-color);
   position: relative;
 }
 
 .input-wrapper {
-  background: rgba(30, 31, 46, 0.95);
-  border-radius: 12px;
+  background: var(--input-bg);
+  border-radius: 14px;
   display: flex;
   align-items: center;
-  padding: 2px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
 }
 
 .input-wrapper:focus-within {
@@ -241,7 +242,7 @@
 
 .section-header:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-hover-bg);
 }
 
 .sidebar-list {
@@ -274,7 +275,7 @@
 
 .create-input:focus {
   border-color: var(--accent-color);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-hover-bg);
 }
 
 /* Overlays & Special Areas */

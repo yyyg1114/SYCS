@@ -1,8 +1,21 @@
 <?php
 // frontend/build_css.php
 
-function checkAndBuildCss() {
+function checkAndBuildCss()
+{
     $bundleFile = __DIR__ . '/css/bundle.min.css';
+    $cacheDir = dirname(__DIR__) . '/backend/cache';
+    $checkFlag = $cacheDir . '/css_check.flag';
+
+    if (!is_dir($cacheDir)) {
+        mkdir($cacheDir, 0755, true);
+    }
+
+    // 5秒以内ならmtimeチェック自体をスキップ
+    if (file_exists($bundleFile) && file_exists($checkFlag) && (time() - filemtime($checkFlag)) < 5) {
+        return;
+    }
+
     $cssFiles = [
         __DIR__ . '/css/base.css',
         __DIR__ . '/css/layout.css',
@@ -39,14 +52,16 @@ function checkAndBuildCss() {
                 $content = str_replace('; ', ';', $content);
                 $content = str_replace(', ', ',', $content);
                 $content = str_replace(': ', ':', $content);
-                
+
                 $bundleContent .= trim($content) . "\n";
             }
         }
-        @file_put_contents($bundleFile, trim($bundleContent));
+        file_put_contents($bundleFile, trim($bundleContent));
     }
+
+    // チェック完了フラグの更新
+    file_put_contents($checkFlag, time());
 }
 
 // 実行する
 checkAndBuildCss();
-

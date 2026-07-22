@@ -1,3 +1,63 @@
+<!-- ===== v2.2.22 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.22</span>
+        <span class="release-title">Database Performance, Theme Refinement, and CSS Build Caching</span>
+        <span class="release-date">2026-07-22</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> New Features &amp; Enhancements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🗄️</span>
+                    <div>
+                        <strong>Persistent database connections and smart indexing</strong>
+                        <span class="detail">Switched MySQL to persistent connections and added background index maintenance for message, direct message, and signaling tables to improve query performance.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>Expired direct message cleanup</strong>
+                        <span class="detail">Added a backend cleanup function to remove stale direct messages on a schedule, keeping the database healthy and storage usage under control.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI &amp; Design
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>Theme system and modal polish</strong>
+                        <span class="detail">Extended theme toggling to support light, dark, and night modes globally while refining profile modal and overlay styling for a more cohesive UI.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> Infrastructure &amp; Utilities
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📦</span>
+                    <div>
+                        <strong>CSS build cache and faster asset regeneration</strong>
+                        <span class="detail">Introduced a CSS build flag and cache directory to skip unnecessary bundle rebuilds and speed up frontend asset generation.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.21 ===== -->
 <article class="release">
     <div class="release-header">
@@ -70,8 +130,8 @@
                 <li>
                     <span class="icon">⚙️</span>
                     <div>
-                        <strong>CSS build automation and utility expansion</strong>
-                        <span class="detail">Added new message state styling (.message-pending, .message-failed) for optimistic UI, expanded utility functions for better code reuse, and enhanced Service Worker for improved offline support.</span>
+                        <strong>Backend cleanup, indexing, and CSS build automation</strong>
+                        <span class="detail">Added expired message cleanup and query index maintenance on the backend, while continuing CSS build automation, optimistic UI message states, and utility improvements for more reliable performance.</span>
                     </div>
                 </li>
             </ul>

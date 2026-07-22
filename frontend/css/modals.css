@@ -7,8 +7,8 @@ dialog.modal,
 dialog.profile-modal {
   opacity: 0;
   border: 1px solid var(--border-color);
-  background-color: #1a1b1e;
-  color: white;
+  background-color: var(--surface-bg);
+  color: var(--text-primary);
   z-index: 1000;
   
   /* Modern Discrete Transition for display & overlay */
@@ -16,6 +16,18 @@ dialog.profile-modal {
   transition-duration: 0.3s;
   transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); /* Premium bouncy easing */
   transition-behavior: allow-discrete;
+}
+
+.light-theme dialog.modal,
+.light-theme dialog.profile-modal {
+  background-color: var(--surface-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+}
+
+.light-theme dialog.profile-modal {
+  background: var(--surface-bg);
 }
 
 /* 2. Specific layouts for base/closed states */
@@ -29,18 +41,18 @@ dialog.modal {
 }
 
 dialog.profile-modal {
-  background: rgba(30, 31, 35, 0.9);
+  background: var(--surface-bg);
   backdrop-filter: blur(6px) saturate(120%);
   -webkit-backdrop-filter: blur(6px) saturate(120%);
   color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--surface-border);
   border-radius: 24px;
   padding: 0;
   width: 820px;
   max-width: 95vw;
   box-shadow: 
-      0 20px 50px rgba(0, 0, 0, 0.4),
-      0 0 0 1px rgba(255, 255, 255, 0.05);
+      0 20px 50px rgba(15, 23, 42, 0.15),
+      0 0 0 1px var(--surface-border);
   overflow: hidden;
   position: fixed;
   bottom: 24px;
@@ -49,6 +61,30 @@ dialog.profile-modal {
   transform: translateY(20px) scale(0.98);
   margin: 0;
   max-height: 85vh;
+}
+
+.light-theme .profile-edit-pane {
+  background: var(--surface-bg);
+}
+
+.light-theme .profile-edit-footer {
+  background: var(--surface-bg);
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.light-theme .profile-preview-pane {
+  background: var(--bg-secondary);
+  border-left: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.light-theme .discord-card {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.light-theme .discord-banner {
+  background: var(--accent-color, #6366f1);
 }
 
 /* 3. Open States & Entry Transitions with @starting-style */
@@ -134,7 +170,7 @@ dialog.profile-modal[open]::backdrop {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--surface-bg);
 }
 
 .profile-edit-header {
@@ -147,7 +183,7 @@ dialog.profile-modal[open]::backdrop {
     padding: 0 40px 32px;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    scrollbar-color: var(--surface-hover-bg) transparent;
 }
 
 .profile-edit-body::-webkit-scrollbar {
@@ -159,31 +195,31 @@ dialog.profile-modal[open]::backdrop {
 }
 
 .profile-edit-body::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--surface-hover-bg);
     border-radius: 10px;
 }
 
 .profile-edit-body::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--surface-border);
 }
 
 .profile-edit-footer {
     padding: 24px 40px;
-    background: rgba(30, 31, 35, 0.4);
+    background: var(--surface-bg);
     backdrop-filter: blur(4px);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid var(--surface-border);
     flex-shrink: 0;
 }
 
 .profile-preview-pane {
     width: 360px;
-    background: var(--bg-secondary, rgba(0, 0, 0, 0.2));
+    background: var(--bg-secondary, var(--surface-bg));
     padding: 32px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    border-left: 1px solid rgba(255, 255, 255, 0.05);
+    border-left: 1px solid var(--surface-border);
     backdrop-filter: brightness(0.9);
 }
 
@@ -343,13 +379,10 @@ dialog.profile-modal[open]::backdrop {
 .modal-input {
   width: 100%;
   padding: 12px;
-  background-color: #1e1f23;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  color: white;
-  outline: none;
-  font-family: inherit;
-  transition: border-color 0.2s;
+      background-color: var(--modal-input-bg);
+      border: 1px solid var(--modal-input-border);
+      border-radius: 8px;
+      color: var(--text-primary);
 }
 
 .modal-input:focus {

@@ -185,7 +185,7 @@
   transform: translateY(-50%);
   width: 4px;
   height: 8px;
-  background: #ffffff;
+  background: var(--accent-color);
   border-radius: 0 4px 4px 0;
   transition: height 0.2s ease;
 }
@@ -201,14 +201,14 @@
 /* Messages */
 .message-group {
   display: flex;
-  gap: 12px;
-  padding: 8px 16px;
+  gap: 8px;
+  padding: 6px 14px;
   border-radius: var(--radius-md);
   transition: var(--transition-fast);
 }
 
 .message-group:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-hover-bg);
 }
 
 .message-info {
@@ -220,13 +220,13 @@
 
 .message-user {
   font-weight: 600;
-  color: var(--accent-color);
+  color: var(--text-primary);
   font-size: 0.95rem;
 }
 
 .message-time {
-  font-size: 0.7rem;
-  color: var(--text-muted);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
   margin-left: 8px;
   font-weight: 400;
 }
@@ -234,6 +234,7 @@
 .message-header {
   display: flex;
   align-items: center;
+  gap: 8px;
   margin-bottom: 4px;
 }
 
@@ -263,7 +264,7 @@
 }
 
 .msg-action-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-hover-bg);
 }
 
 .msg-action-btn img {
@@ -279,6 +280,7 @@
   font-size: 0.95rem;
   word-break: break-all;
   white-space: pre-wrap;
+  line-height: 1.4;
   color: var(--text-primary);
 }
 
@@ -304,7 +306,7 @@
   flex: 1;
   min-height: 150px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-muted);
   font-size: 1.1rem;
   font-weight: 600;
   user-select: none;
@@ -349,7 +351,7 @@
 .modal-input:focus,
 .modal-textarea:focus {
     border-color: var(--accent-color);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--modal-input-focus-bg);
 }
 
 /* Discord Card Layout Variants */
@@ -415,7 +417,7 @@
 
 .search-input-wrapper:focus-within {
     border-color: var(--accent-color);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--surface-hover-bg);
 }
 
 .search-input-wrapper input {
@@ -633,22 +635,22 @@
 
 /* Chat Input Elements */
 .upload-btn-plus {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--input-bg);
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-primary);
   transition: all 0.2s;
   border: none;
   cursor: pointer;
 }
 
 .upload-btn-plus:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: var(--surface-hover-bg);
+  color: var(--text-primary);
   transform: rotate(45deg);
 }
 
@@ -656,17 +658,18 @@
   flex: 1;
   background: transparent;
   border: none;
-  color: white;
-  padding: 12px;
-  font-size: 0.95rem;
+  color: var(--text-primary);
+  padding: 10px 12px;
+  font-size: 0.96rem;
   font-family: inherit;
   resize: none;
-  max-height: 200px;
+  max-height: 220px;
   outline: none;
+  min-height: 44px;
 }
 
 .chat-input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--placeholder-color);
 }
 
 .send-btn-modern {
@@ -686,12 +689,12 @@
   transform: scale(1.05);
 }
 #self-destruct-timer {
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--input-bg);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 8px center;
-  color: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 4px 24px 4px 10px;
   font-size: 0.75rem;
@@ -707,15 +710,15 @@
 }
 
 #self-destruct-timer:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: var(--accent-primary);
-  color: white;
+  background-color: var(--surface-hover-bg);
+  border-color: var(--accent-hover);
+  color: var(--text-primary);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 }
 
 #self-destruct-timer option {
-  background: #1e1e2e;
-  color: white;
+  background: var(--surface-bg);
+  color: var(--text-primary);
   padding: 10px;
 }
 

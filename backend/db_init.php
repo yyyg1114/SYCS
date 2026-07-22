@@ -9,9 +9,19 @@ require_once __DIR__ . '/SecurityUtil.php';
 
 function db_init($mysqli)
 {
-    // 27-31: Cleanup
-    $mysqli->query("DELETE FROM messages WHERE expires_at IS NOT NULL AND expires_at < NOW()");
-    $mysqli->query("DELETE FROM direct_messages WHERE expires_at IS NOT NULL AND expires_at < NOW()");
+    $cacheDir = dirname(__DIR__) . '/backend/cache';
+    $flagFile = $cacheDir . '/db_initialized.flag';
+    $scriptFile = __FILE__;
+
+    if (!is_dir($cacheDir)) {
+        mkdir($cacheDir, 0755, true);
+    }
+
+    if (file_exists($flagFile) && file_exists($scriptFile)) {
+        if (filemtime($flagFile) > filemtime($scriptFile)) {
+            return;
+        }
+    }
 
     // 33-48: Basic Tables
     $mysqli->query("CREATE TABLE IF NOT EXISTS users (
@@ -238,4 +248,48 @@ function db_init($mysqli)
 
     $res = $mysqli->query("SHOW INDEX FROM threads WHERE Key_name = 'idx_thread_name_unique'");
     if ($res->num_rows === 0) $mysqli->query("CREATE UNIQUE INDEX idx_thread_name_unique ON threads(name)");
+
+    // インデックスの追加
+    $indexes = [
+        ['messages', 'idx_thread_created', 'messages(thread_id, created_at)'],
+        ['messages', 'idx_group_thread_created', 'messages(group_thread_id, created_at)'],
+        ['direct_messages', 'idx_sender_receiver_created', 'direct_messages(sender_id, receiver_id, created_at)'],
+        ['direct_messages', 'idx_receiver_sender_created', 'direct_messages(receiver_id, sender_id, created_at)'],
+        ['signaling', 'idx_room_receiver_id', 'signaling(room_id, receiver_id, id)']
+    ];
+
+    foreach ($indexes as $idx) {
+        $res = $mysqli->query("SHOW INDEX FROM {$idx[0]} WHERE Key_name = '{$idx[1]}'");
+        if ($res->num_rows === 0) {
+            $mysqli->query("CREATE INDEX {$idx[1]} ON {$idx[2]}");
+        }
+    }
+
+    // 初期化完了フラグファイルの更新
+    file_put_contents($flagFile, time());
+}
+
+/**
+ * 期限切れメッセージのクリーンアップ処理（頻度制限付き）
+ */
+function db_cleanup_expired($mysqli)
+{
+    $cacheDir = dirname(__DIR__) . '/backend/cache';
+    $flagFile = $cacheDir . '/cleanup.flag';
+
+    if (!is_dir($cacheDir)) {
+        mkdir($cacheDir, 0755, true);
+    }
+
+    // 60秒以内の場合は実行をスキップ
+    if (file_exists($flagFile) && (time() - filemtime($flagFile)) < 60) {
+        return;
+    }
+
+    // クリーンアップ実行
+    $mysqli->query("DELETE FROM messages WHERE expires_at IS NOT NULL AND expires_at < NOW()");
+    $mysqli->query("DELETE FROM direct_messages WHERE expires_at IS NOT NULL AND expires_at < NOW()");
+
+    // フラグファイルの更新
+    file_put_contents($flagFile, time());
 }

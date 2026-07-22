@@ -7,6 +7,66 @@
  */
 ?>
 
+<!-- ===== v2.2.22 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.22</span>
+        <span class="release-title">数据库性能、主题精炼与 CSS 构建缓存</span>
+        <span class="release-date">2026-07-22</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新功能与增强 (New Features & Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🗄️</span>
+                    <div>
+                        <strong>持久化数据库连接与智能索引</strong>
+                        <span class="detail">将 MySQL 切换为持久连接，并添加消息、私信和信令表的索引维护，以提升查询性能。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>过期私信清理</strong>
+                        <span class="detail">新增后端清理功能，定期删除过期私信，保持数据库健康并控制存储。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI 与设计 (UI & Design)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>主题系统与模态框优化</strong>
+                        <span class="detail">统一处理 light/dark/night 主题切换，并优化个人资料模态框与覆盖层样式，使界面更一致。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-blue"></span> 基础设施与工具库 (Infrastructure & Utilities)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">📦</span>
+                    <div>
+                        <strong>CSS 构建缓存与加速生成</strong>
+                        <span class="detail">引入 CSS 打包缓存标记和目录，避免不必要的重复生成，加快前端资源构建。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.21 ===== -->
 <article class="release">
     <div class="release-header">
@@ -79,8 +139,8 @@
                 <li>
                     <span class="icon">⚙️</span>
                     <div>
-                        <strong>CSS 构建自动化与工具库扩展</strong>
-                        <span class="detail">新增了乐观 UI 消息状态样式（.message-pending、.message-failed），扩展了工具函数以支持代码复用，并改进了 Service Worker 的离线支持能力。</span>
+                        <strong>后端清理、索引与 CSS 构建自动化</strong>
+                        <span class="detail">增加了过期消息清理和查询索引维护，同时继续推进 CSS 构建自动化、乐观 UI 消息状态和工具函数改进，以提升整体可靠性。</span>
                     </div>
                 </li>
             </ul>

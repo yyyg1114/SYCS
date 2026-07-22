@@ -405,7 +405,11 @@ export function toggleOnlineUsers() {
 export function setTheme(theme, showToastNotify = true) {
   const isLight = theme === "light";
   const isNight = theme === "night";
+  const root = document.documentElement;
   // クラスの付け替え（他のクラスを破壊しない！）
+  root.classList.toggle("light-theme", isLight);
+  root.classList.toggle("dark-theme", !isLight);
+  root.classList.toggle("night-theme", isNight);
   document.body.classList.toggle("light-theme", isLight);
   document.body.classList.toggle("dark-theme", !isLight);
   document.body.classList.toggle("night-theme", isNight);

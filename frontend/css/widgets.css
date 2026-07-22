@@ -3,7 +3,7 @@
     display: flex;
     flex-direction: column;
     padding: 10px;
-    background: rgba(0, 0, 0, 0.15);
+    background: var(--sidebar-widgets-bg);
     border-top: 1px solid var(--border-color);
     flex-shrink: 0;
 }
@@ -11,7 +11,7 @@
 .widget-tabs {
     display: flex;
     justify-content: space-around;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--widget-tabs-bg);
     border-radius: 8px;
     margin-bottom: 10px;
     padding: 2px;
@@ -32,7 +32,7 @@
 }
 
 .widget-tab:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--widget-tab-hover-bg);
     color: var(--text-primary);
 }
 
@@ -43,7 +43,7 @@
 }
 
 .widget-content {
-    height: 350px; /* Increased height */
+    height: 260px;
     position: relative;
     overflow: hidden;
 }
@@ -70,26 +70,26 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 10px;
+    padding: 6px;
 }
 
 .digital-clock {
     font-family: 'Inter', monospace;
-    font-size: 2.2rem;
+    font-size: 1.6rem;
     font-weight: 700;
-    color: white;
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    text-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
 }
 
 /* Analog Clock - Based on provided image */
 .analog-clock {
-    width: 180px;
-    height: 180px;
+    width: 140px;
+    height: 140px;
     position: relative;
-    background: #111;
+    background: var(--clock-bg);
     border-radius: 50%;
-    border: 8px solid #222;
-    box-shadow: inset 0 0 25px rgba(0,0,0,0.8), 0 8px 20px rgba(0,0,0,0.5);
+    border: 6px solid var(--clock-border);
+    box-shadow: inset 0 0 18px rgba(0,0,0,0.35), 0 8px 16px rgba(0,0,0,0.2);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -123,7 +123,7 @@
 .clock-index.minute {
     width: 1px;
     height: 6px;
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--clock-index-color);
     margin-left: -0.5px;
     transform: rotate(calc(var(--i) * 6deg));
 }
@@ -131,7 +131,7 @@
 .clock-index.fifth {
     width: 0.5px;
     height: 3px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--clock-index-small-color);
     margin-left: -0.25px;
     transform: rotate(calc(var(--i) * 1.2deg));
 }
@@ -139,11 +139,11 @@
 /* Sub-dials */
 .sub-dial {
     position: absolute;
-    width: 44px;
-    height: 44px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: var(--clock-subdial-bg);
+    border: 1px solid var(--clock-subdial-border);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -160,12 +160,12 @@
     left: calc(50% - 1px);
     width: 2px;
     height: 18px;
-    background: #8b5cf6;
+    background: var(--clock-hand-color);
     transform-origin: 1px 15px;
     transform: rotate(var(--sub-angle, 0deg));
     z-index: 5;
     border-radius: 1px;
-    box-shadow: 0 0 5px rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 5px rgba(99, 102, 241, 0.35);
 }
 
 .sub-index {
@@ -174,7 +174,7 @@
     top: 2px;
     width: 1px;
     height: 4px;
-    background: rgba(255, 255, 255, 0.4);
+    background: var(--clock-sub-index-color);
     transform-origin: 0.5px 20px;
     transform: rotate(calc(var(--si) * var(--sa)));
 }
@@ -205,8 +205,8 @@
     position: relative;
     width: 4px;
     height: 4px;
-    background: #111;
-    border: 1px solid #8b5cf6;
+    background: var(--surface-border);
+    border: 1px solid var(--accent-color);
     border-radius: 50%;
     z-index: 10;
     flex-shrink: 0;
@@ -215,14 +215,14 @@
 /* Date Window */
 .date-window {
     position: absolute;
-    top: 70%;
-    right: 20%;
-    width: 16px;
-    height: 16px;
-    background: #000;
-    border: 1px solid #333;
-    font-size: 9px;
-    color: #8b5cf6;
+    top: 72%;
+    right: 18%;
+    width: 14px;
+    height: 14px;
+    background: var(--date-window-bg);
+    border: 1px solid var(--date-window-border);
+    font-size: 8px;
+    color: var(--clock-hand-color);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -239,11 +239,11 @@
     top: 20%;
     left: 50%;
     transform: translateX(-50%);
-    width: 55px;
-    height: 22px;
+    width: 45px;
+    height: 18px;
     opacity: 0.8;
-    background-color: #8b5cf6;
-    border-radius: 5px;
+    background-color: var(--clock-logo-bg);
+    border-radius: 4px;
 }
 
 .hand {
@@ -259,7 +259,7 @@
     width: 5px;
     height: 45px;
     background: transparent;
-    border: 2px solid #8b5cf6;
+    border: 2px solid var(--clock-hand-color);
     margin-left: -2.5px;
 }
 
@@ -267,14 +267,14 @@
     width: 4px;
     height: 65px;
     background: transparent;
-    border: 2px solid #8b5cf6;
+    border: 2px solid var(--clock-hand-color);
     margin-left: -2px;
 }
 
 .second-hand {
     width: 1.5px;
     height: 75px;
-    background: #8b5cf6;
+    background: var(--clock-hand-color);
     margin-left: -0.75px;
     z-index: 6;
 }
@@ -282,8 +282,8 @@
 .center-dot {
     width: 6px;
     height: 6px;
-    background: #111;
-    border: 1.5px solid #8b5cf6;
+    background: var(--clock-bg);
+    border: 1.5px solid var(--clock-hand-color);
     border-radius: 50%;
     position: absolute;
     top: 50%;
@@ -296,7 +296,7 @@
 .clock-controls {
     display: flex;
     justify-content: center;
-    padding: 5px;
+    padding: 4px;
 }
 
 /* Switch Styling */
@@ -329,7 +329,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #333;
+    background-color: var(--input-bg);
     transition: .4s;
     border-radius: 20px;
 }
@@ -341,7 +341,7 @@
     width: 14px;
     left: 3px;
     bottom: 3px;
-    background-color: white;
+    background-color: var(--toggle-knob-bg);
     transition: .4s;
     border-radius: 50%;
 }
@@ -358,10 +358,10 @@ input:checked + .slider:before {
 #notepad-area {
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--surface-bg);
+    border: 1px solid var(--surface-border);
     border-radius: 8px;
-    color: #eee;
+    color: var(--text-primary);
     padding: 12px;
     font-size: 0.85rem;
     resize: none;
@@ -371,8 +371,8 @@ input:checked + .slider:before {
 }
 
 #notepad-area:focus {
-    border-color: rgba(99, 102, 241, 0.3);
-    background: rgba(0, 0, 0, 0.3);
+    border-color: var(--accent-color);
+    background: var(--surface-hover-bg);
 }
 
 /* Filer Widget */
@@ -390,7 +390,7 @@ input:checked + .slider:before {
     align-items: center;
     gap: 10px;
     padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-bg);
     border-radius: 6px;
     text-decoration: none;
     color: var(--text-secondary);
@@ -398,7 +398,7 @@ input:checked + .slider:before {
 }
 
 .file-item:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--surface-hover-bg);
     color: var(--text-primary);
     transform: translateX(2px);
 }
@@ -450,10 +450,10 @@ input:checked + .slider:before {
 
 #todo-input {
     flex: 1;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--surface-bg);
+    border: 1px solid var(--surface-border);
     border-radius: 6px;
-    color: #eee;
+    color: var(--text-primary);
     padding: 6px 10px;
     font-size: 0.8rem;
     outline: none;
@@ -461,6 +461,7 @@ input:checked + .slider:before {
 
 #todo-input:focus {
     border-color: var(--accent-color);
+    background: var(--surface-hover-bg);
 }
 
 .todo-add-btn {
@@ -493,13 +494,13 @@ input:checked + .slider:before {
     align-items: center;
     gap: 8px;
     padding: 8px 10px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-bg);
     border-radius: 6px;
     transition: all 0.2s ease;
 }
 
 .todo-item:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--surface-hover-bg);
 }
 
 .todo-item.completed .todo-text {
