@@ -1,3 +1,49 @@
+<!-- ===== v2.2.23 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.23</span>
+        <span class="release-title">Google OAuth Integration, Environment Variable (.env) Support &amp; Security Enhancements</span>
+        <span class="release-date">2026-07-29</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> New Features &amp; Enhancements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔑</span>
+                    <div>
+                        <strong>Google OAuth 2.0 Integration &amp; Social Login</strong>
+                        <span class="detail">Integrated Google OAuth 2.0 authentication flow with client ID and secret support for secure, seamless social login.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>Environment Variable (.env) Loader</strong>
+                        <span class="detail">Introduced EnvLoader utility to manage API credentials and sensitive configurations safely across environments.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Security &amp; Auth
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Login Rate Limiting &amp; Session Protection</strong>
+                        <span class="detail">Optimized login attempt rate limiting to prevent brute-force attacks and ensured session ID regeneration upon successful authentication.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.22 ===== -->
 <article class="release">
     <div class="release-header">

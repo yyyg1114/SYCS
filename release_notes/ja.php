@@ -7,6 +7,52 @@
  */
 ?>
 
+<!-- ===== v2.2.23 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.23</span>
+        <span class="release-title">Google OAuth 認証統合、環境変数 (.env) 管理の導入、セキュリティ強化</span>
+        <span class="release-date">2026-07-29</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 &amp; 強化 (New Features &amp; Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔑</span>
+                    <div>
+                        <strong>Google OAuth 2.0 統合とソーシャルログイン対応</strong>
+                        <span class="detail">Google クライアント ID / シークレットを用いた Google OAuth 2.0 認証フローを統合し、安全かつスムーズなソーシャルログインに対応しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>環境変数 (.env) ローダーの設定</strong>
+                        <span class="detail">API キーや各種認証鍵などの機密情報を安全に管理するため EnvLoader を導入し、設定管理の利便性とセキュリティを向上させました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> セキュリティ &amp; 認証 (Security &amp; Auth)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>ログイン試行制限とセッション保護</strong>
+                        <span class="detail">ブルートフォース攻撃を防止するログインレートリミットを最適化し、ログイン成功時のセッション再生成（Session Fixation 対策）を徹底しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.22 ===== -->
 <article class="release">
     <div class="release-header">

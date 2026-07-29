@@ -198,6 +198,7 @@ if (isset($_GET['api'])) {
         require_once __DIR__ . '/../backend/GoogleAPI.php';
         $_SESSION['google_oauth2_state'] = bin2hex(random_bytes(16));
         $url = GoogleAPI::getAuthorizeUrl($_SESSION['google_oauth2_state']);
+        session_write_close();
         header("Location: $url");
         exit;
     }

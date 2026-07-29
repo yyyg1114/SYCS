@@ -3,13 +3,16 @@
 if (session_status() === PHP_SESSION_NONE) {
     // セッションIDの再生成間隔（秒）
     ini_set('session.gc_maxlifetime', 3600); // 1時間でサーバー側GC
+    $isHttps = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ||
+        (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
     session_set_cookie_params([
         'lifetime' => 0,          // ブラウザ閉じたら削除
         'path' => '/',
         'domain' => '',           // カレントドメインに自動設定
-        'secure' => isset($_SERVER['HTTPS']), // HTTPS時のみ送信
+        'secure' => $isHttps,     // HTTPS時のみ送信
         'httponly' => true,       // JavaScriptからアクセス不可
-        'samesite' => 'Strict'    // CSRF対策
+        'samesite' => 'Lax'       // OAuthリダイレクト(Google等)に対応するためLaxに設定
     ]);
     session_start();
 

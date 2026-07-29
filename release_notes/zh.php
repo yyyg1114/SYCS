@@ -7,6 +7,52 @@
  */
 ?>
 
+<!-- ===== v2.2.23 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.23</span>
+        <span class="release-title">Google OAuth 身份验证集成、环境变量 (.env) 支持与安全增强</span>
+        <span class="release-date">2026-07-29</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新功能与增强 (New Features &amp; Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔑</span>
+                    <div>
+                        <strong>Google OAuth 2.0 集成与社交登录支持</strong>
+                        <span class="detail">集成基于 Google 客户端 ID 与密钥的 OAuth 2.0 验证流程，提供安全便捷的社交登录体验。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>环境变量 (.env) 配置加载器</strong>
+                        <span class="detail">引入 EnvLoader 工具来统一和安全地管理 API 凭据与敏感配置，提升项目的安全性与可移植性。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 安全与身份验证 (Security &amp; Auth)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>登录尝试限制与会话保护</strong>
+                        <span class="detail">优化防止暴力破解的登录速率限制机制，并在成功登录时强制重新生成 Session ID。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.22 ===== -->
 <article class="release">
     <div class="release-header">
