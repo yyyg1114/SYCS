@@ -21,9 +21,18 @@ const currentUserId = window.SYCS_CONFIG.currentUserId;
 const currentUserName = window.SYCS_CONFIG.currentUserName;
 const currentUserTheme = window.SYCS_CONFIG.currentUserTheme;
 
+// --- Selection Mode State ---
+let isSelectionMode = false;
+let selectedMessageIds = new Set();
+let lastSelectedMessageId = null;
+
 // Export globals for HTML onclick handlers
 window.switchThread = switchThread;
 window.sendMessage = sendMessage;
+window.toggleSelectionMode = toggleSelectionMode;
+window.selectAllMessages = selectAllMessages;
+window.deselectAllMessages = deselectAllMessages;
+window.deleteSelectedMessages = deleteSelectedMessages;
 window.cancelReply = cancelReply;
 window.toggleSidebar = (f) => import('./modules/ui.js').then(m => m.toggleSidebar(f));
 window.toggleThreadBrowser = () => import('./modules/ui.js').then(m => m.toggleThreadBrowser());
@@ -227,6 +236,114 @@ function setupEventListeners() {
             }
         });
     }
+
+    // メッセージ選択のイベントデリゲーション
+    const container = document.getElementById("message-container");
+    if (container) {
+        container.addEventListener("click", (e) => {
+            if (!isSelectionMode) return;
+
+            // アクションボタン、リンク、添付画像、オーディオ、ビデオ、テキスト選択中は無視
+            if (e.target.closest(".msg-action-btn") || 
+                e.target.closest("a") || 
+                e.target.closest(".preview-img") || 
+                e.target.closest("audio") || 
+                e.target.closest("video") ||
+                window.getSelection().toString() !== "") {
+                return;
+            }
+
+            // Shiftキー有無にかかわらず、自分のメッセージエリア全体をクリック対象にする
+            // ※ container.addEventListener の時点で .message-wrapper.my-message を必須としているため
+            // wrapper は常に自分のメッセージ
+            const wrapper = e.target.closest(".message-wrapper.my-message");
+            if (!wrapper) {
+                // Shiftキーを押しながら他人のメッセージをクリックした場合も、
+                // 最後に選択した自分のメッセージとの範囲選択を試みる
+                const otherWrapper = e.target.closest(".message-wrapper");
+                if (!otherWrapper || !e.shiftKey || lastSelectedMessageId === null) return;
+
+                e.preventDefault();
+
+                const allWrappers = Array.from(container.querySelectorAll(".message-wrapper"));
+                const currentIdx = allWrappers.indexOf(otherWrapper);
+                const lastWrapper = container.querySelector(`#message-${lastSelectedMessageId}`);
+                const lastIdx = allWrappers.indexOf(lastWrapper);
+
+                if (currentIdx !== -1 && lastIdx !== -1) {
+                    const start = Math.min(currentIdx, lastIdx);
+                    const end = Math.max(currentIdx, lastIdx);
+
+                    for (let i = start; i <= end; i++) {
+                        const wrap = allWrappers[i];
+                        const cb = wrap.querySelector(".message-select-checkbox");
+                        if (cb) {
+                            cb.checked = true;
+                            const id = parseInt(cb.value);
+                            selectedMessageIds.add(id);
+                            wrap.classList.add("selected");
+                        }
+                    }
+                    updateSelectionUI();
+                }
+                return;
+            }
+
+            // デフォルトのチェックボックスの挙動とイベント干渉を防ぎ、JS一元管理のためpreventDefaultを実行
+            e.preventDefault();
+
+            const checkbox = wrapper.querySelector(".message-select-checkbox");
+            const msgId = checkbox ? parseInt(checkbox.value) : null;
+
+            if (e.shiftKey && lastSelectedMessageId !== null) {
+                // Shiftキー範囲選択
+                // 全てのメッセージ行（自分と他人両方）を対象にインデックス範囲を特定する
+                const allWrappers = Array.from(container.querySelectorAll(".message-wrapper"));
+                const currentIdx = allWrappers.indexOf(wrapper);
+                const lastWrapper = container.querySelector(`#message-${lastSelectedMessageId}`);
+                const lastIdx = allWrappers.indexOf(lastWrapper);
+
+                if (currentIdx !== -1 && lastIdx !== -1) {
+                    const start = Math.min(currentIdx, lastIdx);
+                    const end = Math.max(currentIdx, lastIdx);
+                    // 今回クリックしたメッセージが自分のメッセージで、かつ選択状態ならその反対をターゲット状態とする。
+                    // 他人のメッセージをクリックした場合はデフォルトで「選択（true）」とする。
+                    const targetState = checkbox ? !checkbox.checked : true;
+
+                    for (let i = start; i <= end; i++) {
+                        const wrap = allWrappers[i];
+                        const cb = wrap.querySelector(".message-select-checkbox");
+                        if (cb) {
+                            cb.checked = targetState;
+                            const id = parseInt(cb.value);
+                            if (targetState) {
+                                selectedMessageIds.add(id);
+                                wrap.classList.add("selected");
+                            } else {
+                                selectedMessageIds.delete(id);
+                                wrap.classList.remove("selected");
+                            }
+                        }
+                    }
+                }
+            } else {
+                // 通常選択（Shiftキーなし）：チェックボックスがない場合はスキップ
+                if (!checkbox) return;
+
+                checkbox.checked = !checkbox.checked;
+                if (checkbox.checked) {
+                    selectedMessageIds.add(msgId);
+                    wrapper.classList.add("selected");
+                } else {
+                    selectedMessageIds.delete(msgId);
+                    wrapper.classList.remove("selected");
+                }
+                lastSelectedMessageId = msgId;
+            }
+
+            updateSelectionUI();
+        });
+    }
 }
 
 function getMessageCallbacks() {
@@ -358,6 +475,7 @@ function getMessageCallbacks() {
 }
 
 async function switchThread(id, name, creatorId, isGroup = false) {
+    toggleSelectionMode(false);
     id = parseInt(id);
     currentThreadId = id;
     currentThreadCreatorId = creatorId || 0;
@@ -603,3 +721,104 @@ document.addEventListener("keydown", (e) => {
         document.getElementById("search-input")?.focus();
     }
 });
+
+function toggleSelectionMode(force) {
+    isSelectionMode = force !== undefined ? force : !isSelectionMode;
+
+    const container = document.getElementById("message-container");
+    const inputWrapper = document.getElementById("normal-input-wrapper");
+    const actionBar = document.getElementById("selection-action-bar");
+    const selectBtn = document.getElementById("select-messages-btn");
+
+    if (!container || !inputWrapper || !actionBar || !selectBtn) return;
+
+    if (isSelectionMode) {
+        container.classList.add("selection-mode");
+        inputWrapper.style.display = "none";
+        actionBar.style.display = "flex";
+        selectBtn.classList.add("active");
+        selectedMessageIds.clear();
+        lastSelectedMessageId = null;
+        updateSelectionUI();
+    } else {
+        container.classList.remove("selection-mode");
+        inputWrapper.style.display = "flex";
+        actionBar.style.display = "none";
+        selectBtn.classList.remove("active");
+
+        // 全てのチェックボックスの選択を解除
+        container.querySelectorAll(".message-select-checkbox").forEach(cb => {
+            cb.checked = false;
+        });
+        container.querySelectorAll(".message-wrapper").forEach(w => {
+            w.classList.remove("selected");
+        });
+        selectedMessageIds.clear();
+        lastSelectedMessageId = null;
+    }
+}
+
+function updateSelectionUI() {
+    const countSpan = document.getElementById("selected-count");
+    const deleteBtn = document.getElementById("delete-selected-btn");
+    if (!countSpan || !deleteBtn) return;
+
+    const count = selectedMessageIds.size;
+    const template = t("selected_count", "{count} selected");
+    countSpan.textContent = template.replace("{count}", count);
+
+    deleteBtn.disabled = count === 0;
+}
+
+function selectAllMessages() {
+    const container = document.getElementById("message-container");
+    if (!container) return;
+
+    container.querySelectorAll(".message-select-checkbox").forEach(cb => {
+        cb.checked = true;
+        const msgId = parseInt(cb.value);
+        selectedMessageIds.add(msgId);
+
+        const wrapper = cb.closest(".message-wrapper");
+        if (wrapper) wrapper.classList.add("selected");
+    });
+    updateSelectionUI();
+}
+
+function deselectAllMessages() {
+    const container = document.getElementById("message-container");
+    if (!container) return;
+
+    container.querySelectorAll(".message-select-checkbox").forEach(cb => {
+        cb.checked = false;
+        const wrapper = cb.closest(".message-wrapper");
+        if (wrapper) wrapper.classList.remove("selected");
+    });
+    selectedMessageIds.clear();
+    lastSelectedMessageId = null;
+    updateSelectionUI();
+}
+
+async function deleteSelectedMessages() {
+    if (selectedMessageIds.size === 0) return;
+
+    if (!confirm(t("delete_selected_confirm", "選択したメッセージを削除してもよろしいですか？"))) {
+        return;
+    }
+
+    const idsArray = Array.from(selectedMessageIds);
+    const res = await api("delete_messages", "POST", { message_ids: idsArray.join(",") });
+
+    if (res && res.success) {
+        showToast(t("success", "成功"), t("deleted_selected_success", "選択したメッセージを削除しました"), "success");
+        toggleSelectionMode(false);
+
+        // メッセージを再ロード
+        const container = document.getElementById("message-container");
+        if (isGroupChat) {
+            loadGroupMessages(currentThreadId, container, {currentUserName, currentUserId}, getMessageCallbacks());
+        } else {
+            loadMessages(currentThreadId, container, {currentUserName, currentUserId}, getMessageCallbacks());
+        }
+    }
+}

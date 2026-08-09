@@ -552,8 +552,6 @@
     bottom: 85px !important;
     margin: 0 !important;
     z-index: 9999;
-    display: flex !important;
-    align-items: center !important;
     box-sizing: border-box !important;
   }
 

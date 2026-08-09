@@ -189,5 +189,12 @@
     "da_invalid_request": "請求無效。",
     "da_password_required": "請輸入密碼。",
     "da_wrong_password": "密碼错誤。",
-    "da_delete_failed": "帳號刪除失敗。"
+    "da_delete_failed": "帳號刪除失敗。",
+    "select_messages": "选择消息",
+    "delete_selected": "删除所选消息",
+    "select_all": "全选",
+    "deselect_all": "取消全选",
+    "delete_selected_confirm": "确定要删除所选消息吗？",
+    "deleted_selected_success": "已删除所选消息。",
+    "selected_count": "已选择 {count} 项"
 }

@@ -7,6 +7,52 @@
  */
 ?>
 
+<!-- ===== v2.2.24 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.24</span>
+        <span class="release-title">消息选择模式、批量删除与会话控制增强</span>
+        <span class="release-date">2026-08-09</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新功能与增强
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>消息选择模式</strong>
+                        <span class="detail">新增聊天视图中的消息选择模式，可使用复选框选择多条自己的消息，并支持 Shift 范围选择。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🗑️</span>
+                    <div>
+                        <strong>批量消息删除</strong>
+                        <span class="detail">支持一次删除多条选中的消息，并带有确认提示，使会话清理更快捷。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI 与生产力
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✅</span>
+                    <div>
+                        <strong>选择工具栏与操作控件</strong>
+                        <span class="detail">新增上下文操作栏，提供全选、取消选择和取消操作按钮，提升多消息处理流程的便捷性。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.23 ===== -->
 <article class="release">
     <div class="release-header">

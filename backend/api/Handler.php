@@ -112,6 +112,9 @@ class ApiHandler
                 case 'delete_message':
                     $this->deleteMessage();
                     break;
+                case 'delete_messages':
+                    $this->deleteMessages();
+                    break;
                 case 'set_last_thread':
                     $this->setLastThread();
                     break;
@@ -805,6 +808,36 @@ class ApiHandler
         $this->mysqli->query("DELETE FROM messages WHERE id = $mid AND user_id = $this->userId");
         echo json_encode(['success' => true]);
     }
+
+    private function deleteMessages()
+    {
+        $this->verifyCsrf();
+        $idsStr = $this->getParam('message_ids', '');
+        if (empty($idsStr)) {
+            echo json_encode(['success' => false, 'error' => 'No message IDs provided']);
+            return;
+        }
+
+        $ids = array_map('intval', explode(',', $idsStr));
+        $ids = array_filter($ids, function($id) { return $id > 0; });
+
+        if (empty($ids)) {
+            echo json_encode(['success' => false, 'error' => 'Invalid message IDs']);
+            return;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $types = str_repeat('i', count($ids)) . 'i'; // message IDs + user_id
+
+        $stmt = $this->mysqli->prepare("DELETE FROM messages WHERE id IN ($placeholders) AND user_id = ?");
+        $params = array_merge($ids, [$this->userId]);
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $stmt->close();
+
+        echo json_encode(['success' => true]);
+    }
+
 
     private function setLastThread()
     {

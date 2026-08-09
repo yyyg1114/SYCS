@@ -220,6 +220,12 @@ if ($isLoggedIn) {
                         <button class="icon-btn" onclick="showPinnedMessages()" title="' . __('pinned_messages_list') . '">
                             <img src="assets/img/pin.svg" alt="' . __('pinned_messages_list') . '" class="action-icon">
                         </button>
+                        <button id="select-messages-btn" class="icon-btn" onclick="toggleSelectionMode()" title="' . __('select_messages') . '">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 11l3 3L22 4" stroke-width="2.5" />
+                                <rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2" />
+                            </svg>
+                        </button>
                         <button class="icon-btn" onclick="editCurrentThread()" title="' . __('edit') . '">
                             <img src="assets/img/edit.svg" alt="' . __('edit') . '" class="action-icon">
                         </button>
@@ -264,7 +270,7 @@ if ($isLoggedIn) {
                     <div id="typing-indicator" class="typing-indicator-bar" style="font-size: 0.75rem; color: var(--text-secondary); margin: 0 16px; min-height: 18px;"></div>
 
                     <div class="chat-input-area">
-                        <div class="input-wrapper">
+                        <div class="input-wrapper" id="normal-input-wrapper">
                             <button class="upload-btn-plus" title="<?= __('upload') ?>" onclick="openMediaUploadModal()">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -286,6 +292,17 @@ if ($isLoggedIn) {
                                     <polygon points="22 2 15 22 11 13 2 9 22 2" />
                                 </svg>
                             </button>
+                        </div>
+                        <div class="selection-action-bar" id="selection-action-bar" style="display: none;">
+                            <div class="selection-info">
+                                <span id="selected-count">0</span>
+                            </div>
+                            <div class="selection-buttons">
+                                <button class="btn-secondary btn-sm" onclick="selectAllMessages()"><?= __('select_all') ?></button>
+                                <button class="btn-secondary btn-sm" onclick="deselectAllMessages()"><?= __('deselect_all') ?></button>
+                                <button class="btn-danger btn-sm" id="delete-selected-btn" onclick="deleteSelectedMessages()" disabled><?= __('delete_selected') ?></button>
+                                <button class="btn-cancel btn-sm" onclick="toggleSelectionMode(false)"><?= __('cancel') ?></button>
+                            </div>
                         </div>
                     </div>
                 </div>

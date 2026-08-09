@@ -1,3 +1,49 @@
+<!-- ===== v2.2.24 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.24</span>
+        <span class="release-title">Message Selection Mode, Batch Delete, and Enhanced Conversation Controls</span>
+        <span class="release-date">2026-08-09</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> New Features &amp; Enhancements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>Message selection mode</strong>
+                        <span class="detail">Added a new selection mode for choosing multiple own messages in the chat view with checkbox controls and shift-select support.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🗑️</span>
+                    <div>
+                        <strong>Batch message deletion</strong>
+                        <span class="detail">Enabled deleting multiple selected messages at once with a confirmation prompt for faster conversation cleanup.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI &amp; Productivity
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✅</span>
+                    <div>
+                        <strong>Selection toolbar and action controls</strong>
+                        <span class="detail">Added a contextual action bar with select all, deselect all, and cancel controls for smoother multi-message workflows.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.23 ===== -->
 <article class="release">
     <div class="release-header">

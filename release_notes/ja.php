@@ -7,6 +7,52 @@
  */
 ?>
 
+<!-- ===== v2.2.24 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.24</span>
+        <span class="release-title">メッセージ選択モード、複数削除、会話管理の強化</span>
+        <span class="release-date">2026-08-09</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 &amp; 強化
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🧹</span>
+                    <div>
+                        <strong>メッセージ選択モード</strong>
+                        <span class="detail">チャット内で複数の自分のメッセージをチェックボックスで選択できる新しいモードを追加し、Shift 選択にも対応しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🗑️</span>
+                    <div>
+                        <strong>複数メッセージ削除</strong>
+                        <span class="detail">選択したメッセージを一括で削除できるようになり、確認プロンプト付きで会話の整理をより簡単にしました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> UI &amp; 生産性
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✅</span>
+                    <div>
+                        <strong>選択ツールバーとアクションコントロール</strong>
+                        <span class="detail">すべて選択、選択解除、キャンセルを備えたコンテキストアクションバーを追加し、複数メッセージの処理をスムーズにしました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.23 ===== -->
 <article class="release">
     <div class="release-header">

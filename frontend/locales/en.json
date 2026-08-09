@@ -197,5 +197,12 @@
     "enable_push_notifications": "Enable Push Notifications",
     "push_notifications_desc": "Receive notifications even when the browser is closed or the app is in the background.",
     "notification_granted": "Notifications enabled.",
-    "notification_denied": "Notifications denied. Please enable them in your browser settings."
+    "notification_denied": "Notifications denied. Please enable them in your browser settings.",
+    "select_messages": "Select Messages",
+    "delete_selected": "Delete Selected Messages",
+    "select_all": "Select All",
+    "deselect_all": "Deselect All",
+    "delete_selected_confirm": "Are you sure you want to delete the selected messages?",
+    "deleted_selected_success": "Selected messages deleted.",
+    "selected_count": "{count} selected"
 }

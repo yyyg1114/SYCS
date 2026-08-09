@@ -22,6 +22,19 @@ export function renderMessageNode(m, parentContainer, context, callbacks) {
   const group = document.createElement("div");
   group.className = "message-group";
 
+  if (m.username === currentUserName) {
+    wrapper.classList.add("my-message");
+    const checkboxWrapper = document.createElement("label");
+    checkboxWrapper.className = "message-checkbox-wrapper";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "message-select-checkbox";
+    checkbox.value = m.id;
+    checkbox.dataset.id = m.id;
+    checkboxWrapper.appendChild(checkbox);
+    group.appendChild(checkboxWrapper);
+  }
+
   group.appendChild(getAvatarElement(m.username, m.status || "online", m.avatar_url));
 
   const info = document.createElement("div");

@@ -756,3 +756,200 @@
 .message-failed-banner:hover {
   opacity: 0.7;
 }
+
+
+/* === Message Selection Mode === */
+
+/* チェックボックスラッパー */
+.message-checkbox-wrapper {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  margin-right: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+@keyframes fadeInCheckbox {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.selection-mode .message-checkbox-wrapper {
+  display: flex;
+  animation: fadeInCheckbox 0.18s ease-out;
+}
+
+/* カスタムチェックボックス */
+.message-select-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-strong);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  background: var(--bg-color);
+}
+
+.message-select-checkbox:checked {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.message-select-checkbox:checked::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.message-select-checkbox:hover:not(:checked) {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* 選択モード中のメッセージ行 */
+.message-wrapper.my-message {
+  border-left: 3px solid transparent;
+  transition: background-color 0.15s ease, border-left-color 0.15s ease;
+}
+
+.selection-mode .message-wrapper.my-message {
+  cursor: pointer;
+}
+
+.selection-mode .message-wrapper.my-message:hover {
+  background-color: rgba(88, 80, 236, 0.05);
+}
+
+.message-wrapper.my-message.selected {
+  background-color: rgba(88, 80, 236, 0.10) !important;
+  border-left-color: var(--accent-color) !important;
+}
+
+/* ヘッダーの「選択モード」切り替えボタン アクティブ状態 */
+#select-messages-btn.active {
+  color: var(--accent-color);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+/* ===== 一括操作バー ===== */
+.selection-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  animation: slideUpBar 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpBar {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 選択件数表示部 */
+.selection-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#selected-count {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent-color);
+  min-width: 1.5ch;
+  display: inline-block;
+}
+
+/* ボタンエリア */
+.selection-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* 小サイズボタン共通 */
+.btn-sm {
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+/* 全選択 / 選択解除 */
+.btn-sm.btn-secondary {
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-sm.btn-secondary:hover {
+  background: var(--surface-hover-bg);
+  border-color: var(--border-strong);
+}
+
+/* 削除ボタン（目立つ赤） */
+.btn-sm.btn-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ff4242;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn-sm.btn-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.17);
+  color: #ff0000;
+  border-color: rgba(239, 68, 68, 0.55);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+}
+
+.btn-sm.btn-danger:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* キャンセルボタン */
+.btn-sm.btn-cancel {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+}
+
+.btn-sm.btn-cancel:hover {
+  color: var(--text-primary);
+  background: var(--input-bg);
+}
+

@@ -81,7 +81,8 @@
     text-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
 }
 
-/* Analog Clock - Based on provided image */
+/* Analog Clock
+   Geometry: 140px total, 6px border => 128px inner diameter, 64px radius */
 .analog-clock {
     width: 140px;
     height: 140px;
@@ -93,7 +94,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .clock-face {
@@ -102,11 +103,12 @@
     position: relative;
 }
 
+/* Index markers: top:0 + transform-origin at center = 64px */
 .clock-index {
     position: absolute;
     left: 50%;
-    top: -1px;
-    transform-origin: 50% 84px;
+    top: 0;
+    transform-origin: 50% 64px;
     z-index: 2;
     border-radius: 2px;
 }
@@ -136,7 +138,7 @@
     transform: rotate(calc(var(--i) * 1.2deg));
 }
 
-/* Sub-dials */
+/* Sub-dials (34px diameter = 17px radius, 16px usable for indices) */
 .sub-dial {
     position: absolute;
     width: 34px;
@@ -154,45 +156,47 @@
 .sub-3 { top: 50%; right: 25%; transform: translate(50%, -50%); }
 .sub-6 { top: 75%; left: 50%; transform: translate(-50%, -50%); }
 
+/* Sub-hand: centered at 16px from top (sub-dial radius minus border) */
 .sub-hand {
     position: absolute;
-    top: 7px;
-    left: calc(50% - 1px);
-    width: 2px;
-    height: 18px;
+    top: 5px;
+    left: calc(50% - 0.75px);
+    width: 1.5px;
+    height: 12px;
     background: var(--clock-hand-color);
-    transform-origin: 1px 15px;
+    transform-origin: 0.75px 11px;
     transform: rotate(var(--sub-angle, 0deg));
     z-index: 5;
     border-radius: 1px;
     box-shadow: 0 0 5px rgba(99, 102, 241, 0.35);
 }
 
+/* Sub-indices: origin at sub-dial center (16px from top edge) */
 .sub-index {
     position: absolute;
     left: calc(50% - 0.5px);
     top: 2px;
     width: 1px;
-    height: 4px;
+    height: 3px;
     background: var(--clock-sub-index-color);
-    transform-origin: 0.5px 20px;
+    transform-origin: 0.5px 14px;
     transform: rotate(calc(var(--si) * var(--sa)));
 }
 
 .sub-index.major {
     width: 1.5px;
     left: calc(50% - 0.75px);
-    height: 6px;
+    height: 5px;
     background: #8b5cf6;
-    transform-origin: 0.75px 20px;
+    transform-origin: 0.75px 14px;
 }
 
 .sub-label {
     position: absolute;
-    top: 60%;
+    top: 58%;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 7px;
+    font-size: 6px;
     font-weight: 700;
     color: rgba(139, 92, 246, 0.5);
     pointer-events: none;
@@ -202,23 +206,26 @@
 }
 
 .sub-center-dot {
-    position: relative;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 4px;
     height: 4px;
     background: var(--surface-border);
     border: 1px solid var(--accent-color);
     border-radius: 50%;
     z-index: 10;
-    flex-shrink: 0;
 }
 
-/* Date Window */
+/* Date Window – positioned at 3 o'clock, rotated 45° with counter-rotation on text */
 .date-window {
     position: absolute;
-    top: 72%;
-    right: 18%;
+    top: 50%;
+    right: 16%;
     width: 14px;
     height: 14px;
+    margin-top: -7px;
     background: var(--date-window-bg);
     border: 1px solid var(--date-window-border);
     font-size: 8px;
@@ -230,7 +237,7 @@
 }
 
 .date-window span {
-    transform: rotate(0deg);
+    transform: rotate(-45deg);
 }
 
 /* Custom Watch Face details */
@@ -246,6 +253,7 @@
     border-radius: 4px;
 }
 
+/* Hands – sized to fit within 64px radius */
 .hand {
     position: absolute;
     bottom: 50%;
@@ -257,7 +265,7 @@
 
 .hour-hand {
     width: 5px;
-    height: 45px;
+    height: 34px;
     background: transparent;
     border: 2px solid var(--clock-hand-color);
     margin-left: -2.5px;
@@ -265,7 +273,7 @@
 
 .minute-hand {
     width: 4px;
-    height: 65px;
+    height: 48px;
     background: transparent;
     border: 2px solid var(--clock-hand-color);
     margin-left: -2px;
@@ -273,7 +281,7 @@
 
 .second-hand {
     width: 1.5px;
-    height: 75px;
+    height: 56px;
     background: var(--clock-hand-color);
     margin-left: -0.75px;
     z-index: 6;
