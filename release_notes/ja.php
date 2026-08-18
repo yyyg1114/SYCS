@@ -7,6 +7,52 @@
  */
 ?>
 
+<!-- ===== v2.2.25 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.25</span>
+        <span class="release-title">セキュリティ強化、SVG の安全処理、ファイル処理の堅牢化</span>
+        <span class="release-date">2026-08-18</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> セキュリティと堅牢性
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>グローバルなセキュリティヘッダーと厳格な CSP</strong>
+                        <span class="detail">CSP、X-Frame-Options、X-Content-Type-Options を標準的に送信し、XSS やクリックジャッキングのリスクを低減しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>暗号化ユーティリティ</strong>
+                        <span class="detail">AES-256-CBC ベースの暗号化/復号ヘルパーと安全なトークン生成を導入しました。動作には `ENCRYPTION_KEY` 環境変数が必要です。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">📑</span>
+                    <div>
+                        <strong>アップロードの MIME 許可リスト強化</strong>
+                        <span class="detail">ファイルアップロードは拡張子と MIME の許可リストに照らして厳密に検証され、不正なファイル種別を排除します。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🖼️</span>
+                    <div>
+                        <strong>SVG の安全化と安全な変換処理</strong>
+                        <span class="detail">SVG はホワイトリストベースでサニタイズされ、Imagick による SVG→PNG 変換は外部リソース無効化とリソース制限で強化しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.24 ===== -->
 <article class="release">
     <div class="release-header">

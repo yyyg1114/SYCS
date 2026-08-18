@@ -1,3 +1,49 @@
+<!-- ===== v2.2.25 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.25</span>
+        <span class="release-title">Security Hardenings, Safe SVG Handling &amp; Secure File Processing</span>
+        <span class="release-date">2026-08-18</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> Security &amp; Robustness
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Global security headers and stricter CSP</strong>
+                        <span class="detail">Added standardized security headers (CSP, X-Frame-Options, X-Content-Type-Options) to reduce XSS and clickjacking risks.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>Encryption utilities</strong>
+                        <span class="detail">Introduced AES-256-CBC-based encrypt/decrypt helpers and secure token generation. Requires `ENCRYPTION_KEY` environment variable for operation.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">📑</span>
+                    <div>
+                        <strong>Strict MIME allowlist for uploads</strong>
+                        <span class="detail">File uploads are now validated against a defined extension-to-MIME allowlist to prevent unsafe file types.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🖼️</span>
+                    <div>
+                        <strong>Safe SVG sanitization &amp; secure SVG-to-PNG conversion</strong>
+                        <span class="detail">SVG content is sanitized by a whitelist-based parser and Imagick-based conversion is hardened with resource limits and external resource blocking.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.24 ===== -->
 <article class="release">
     <div class="release-header">
