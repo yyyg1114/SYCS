@@ -270,7 +270,7 @@ class SecurityUtil
     }
 
     /**
-     * Encrypt data using AES-256-CBC
+     * Encrypt data using AES-256-GCM (AEAD with authentication)
      */
     private static function getEncryptionKey(): string
     {
@@ -287,22 +287,52 @@ class SecurityUtil
     public static function encrypt(string $data): string
     {
         $key = hash('sha256', self::getEncryptionKey(), true);
-        $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
-        $encrypted = openssl_encrypt($data, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
-        return base64_encode($iv . '::' . $encrypted);
+        $iv = random_bytes(12); // GCM uses 12-byte nonce
+        $tag = ''; // Authentication tag (output by reference)
+        $encrypted = openssl_encrypt($data, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+        if ($encrypted === false) {
+            throw new \RuntimeException("AES-256-GCM encryption failed");
+        }
+        // Format: v2::IV::TAG::CIPHERTEXT (v2 prefix for GCM, distinguishes from legacy CBC)
+        return base64_encode('v2::' . $iv . '::' . $tag . '::' . $encrypted);
     }
 
     public static function decrypt(string $data): ?string
     {
         $key = hash('sha256', self::getEncryptionKey(), true);
-        $decoded = base64_decode($data);
-        if (!$decoded || strpos($decoded, '::') === false) return null;
+        $decoded = base64_decode($data, true);
+        if (!$decoded) return null;
 
-        list($iv, $encrypted) = explode('::', $decoded, 2);
-        if (strlen($iv) !== openssl_cipher_iv_length('aes-256-cbc')) return null;
+        // Try GCM format first (v2::IV::TAG::CIPHERTEXT)
+        if (strpos($decoded, 'v2::') === 0) {
+            $parts = explode('::', $decoded, 4);
+            if (count($parts) !== 4) return null;
+            list(, $iv, $tag, $encrypted) = $parts;
 
-        $decrypted = openssl_decrypt($encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
-        return $decrypted ?: null;
+            // GCM typically uses 12-byte nonce
+            if (strlen($iv) !== 12) return null;
+
+            $decrypted = openssl_decrypt($encrypted, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+            if ($decrypted === false) {
+                error_log("AES-256-GCM decryption failed - possible tampering or invalid data");
+                return null;
+            }
+            return $decrypted;
+        }
+
+        // Fallback: CBC format for backward compatibility (legacy IV::CIPHERTEXT)
+        if (strpos($decoded, '::') !== false) {
+            $parts = explode('::', $decoded, 2);
+            if (count($parts) !== 2) return null;
+            list($iv, $encrypted) = $parts;
+
+            if (strlen($iv) !== openssl_cipher_iv_length('aes-256-cbc')) return null;
+
+            $decrypted = openssl_decrypt($encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+            return $decrypted ?: null;
+        }
+
+        return null;
     }
 
     public static function generateUuid(): string

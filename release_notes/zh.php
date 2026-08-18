@@ -7,6 +7,84 @@
  */
 ?>
 
+<!-- ===== v2.2.26 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.26</span>
+        <span class="release-title">AES-256-GCM 加密升级、AEAD 身份验证与向后兼容性</span>
+        <span class="release-date">2026-08-18</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 安全增强
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>AES-256-GCM (AEAD) 加密标准</strong>
+                        <span class="detail">从 AES-256-CBC 升级至 AES-256-GCM，提供带身份验证的加密，可检测篡改并确保数据完整性。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✓</span>
+                    <div>
+                        <strong>与遗留 CBC 数据的向后兼容性</strong>
+                        <span class="detail">实现双格式解密，使用版本标记 (GCM 采用 v2:: 前缀，遗留 CBC 无前缀) 实现现有加密数据的无缝迁移。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔑</span>
+                    <div>
+                        <strong>ENCRYPTION_KEY 环境变量配置</strong>
+                        <span class="detail">将 ENCRYPTION_KEY 添加至 .env.example，并提供安全密钥生成文档 (建议 64+ 十六进制字符)。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.25 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.25</span>
+        <span class="release-title">白名单 SVG 清理、XXE 防护增强与安全加固</span>
+        <span class="release-date">2026-08-18</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 安全与稳健性
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>基于白名单的 SVG 标签与属性过滤</strong>
+                        <span class="detail">将 SVG 清理策略从黑名单改为白名单，明确定义允许的安全标签 (svg、path、circle、text 等) 与属性，防止绕过攻击。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>XXE (XML 外部实体) 防护增强</strong>
+                        <span class="detail">针对 PHP &lt; 8.0 (使用 libxml_disable_entity_loader) 和 PHP 8+ (通过 LIBXML_NONET 标志) 进行增强，阻止外部资源访问以防 XXE 漏洞。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔗</span>
+                    <div>
+                        <strong>更严格的 href 与 xlink:href 验证</strong>
+                        <span class="detail">SVG 链接现仅允许内部片段引用 (以 '#' 开头) 或空值，阻止外部 URL 与协议攻击。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.24 ===== -->
 <article class="release">
     <div class="release-header">

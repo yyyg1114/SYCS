@@ -7,6 +7,84 @@
  */
 ?>
 
+<!-- ===== v2.2.26 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.26</span>
+        <span class="release-title">AES-256-GCM 上位、AEAD 認証付下位、上位狐撃性</span>
+        <span class="release-date">2026-08-18</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> セキュリティ強化
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>AES-256-GCM (AEAD) 暗号化の導入</strong>
+                        <span class="detail">AES-256-CBC から AES-256-GCM に上位し、認証付暗号で改ざん検出を可能にし、データ一計性を確保しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✓</span>
+                    <div>
+                        <strong>レガシー CBC データとの後方互換性</strong>
+                        <span class="detail">バージョンマーカー (v2:: プレフィックス GCM 用、レガシー CBC は接頭辞なし) を使用して既存暗号化データを自動移行できる構成を実装しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔑</span>
+                    <div>
+                        <strong>ENCRYPTION_KEY 環境変数設定</strong>
+                        <span class="detail">.env.example に ENCRYPTION_KEY を追加し、安全なキー生成方法のドキュメンテーションを追加しました (推奨 64文字以上の 16 進数)。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.25 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.25</span>
+        <span class="release-title">ホワイトリストベース SVG サニタイゼーション、XXE 対策強化とセキュリティ硬化</span>
+        <span class="release-date">2026-08-18</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> セキュリティと堅牢性
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>ホワイトリストベース SVG タグと属性フィルタリング</strong>
+                        <span class="detail">SVG サニタイゼーション方式をブラックリストからホワイトリストに変更し、許可される安全なタグ (svg, path, circle, text など) と属性を明示的に指定してバイパス攻撃を防止しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>XXE (XML 外部エンティティ) 対策の強化</strong>
+                        <span class="detail">PHP &lt; 8.0 (libxml_disable_entity_loader 使用) と PHP 8+ (LIBXML_NONET フラグ) の両方でエンティティ読み込みを防止し、外部リソースアクセスをブロックしました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔗</span>
+                    <div>
+                        <strong>href と xlink:href の検証厳格化</strong>
+                        <span class="detail">SVG リンクは内部参照 (#) または空の値のみを許可するようになり、外部 URL やプロトコルベースの攻撃をブロックします。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.24 ===== -->
 <article class="release">
     <div class="release-header">

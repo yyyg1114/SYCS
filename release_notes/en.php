@@ -1,3 +1,81 @@
+<!-- ===== v2.2.26 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.26</span>
+        <span class="release-title">AES-256-GCM Encryption Upgrade with AEAD Authentication &amp; Backward Compatibility</span>
+        <span class="release-date">2026-08-18</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> Security Enhancements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>AES-256-GCM (AEAD) encryption standard</strong>
+                        <span class="detail">Upgraded from AES-256-CBC to AES-256-GCM, providing authenticated encryption that detects tampering and ensures data integrity.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✓</span>
+                    <div>
+                        <strong>Backward compatibility with legacy CBC data</strong>
+                        <span class="detail">Implemented dual-format decryption using version markers (v2:: prefix for GCM, legacy CBC without prefix) to seamlessly migrate existing encrypted data.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔑</span>
+                    <div>
+                        <strong>ENCRYPTION_KEY environment configuration</strong>
+                        <span class="detail">Added ENCRYPTION_KEY to .env.example with documentation for secure key generation (recommended 64+ hex characters).</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
+<!-- ===== v2.2.25 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.25</span>
+        <span class="release-title">Whitelist-Based SVG Sanitization, Enhanced XXE Protection &amp; Security Hardening</span>
+        <span class="release-date">2026-08-18</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> Security &amp; Robustness
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Whitelist-based SVG tag and attribute filtering</strong>
+                        <span class="detail">Reworked SVG sanitization from deny-list to explicit allow-list of safe tags (svg, path, circle, text, etc.) and attributes to prevent bypass attacks.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>Improved XXE (XML External Entity) protection</strong>
+                        <span class="detail">Enhanced entity loading prevention for both PHP &lt; 8.0 (using libxml_disable_entity_loader) and PHP 8+ (via LIBXML_NONET flag) to block external resource access.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔗</span>
+                    <div>
+                        <strong>Stricter href and xlink:href validation</strong>
+                        <span class="detail">SVG links now only permit internal fragment references (starting with '#') or empty values, blocking external URLs and protocol-based attacks.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.24 ===== -->
 <article class="release">
     <div class="release-header">
