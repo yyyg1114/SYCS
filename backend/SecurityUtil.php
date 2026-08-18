@@ -85,60 +85,115 @@ class SecurityUtil
         libxml_use_internal_errors(true);
 
         $dom = new DOMDocument();
-        // Prevent external entity loading (XXE)
+        // Safety: prevent external entity loading (XXE) and network access.
+        // For PHP < 8.0 we disable the global entity loader; in PHP 8+ this is deprecated
+        // and entity loader is effectively disabled by using LIBXML_NONET and not expanding
+        // entities (i.e. avoiding LIBXML_NOENT).
         $dom->formatOutput = true;
         $dom->preserveWhiteSpace = false;
 
+        $disabledEntityLoaderPreviousState = null;
+        if (PHP_VERSION_ID < 80000 && function_exists('libxml_disable_entity_loader')) {
+            $disabledEntityLoaderPreviousState = libxml_disable_entity_loader(true);
+        }
+
         // Load XML safely
-        // options: no blanks, no network, no ent, no dtd
-        if (!$dom->loadXML($content, LIBXML_NOENT | LIBXML_NONET | LIBXML_NOBLANKS | LIBXML_DTDATTR | LIBXML_COMPACT)) {
+        // options: no blanks, no network, compact parsing
+        if (!$dom->loadXML($content, LIBXML_NONET | LIBXML_NOBLANKS | LIBXML_COMPACT)) {
             libxml_clear_errors();
+            if ($disabledEntityLoaderPreviousState !== null && function_exists('libxml_disable_entity_loader')) {
+                libxml_disable_entity_loader($disabledEntityLoaderPreviousState);
+            }
             return ''; // Failed to parse
         }
 
-        self::cleanNode($dom->documentElement);
+        if ($disabledEntityLoaderPreviousState !== null && function_exists('libxml_disable_entity_loader')) {
+            libxml_disable_entity_loader($disabledEntityLoaderPreviousState);
+        }
+
+        // Define allow-lists (whitelists)
+        $allowedTags = [
+            'svg','g','defs','symbol','use','title','desc','metadata','view',
+            'rect','circle','ellipse','line','polyline','polygon','path',
+            'text','tspan','tref','switch','image','clipPath','mask','pattern',
+            'linearGradient','radialGradient','stop','filter'
+        ];
+
+        $allowedAttributes = [
+            // Common geometry / presentation
+            'id','class','width','height','x','y','cx','cy','r','rx','ry','d',
+            'x1','y1','x2','y2','points','viewbox','viewBox','preserveAspectRatio',
+            'transform','fill','stroke','stroke-width','opacity','fill-opacity','stroke-opacity',
+            'offset','stop-color','stop-opacity','gradientunits','gradientTransform',
+            // Namespaces
+            'xmlns','xmlns:xlink',
+            // Linking
+            'href','xlink:href'
+        ];
+
+        self::cleanNode($dom->documentElement, $allowedTags, $allowedAttributes);
 
         return $dom->saveXML();
     }
 
-    private static function cleanNode(DOMNode $node)
+    private static function cleanNode(DOMNode $node, array $allowedTags, array $allowedAttributes)
     {
-        // Dangerous tags to remove
-        $dangerousTags = ['script', 'foreignObject', 'iframe', 'object', 'embed', 'audio', 'video', 'meta', 'link', 'style'];
+        // If this is an element, enforce allowed tag list
+        if ($node instanceof DOMElement) {
+            $tag = strtolower($node->nodeName);
 
-        // Remove node if it is a dangerous tag
-        if (in_array(strtolower($node->nodeName), $dangerousTags)) {
-            if ($node->parentNode) {
-                $node->parentNode->removeChild($node);
+            if (!in_array($tag, $allowedTags, true)) {
+                if ($node->parentNode) {
+                    $node->parentNode->removeChild($node);
+                }
+                return;
             }
-            return;
-        }
 
-        // Clean attributes (Only for DOMElements)
-        if ($node instanceof DOMElement && $node->hasAttributes()) {
-            $attrsToRemove = [];
-            foreach ($node->attributes as $attr) {
-                // $attr is DOMAttr which inherits DOMNode
-                $name = strtolower($attr->nodeName);
+            // Clean attributes by allow-list
+            if ($node->hasAttributes()) {
+                $attrsToRemove = [];
+                foreach ($node->attributes as $attr) {
+                    $name = strtolower($attr->nodeName);
 
-                // Remove on* events, hrefs (external links), styles, and script-related
-                if (
-                    strpos($name, 'on') === 0 ||
-                    $name === 'style' ||
-                    $name === 'href' ||
-                    $name === 'xlink:href' ||
-                    strpos($name, 'xmlns:javascript') !== false
-                ) {
-                    $attrsToRemove[] = $attr->nodeName;
+                    // Disallow event handlers and style attribute
+                    if (strpos($name, 'on') === 0 || $name === 'style') {
+                        $attrsToRemove[] = $attr->nodeName;
+                        continue;
+                    }
+
+                    // Only keep attributes that are in allowedAttributes
+                    if (!in_array($name, array_map('strtolower', $allowedAttributes), true)) {
+                        $attrsToRemove[] = $attr->nodeName;
+                        continue;
+                    }
+
+                    // Disallow dangerous protocols in attribute values
+                    if (preg_match('/^\s*(javascript|vbscript):/i', $attr->nodeValue)) {
+                        $attrsToRemove[] = $attr->nodeName;
+                        continue;
+                    }
+
+                    // For href/xlink:href allow only internal fragment references (starting with '#') or empty
+                    if ($name === 'href' || $name === 'xlink:href') {
+                        $val = trim($attr->nodeValue);
+                        if ($val === '' || strpos($val, '#') === 0) {
+                            // allowed
+                        } else {
+                            // reject any urls with scheme (contains ':') or absolute http(s)
+                            if (preg_match('/^[a-z0-9+.-]+:/i', $val) || preg_match('#^https?://#i', $val)) {
+                                $attrsToRemove[] = $attr->nodeName;
+                                continue;
+                            }
+                            // If it's a relative path without scheme, be conservative and remove
+                            $attrsToRemove[] = $attr->nodeName;
+                            continue;
+                        }
+                    }
                 }
 
-                // Inspect attribute values for 'javascript:', 'data:', etc.
-                if (preg_match('/^\s*(javascript|data|vbscript):/i', $attr->nodeValue)) {
-                    $attrsToRemove[] = $attr->nodeName;
+                foreach ($attrsToRemove as $name) {
+                    $node->removeAttribute($name);
                 }
-            }
-            foreach ($attrsToRemove as $name) {
-                $node->removeAttribute($name);
             }
         }
 
@@ -147,7 +202,7 @@ class SecurityUtil
             // Convert to array to avoid modification during iteration issues
             $children = iterator_to_array($node->childNodes);
             foreach ($children as $child) {
-                self::cleanNode($child);
+                self::cleanNode($child, $allowedTags, $allowedAttributes);
             }
         }
     }

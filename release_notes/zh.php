@@ -7,52 +7,6 @@
  */
 ?>
 
-<!-- ===== v2.2.25 ===== -->
-<article class="release">
-    <div class="release-header">
-        <span class="version-badge">v2.2.25</span>
-        <span class="release-title">安全加固、SVG 安全处理与文件处理稳健性增强</span>
-        <span class="release-date">2026-08-18</span>
-    </div>
-    <div class="release-body">
-        <div class="section">
-            <div class="section-title">
-                <span class="dot dot-green"></span> 安全与稳健性
-            </div>
-            <ul>
-                <li>
-                    <span class="icon">🛡️</span>
-                    <div>
-                        <strong>全局安全头与更严格的 CSP</strong>
-                        <span class="detail">新增标准安全头（CSP、X-Frame-Options、X-Content-Type-Options），以降低 XSS 与点击劫持风险。</span>
-                    </div>
-                </li>
-                <li>
-                    <span class="icon">🔒</span>
-                    <div>
-                        <strong>加密工具</strong>
-                        <span class="detail">引入基于 AES-256-CBC 的加解密助手与安全令牌生成。运行需配置 `ENCRYPTION_KEY` 环境变量。</span>
-                    </div>
-                </li>
-                <li>
-                    <span class="icon">📑</span>
-                    <div>
-                        <strong>上传 MIME 白名单强化</strong>
-                        <span class="detail">文件上传将基于扩展名与 MIME 类型的允许列表进行严格验证，防止不安全文件类型。</span>
-                    </div>
-                </li>
-                <li>
-                    <span class="icon">🖼️</span>
-                    <div>
-                        <strong>SVG 安全化与安全的 SVG→PNG 转换</strong>
-                        <span class="detail">对 SVG 内容进行白名单清理，并对 Imagick 的转换流程施加资源限制和禁用外部资源以提高安全性。</span>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-</article>
-
 <!-- ===== v2.2.24 ===== -->
 <article class="release">
     <div class="release-header">
