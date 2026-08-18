@@ -1,11 +1,36 @@
 <?php
 
 /**
- * Release Notes - Chinese Content
+ * Release Notes - Chinese (Simplified) Content
  * 
  * This file is included by release_notes.php
  */
 ?>
+
+<!-- ===== v2.2.28 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.28</span>
+        <span class="release-title">后端 API 模块化与重构</span>
+        <span class="release-date">2026-08-18</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改进与修复 (Improvements &amp; Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>API 处理程序架构改造</strong>
+                        <span class="detail">将后端 API 处理逻辑拆分并模块化为 <code>BaseHandler.php</code> 和各功能专用的处理程序类，大幅提升了代码的可维护性与扩展性。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
 
 <!-- ===== v2.2.27 ===== -->
 <article class="release">

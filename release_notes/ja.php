@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 /**
  * Release Notes - Japanese Content
@@ -6,6 +6,32 @@
  * This file is included by release_notes.php
  */
 ?>
+
+<!-- ===== v2.2.28 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.28</span>
+        <span class="release-title">バックエンド API のモジュール化とリファクタリング</span>
+        <span class="release-date">2026-08-18</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善 &amp; 修正 (Improvements &amp; Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>API ハンドラー構造の刷新</strong>
+                        <span class="detail">バックエンドの API 処理を <code>BaseHandler.php</code> と各機能ごとのハンドラークラス群に分割・モジュール化し、コードの保守性と拡張性を大幅に向上させました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 
 <!-- ===== v2.2.27 ===== -->
 <article class="release">
