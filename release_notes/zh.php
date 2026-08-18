@@ -7,11 +7,50 @@
  */
 ?>
 
+<!-- ===== v2.2.27 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.27</span>
+        <span class="release-title">会话安全性：基于风险的验证、定期重新生成与移动友好</span>
+        <span class="release-date">2026-08-18</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 安全与可靠性
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>基于风险的会话验证 (IP 地址放松)</strong>
+                        <span class="detail">移除了过于严格的 IP 地址验证（阻止了移动和 VPN 用户），现仅针对 User-Agent 变化进行风险判定，采用软警告方式应对。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔄</span>
+                    <div>
+                        <strong>定期会话 ID 重新生成 (15 分钟间隔)</strong>
+                        <span class="detail">现在每 15 分钟重新生成会话，以降低会话固定攻击风险，并缩小会话劫持的影响时间窗口。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚠️</span>
+                    <div>
+                        <strong>User-Agent 变化检测与日志记录</strong>
+                        <span class="detail">当 User-Agent 变化时（浏览器切换），会话触发警告日志并建议重新生成，同时不中断用户流程。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.26 ===== -->
 <article class="release">
     <div class="release-header">
         <span class="version-badge">v2.2.26</span>
-        <span class="release-title">AES-256-GCM 加密升级、AEAD 身份验证与向后兼容性</span>
+        <span class="release-title">AES-256-GCM 加密升级、AEAD 身份验证与向后兼容性</span></span>
         <span class="release-date">2026-08-18</span>
     </div>
     <div class="release-body">

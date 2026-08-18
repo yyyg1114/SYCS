@@ -1,3 +1,42 @@
+<!-- ===== v2.2.27 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.27</span>
+        <span class="release-title">Session Security: Risk-Based Validation, Periodic Regeneration &amp; Mobile-Friendly</span>
+        <span class="release-date">2026-08-18</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> Security &amp; Reliability
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>Risk-based session validation (IP relaxation)</strong>
+                        <span class="detail">Removed strict IP address validation that blocked mobile and VPN users; now only User-Agent changes trigger soft warnings with optional session regeneration.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔄</span>
+                    <div>
+                        <strong>Periodic session ID regeneration (15-minute intervals)</strong>
+                        <span class="detail">Sessions are now regenerated every 15 minutes to mitigate session fixation attacks and reduce hijacking window.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚠️</span>
+                    <div>
+                        <strong>User-Agent change detection with logging</strong>
+                        <span class="detail">When User-Agent changes (browser switch), session triggers a warning log and recommends regeneration without breaking user flow.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.26 ===== -->
 <article class="release">
     <div class="release-header">
