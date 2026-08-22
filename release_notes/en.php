@@ -1,3 +1,28 @@
+<!-- ===== v2.2.29 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.29</span>
+        <span class="release-title">BOM Removal from API Files</span>
+        <span class="release-date">2026-08-22</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Improvements &amp; Fixes
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🐛</span>
+                    <div>
+                        <strong>Removed UTF-8 BOM from PHP files</strong>
+                        <span class="detail">Removed unintended Byte Order Marks (BOM) from backend API handler files to prevent unexpected whitespace output and header already sent errors.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.28 ===== -->
 <article class="release">
     <div class="release-header">

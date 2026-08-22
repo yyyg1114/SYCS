@@ -7,6 +7,31 @@
  */
 ?>
 
+<!-- ===== v2.2.29 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.29</span>
+        <span class="release-title">移除 API 文件中的 BOM 字符</span>
+        <span class="release-date">2026-08-22</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改进与修复 (Improvements &amp; Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🐛</span>
+                    <div>
+                        <strong>移除 PHP 文件中的 UTF-8 BOM</strong>
+                        <span class="detail">移除了后端 API 处理程序文件中意外包含的字节顺序标记 (BOM)，以防止意外的空白输出和标头已发送错误。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.28 ===== -->
 <article class="release">
     <div class="release-header">
