@@ -1,3 +1,42 @@
+<!-- ===== v2.2.30 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.30</span>
+        <span class="release-title">Session Hardening, Login Abuse Protection &amp; Restricted DM Access</span>
+        <span class="release-date">2026-08-23</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> Security &amp; Reliability
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Brute-force protection on login</strong>
+                        <span class="detail">Login attempts are now tracked by both username and IP address, automatically locking accounts or clients after repeated failures within a 15-minute window and clearing failed records after a successful sign-in.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>Hardened session handling</strong>
+                        <span class="detail">Sessions now regenerate on login and periodically every 15 minutes, while User-Agent changes trigger advisory warnings and regeneration to reduce session fixation and hijack risk.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">💬</span>
+                    <div>
+                        <strong>Direct-message access checks</strong>
+                        <span class="detail">DM retrieval, sending, and read-state updates now only allow access to accepted friends or users with an existing DM history, preventing unauthorized inbox discovery and unwanted message access.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.29 ===== -->
 <article class="release">
     <div class="release-header">

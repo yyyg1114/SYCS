@@ -18,11 +18,13 @@ $dbName = getenv('DB_NAME');
 if ($dbHost === false || $dbUser === false || $dbPass === false || $dbName === false) {
     error_log("FATAL: DB environment variables (DB_HOST, DB_USER, DB_PASS, DB_NAME) are not set.");
     http_response_code(500);
-    die("Internal Server Error: Database configuration is missing.");
+    die("Internal Server Error");
 }
 
 $mysqli = new mysqli('p:' . $dbHost, $dbUser, $dbPass, $dbName);
 
 if ($mysqli->connect_error) {
-    die("DB connection failed: " . $mysqli->connect_error);
+    error_log("DB connection failed: " . $mysqli->connect_error);
+    http_response_code(500);
+    die("Internal Server Error");
 }

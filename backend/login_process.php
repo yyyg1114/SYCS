@@ -16,7 +16,8 @@ $lockMinutes = 15;
 $lockWindow  = $lockMinutes * 60; // 秒換算
 $maxAttempts = 5;
 
-// ユーザー名での失敗数を取得（bind_result使用 ※mysqlnd不要）
+// 失敗時の記録用: username と IP の両方を記録して、名前・IP の両方をロック対象にする
+// 既存スキーマ `login_attempts(identifier, attempted_at)` を再利用する。
 $countByUser = 0;
 $stmtU = $mysqli->prepare(
     "SELECT COUNT(*) FROM login_attempts
@@ -33,7 +34,6 @@ if ($stmtU) {
     error_log("login_attempts COUNT prepare failed (user): " . $mysqli->error);
 }
 
-// IPアドレスでの失敗数を取得
 $countByIp = 0;
 $stmtI = $mysqli->prepare(
     "SELECT COUNT(*) FROM login_attempts
@@ -52,13 +52,24 @@ if ($stmtI) {
 
 // どちらか一方でも上限に達したらロック
 if ((int)$countByUser >= $maxAttempts || (int)$countByIp >= $maxAttempts) {
-    die("ログイン試行回数の上限（{$maxAttempts}回）に達しました。{$lockMinutes}分後に再試行してください。");
+    error_log("Login rate limited for username=[$username] or IP=[$ip]");
+    die("ログイン試行回数の上限に達しました。{$lockMinutes}分後に再試行してください。");
 }
 
 // --- 認証処理 ---
 $stmt = $mysqli->prepare("SELECT id, username, password, is_verified, last_thread_id FROM users WHERE username = ?");
+if ($stmt === false) {
+    error_log("SELECT user prepare failed: " . $mysqli->error);
+    die("ログイン処理中にエラーが発生しました。しばらくしてから再試行してください。");
+}
+
 $stmt->bind_param("s", $username);
-$stmt->execute();
+if (!$stmt->execute()) {
+    error_log("SELECT user execute failed: " . $stmt->error);
+    $stmt->close();
+    die("ログイン処理中にエラーが発生しました。しばらくしてから再試行してください。");
+}
+
 $stmt->bind_result($userId, $dbUsername, $dbPassword, $isVerified, $lastThreadId);
 $stmt->fetch();
 $stmt->close();
@@ -71,9 +82,10 @@ if ($userId && $dbPassword !== null && password_verify($password, $dbPassword)) 
     // ログイン成功: セッションIDを再生成してセッション固定攻撃を防ぐ
     session_regenerate_id(true);
 
-    Session::set('user_id', $userId);
-    Session::set('user', $dbUsername);
-    Session::set('last_thread_id', $lastThreadId ?: 1);
+    $session = new Session();
+    $session->set('user_id', $userId);
+    $session->set('user', $dbUsername);
+    $session->set('last_thread_id', $lastThreadId ?: 1);
 
     // ログイン成功時: 該当ユーザー+IPの失敗記録をクリア
     $delStmt = $mysqli->prepare(
@@ -113,5 +125,6 @@ if ($userId && $dbPassword !== null && password_verify($password, $dbPassword)) 
         $insStmt2->close();
     }
 
-    die("ユーザー名またはパスワードが正しくありません。");
+    // 認証失敗時の情報公開を避ける: どのアカウントが存在するかは漏らさない
+    die("ログインに失敗しました。しばらくしてから再試行してください。");
 }

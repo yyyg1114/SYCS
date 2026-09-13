@@ -13,7 +13,42 @@ class DirectMessageHandler extends BaseHandler
         if (function_exists('db_cleanup_expired')) {
             db_cleanup_expired($this->mysqli);
         }
-        $pid  = (int)$this->getGet('partner_id', 0);
+
+        $pid = (int)$this->getGet('partner_id', 0);
+        if ($pid <= 0 || $pid === $this->userId) {
+            echo json_encode([]);
+            return;
+        }
+
+        // Only allow access to users with an accepted friendship or a prior DM relationship.
+        $friendStmt = $this->mysqli->prepare(
+            "SELECT 1 FROM friends
+            WHERE ((user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?))
+            AND status = 'accepted'
+            LIMIT 1"
+        );
+        $friendStmt->bind_param("iiii", $this->userId, $pid, $pid, $this->userId);
+        $friendStmt->execute();
+        $friendCheck = $friendStmt->get_result()->fetch_assoc();
+        $friendStmt->close();
+
+        if (!$friendCheck) {
+            $dmStmt = $this->mysqli->prepare(
+                "SELECT 1 FROM direct_messages
+                WHERE ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))
+                LIMIT 1"
+            );
+            $dmStmt->bind_param("iiii", $this->userId, $pid, $pid, $this->userId);
+            $dmStmt->execute();
+            $dmExists = $dmStmt->get_result()->fetch_assoc();
+            $dmStmt->close();
+
+            if (!$dmExists) {
+                echo json_encode([]);
+                return;
+            }
+        }
+
         $stmt = $this->mysqli->prepare(
             "SELECT * FROM direct_messages
             WHERE (sender_id = ? AND receiver_id = ?)
@@ -31,7 +66,40 @@ class DirectMessageHandler extends BaseHandler
         if (function_exists('db_cleanup_expired')) {
             db_cleanup_expired($this->mysqli);
         }
-        $rid  = (int)$this->getParam('receiver_id', 0);
+        $rid = (int)$this->getParam('receiver_id', 0);
+        if ($rid <= 0 || $rid === $this->userId) {
+            echo json_encode(['success' => false, 'error' => 'Invalid receiver']);
+            return;
+        }
+
+        $friendStmt = $this->mysqli->prepare(
+            "SELECT 1 FROM friends
+            WHERE ((user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?))
+            AND status = 'accepted'
+            LIMIT 1"
+        );
+        $friendStmt->bind_param("iiii", $this->userId, $rid, $rid, $this->userId);
+        $friendStmt->execute();
+        $friendExists = $friendStmt->get_result()->fetch_assoc();
+        $friendStmt->close();
+
+        if (!$friendExists) {
+            $dmStmt = $this->mysqli->prepare(
+                "SELECT 1 FROM direct_messages
+                WHERE ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))
+                LIMIT 1"
+            );
+            $dmStmt->bind_param("iiii", $this->userId, $rid, $rid, $this->userId);
+            $dmStmt->execute();
+            $dmExists = $dmStmt->get_result()->fetch_assoc();
+            $dmStmt->close();
+
+            if (!$dmExists) {
+                echo json_encode(['success' => false, 'error' => 'Friendship required for DM']);
+                return;
+            }
+        }
+
         $con  = $this->getPost('content', '');
         $att  = $this->handleFileUpload();
 
@@ -76,7 +144,28 @@ class DirectMessageHandler extends BaseHandler
     public function markDmsAsRead(): void
     {
         $this->verifyCsrf();
-        $pid  = $this->getPost('partner_id', 0);
+        $pid = (int)$this->getPost('partner_id', 0);
+        if ($pid <= 0 || $pid === $this->userId) {
+            echo json_encode(['success' => false, 'error' => 'Invalid partner']);
+            return;
+        }
+
+        $friendStmt = $this->mysqli->prepare(
+            "SELECT 1 FROM friends
+            WHERE ((user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?))
+            AND status = 'accepted'
+            LIMIT 1"
+        );
+        $friendStmt->bind_param("iiii", $this->userId, $pid, $pid, $this->userId);
+        $friendStmt->execute();
+        $friendExists = $friendStmt->get_result()->fetch_assoc();
+        $friendStmt->close();
+
+        if (!$friendExists) {
+            echo json_encode(['success' => false, 'error' => 'Access denied']);
+            return;
+        }
+
         $stmt = $this->mysqli->prepare(
             "UPDATE direct_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ?"
         );

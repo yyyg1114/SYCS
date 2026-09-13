@@ -218,18 +218,31 @@ class MessageHandler extends BaseHandler
     {
         $this->verifyCsrf();
         $mid = (int)$this->getParam('message_id', 0);
+        if ($mid <= 0) {
+            echo json_encode(['success' => false, 'error' => 'Invalid message ID']);
+            return;
+        }
 
-        // メッセージが存在し、かつ自分がアクセス権のあるスレッドか確認
+        // The caller must either be the message author or the creator of its thread.
         $chk = $this->mysqli->prepare(
-            "SELECT m.id FROM messages m
+            "SELECT m.id, m.user_id, t.creator_id
+            FROM messages m
             JOIN threads t ON m.thread_id = t.id
             WHERE m.id = ?
             LIMIT 1"
         );
         $chk->bind_param("i", $mid);
         $chk->execute();
-        if (!$chk->get_result()->fetch_assoc()) {
+        $message = $chk->get_result()->fetch_assoc();
+        $chk->close();
+
+        if (!$message) {
             echo json_encode(['success' => false, 'error' => 'Message not found']);
+            return;
+        }
+
+        if ((int)$message['user_id'] !== (int)$this->userId && (int)$message['creator_id'] !== (int)$this->userId) {
+            echo json_encode(['success' => false, 'error' => 'Access denied']);
             return;
         }
 

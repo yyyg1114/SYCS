@@ -7,6 +7,45 @@
  */
 ?>
 
+<!-- ===== v2.2.30 ===== -->
+<article class="release">
+<div class="release-header">
+    <span class="version-badge">v2.2.30</span>
+    <span class="release-title">セッション強化、ログイン不正試行対策、DM アクセス制限</span>
+    <span class="release-date">2026-08-23</span>
+</div>
+<div class="release-body">
+    <div class="section">
+        <div class="section-title">
+            <span class="dot dot-green"></span> セキュリティと信頼性
+        </div>
+        <ul>
+            <li>
+                <span class="icon">🛡️</span>
+                <div>
+                    <strong>ログインの総当たり攻撃対策</strong>
+                    <span class="detail">ログイン失敗をユーザー名と IP の両方で記録し、15 分以内の連続失敗で自動的にロックし、成功時には失敗記録をリセットするようにしました。</span>
+                </div>
+            </li>
+            <li>
+                <span class="icon">🔒</span>
+                <div>
+                    <strong>セッションの強化</strong>
+                    <span class="detail">ログイン時と 15 分ごとの定期的なセッション再生成を実施し、User-Agent の変化時に警告ログと再生成を促して、セッション固定攻撃と乗っ取りリスクを低減しました。</span>
+                </div>
+            </li>
+            <li>
+                <span class="icon">💬</span>
+                <div>
+                    <strong>ダイレクトメッセージのアクセス制御</strong>
+                    <span class="detail">DM の取得・送信・既読更新時に、承認済みのフレンド関係または既存の DM 履歴がある相手のみアクセスを許可し、無許可な受信箱探索や不正アクセスを防止しました。</span>
+                </div>
+            </li>
+        </ul>
+    </div>
+</div>
+</article>
+
 <!-- ===== v2.2.29 ===== -->
 <article class="release">
     <div class="release-header">

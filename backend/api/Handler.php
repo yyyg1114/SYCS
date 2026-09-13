@@ -42,200 +42,93 @@ class ApiHandler
         try {
             $args = [$this->mysqli, $this->userId, $this->csrfToken];
 
-            switch ($action) {
+            $routes = [
                 // ---- User ----
-                case 'update_profile':
-                    (new UserHandler(...$args))->updateProfile();
-                    break;
-                case 'push_subscribe':
-                    (new UserHandler(...$args))->pushSubscribe();
-                    break;
-                case 'update_status':
-                    (new UserHandler(...$args))->updateStatus();
-                    break;
-                case 'get_user_status':
-                    (new UserHandler(...$args))->getUserStatus();
-                    break;
-                case 'get_user_profile':
-                    (new UserHandler(...$args))->getUserProfile();
-                    break;
-                case 'get_friends_statuses':
-                    (new UserHandler(...$args))->getFriendsStatuses();
-                    break;
-                case 'get_all_users':
-                    (new UserHandler(...$args))->getAllUsers();
-                    break;
-                case 'search_users':
-                    (new UserHandler(...$args))->searchUsers();
-                    break;
-                case 'get_online_users':
-                    (new UserHandler(...$args))->getOnlineUsers();
-                    break;
-                case 'get_my_files':
-                    (new UserHandler(...$args))->getMyFiles();
-                    break;
-                case 'toggle_mute':
-                    (new UserHandler(...$args))->toggleMute();
-                    break;
-                case 'get_mute_statuses':
-                    (new UserHandler(...$args))->getMuteStatuses();
-                    break;
-                case 'set_lang':
-                    (new UserHandler(...$args))->setLang();
-                    break;
+                'update_profile' => [UserHandler::class, 'updateProfile'],
+                'push_subscribe' => [UserHandler::class, 'pushSubscribe'],
+                'update_status' => [UserHandler::class, 'updateStatus'],
+                'get_user_status' => [UserHandler::class, 'getUserStatus'],
+                'get_user_profile' => [UserHandler::class, 'getUserProfile'],
+                'get_friends_statuses' => [UserHandler::class, 'getFriendsStatuses'],
+                'get_all_users' => [UserHandler::class, 'getAllUsers'],
+                'search_users' => [UserHandler::class, 'searchUsers'],
+                'get_online_users' => [UserHandler::class, 'getOnlineUsers'],
+                'get_my_files' => [UserHandler::class, 'getMyFiles'],
+                'toggle_mute' => [UserHandler::class, 'toggleMute'],
+                'get_mute_statuses' => [UserHandler::class, 'getMuteStatuses'],
+                'set_lang' => [UserHandler::class, 'setLang'],
 
                 // ---- Messages ----
-                case 'get_messages':
-                    (new MessageHandler(...$args))->getMessages();
-                    break;
-                case 'send_message':
-                    (new MessageHandler(...$args))->sendMessage();
-                    break;
-                case 'edit_message':
-                    (new MessageHandler(...$args))->editMessage();
-                    break;
-                case 'delete_message':
-                    (new MessageHandler(...$args))->deleteMessage();
-                    break;
-                case 'delete_messages':
-                    (new MessageHandler(...$args))->deleteMessages();
-                    break;
-                case 'toggle_reaction':
-                    (new MessageHandler(...$args))->toggleReaction();
-                    break;
-                case 'toggle_pin':
-                    (new MessageHandler(...$args))->togglePin();
-                    break;
-                case 'search_messages':
-                    (new MessageHandler(...$args))->searchMessages();
-                    break;
-                case 'getPinnedMessages':
-                case 'get_pinned_messages':
-                    (new MessageHandler(...$args))->getPinnedMessages();
-                    break;
-                case 'get_attachments':
-                    (new MessageHandler(...$args))->getAttachments();
-                    break;
-                case 'update_typing_status':
-                    (new MessageHandler(...$args))->updateTypingStatus();
-                    break;
-                case 'get_typing_users':
-                    (new MessageHandler(...$args))->getTypingUsers();
-                    break;
+                'get_messages' => [MessageHandler::class, 'getMessages'],
+                'send_message' => [MessageHandler::class, 'sendMessage'],
+                'edit_message' => [MessageHandler::class, 'editMessage'],
+                'delete_message' => [MessageHandler::class, 'deleteMessage'],
+                'delete_messages' => [MessageHandler::class, 'deleteMessages'],
+                'toggle_reaction' => [MessageHandler::class, 'toggleReaction'],
+                'toggle_pin' => [MessageHandler::class, 'togglePin'],
+                'search_messages' => [MessageHandler::class, 'searchMessages'],
+                'getPinnedMessages' => [MessageHandler::class, 'getPinnedMessages'],
+                'get_pinned_messages' => [MessageHandler::class, 'getPinnedMessages'],
+                'get_attachments' => [MessageHandler::class, 'getAttachments'],
+                'update_typing_status' => [MessageHandler::class, 'updateTypingStatus'],
+                'get_typing_users' => [MessageHandler::class, 'getTypingUsers'],
 
                 // ---- Direct Messages ----
-                case 'get_direct_messages':
-                    (new DirectMessageHandler(...$args))->getDirectMessages();
-                    break;
-                case 'send_direct_message':
-                    (new DirectMessageHandler(...$args))->sendDirectMessage();
-                    break;
-                case 'mark_dms_as_read':
-                    (new DirectMessageHandler(...$args))->markDmsAsRead();
-                    break;
-                case 'get_dm_partners':
-                    (new DirectMessageHandler(...$args))->getDmPartners();
-                    break;
-                case 'get_unread_dm_counts':
-                    (new DirectMessageHandler(...$args))->getUnreadDmCounts();
-                    break;
+                'get_direct_messages' => [DirectMessageHandler::class, 'getDirectMessages'],
+                'send_direct_message' => [DirectMessageHandler::class, 'sendDirectMessage'],
+                'mark_dms_as_read' => [DirectMessageHandler::class, 'markDmsAsRead'],
+                'get_dm_partners' => [DirectMessageHandler::class, 'getDmPartners'],
+                'get_unread_dm_counts' => [DirectMessageHandler::class, 'getUnreadDmCounts'],
 
                 // ---- Threads ----
-                case 'get_threads':
-                    (new ThreadHandler(...$args))->getThreads();
-                    break;
-                case 'create_thread':
-                    (new ThreadHandler(...$args))->createThread();
-                    break;
-                case 'edit_thread':
-                case 'update_thread':
-                    (new ThreadHandler(...$args))->editThread();
-                    break;
-                case 'delete_thread':
-                    (new ThreadHandler(...$args))->deleteThread();
-                    break;
-                case 'set_last_thread':
-                    (new ThreadHandler(...$args))->setLastThread();
-                    break;
-                case 'toggle_favorite':
-                    (new ThreadHandler(...$args))->toggleFavorite();
-                    break;
-                case 'get_favorites':
-                    (new ThreadHandler(...$args))->getFavorites();
-                    break;
-                case 'check_favorite':
-                    (new ThreadHandler(...$args))->checkFavorite();
-                    break;
+                'get_threads' => [ThreadHandler::class, 'getThreads'],
+                'create_thread' => [ThreadHandler::class, 'createThread'],
+                'edit_thread' => [ThreadHandler::class, 'editThread'],
+                'update_thread' => [ThreadHandler::class, 'editThread'],
+                'delete_thread' => [ThreadHandler::class, 'deleteThread'],
+                'set_last_thread' => [ThreadHandler::class, 'setLastThread'],
+                'toggle_favorite' => [ThreadHandler::class, 'toggleFavorite'],
+                'get_favorites' => [ThreadHandler::class, 'getFavorites'],
+                'check_favorite' => [ThreadHandler::class, 'checkFavorite'],
 
                 // ---- Group ----
-                case 'create_group_thread':
-                    (new GroupHandler(...$args))->createGroupThread();
-                    break;
-                case 'get_group_threads':
-                    (new GroupHandler(...$args))->getGroupThreads();
-                    break;
-                case 'get_group_messages':
-                    (new GroupHandler(...$args))->getGroupMessages();
-                    break;
+                'create_group_thread' => [GroupHandler::class, 'createGroupThread'],
+                'get_group_threads' => [GroupHandler::class, 'getGroupThreads'],
+                'get_group_messages' => [GroupHandler::class, 'getGroupMessages'],
 
                 // ---- Friends ----
-                case 'request_friend':
-                    (new FriendHandler(...$args))->requestFriend();
-                    break;
-                case 'send_friend_request':
-                    (new FriendHandler(...$args))->sendFriendRequestAction();
-                    break;
-                case 'accept_friend':
-                    (new FriendHandler(...$args))->acceptFriend();
-                    break;
-                case 'get_friend_requests':
-                case 'get_pending_requests':
-                    (new FriendHandler(...$args))->getFriendRequests();
-                    break;
-                case 'handle_friend_request':
-                    (new FriendHandler(...$args))->handleFriendRequestAction();
-                    break;
-                case 'get_friends':
-                    (new FriendHandler(...$args))->getFriends();
-                    break;
-                case 'block_user':
-                    (new FriendHandler(...$args))->blockUser();
-                    break;
-                case 'unblock_user':
-                    (new FriendHandler(...$args))->unblockUser();
-                    break;
-                case 'get_blocked_users':
-                    (new FriendHandler(...$args))->getBlockedUsers();
-                    break;
+                'request_friend' => [FriendHandler::class, 'requestFriend'],
+                'send_friend_request' => [FriendHandler::class, 'sendFriendRequestAction'],
+                'accept_friend' => [FriendHandler::class, 'acceptFriend'],
+                'get_friend_requests' => [FriendHandler::class, 'getFriendRequests'],
+                'get_pending_requests' => [FriendHandler::class, 'getFriendRequests'],
+                'handle_friend_request' => [FriendHandler::class, 'handleFriendRequestAction'],
+                'get_friends' => [FriendHandler::class, 'getFriends'],
+                'block_user' => [FriendHandler::class, 'blockUser'],
+                'unblock_user' => [FriendHandler::class, 'unblockUser'],
+                'get_blocked_users' => [FriendHandler::class, 'getBlockedUsers'],
 
                 // ---- Location ----
-                case 'update_location':
-                    (new LocationHandler(...$args))->updateLocation();
-                    break;
-                case 'get_user_locations':
-                    (new LocationHandler(...$args))->getUserLocations();
-                    break;
+                'update_location' => [LocationHandler::class, 'updateLocation'],
+                'get_user_locations' => [LocationHandler::class, 'getUserLocations'],
 
                 // ---- Meeting / Signaling ----
-                case 'join_meeting':
-                    (new MeetingHandler(...$args))->joinMeeting();
-                    break;
-                case 'send_signaling':
-                    (new MeetingHandler(...$args))->sendSignaling();
-                    break;
-                case 'get_signaling':
-                    (new MeetingHandler(...$args))->getSignaling();
-                    break;
+                'join_meeting' => [MeetingHandler::class, 'joinMeeting'],
+                'send_signaling' => [MeetingHandler::class, 'sendSignaling'],
+                'get_signaling' => [MeetingHandler::class, 'getSignaling'],
 
                 // ---- SSE ----
-                case 'sse':
-                    (new SseHandler(...$args))->streamEvents();
-                    break;
+                'sse' => [SseHandler::class, 'streamEvents'],
+            ];
 
-                default:
-                    echo json_encode(['error' => 'Unknown action: ' . $action]);
-                    break;
+            if (!isset($routes[$action])) {
+                echo json_encode(['error' => 'Unknown action: ' . $action]);
+                return;
             }
+
+            [$handlerClass, $method] = $routes[$action];
+            $handler = new $handlerClass(...$args);
+            $handler->$method();
         } catch (\Exception $e) {
             $code = 500;
             if ($e->getMessage() === 'Invalid CSRF Token') {

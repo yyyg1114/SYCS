@@ -23,7 +23,8 @@ class LocationHandler extends BaseHandler
 
     public function getUserLocations(): void
     {
-        $stmt = $this->mysqli->prepare("SELECT * FROM user_locations");
+        $stmt = $this->mysqli->prepare("SELECT * FROM user_locations WHERE user_id = ?");
+        $stmt->bind_param("i", $this->userId);
         $stmt->execute();
         echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
     }
