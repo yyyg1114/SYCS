@@ -215,8 +215,7 @@ function renderAttachment(path, container) {
   }
 
   const dlLink = document.createElement("a");
-  const fileName = path.split("/").pop();
-  dlLink.href = "download.php?file=" + fileName;
+  dlLink.href = "download.php?file=" + encodeURIComponent(path);
   dlLink.target = "_blank";
   dlLink.innerText = `⬇️ ${t("download", "ダウンロード")}`;
   dlLink.style.display = "inline-block";
