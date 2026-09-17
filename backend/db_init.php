@@ -33,6 +33,13 @@ function db_init($mysqli)
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
 
+    $mysqli->query("CREATE TABLE IF NOT EXISTS login_attempts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        identifier VARCHAR(255) NOT NULL,
+        attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_identifier_time (identifier, attempted_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+
     $mysqli->query("CREATE TABLE IF NOT EXISTS threads (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(100) NOT NULL,

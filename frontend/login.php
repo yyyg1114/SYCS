@@ -1,113 +1,118 @@
 <?php
-
-if (isset($_POST['username']) && $_POST['username'] === 'admin' && isset($_POST['password']) && $_POST['password'] === 'admin') {
-    $_SESSION['user_id'] = 1;
-    $_SESSION['username'] = 'admin';
-    header('Location: index.php');
-    exit;
-}
 require_once __DIR__ . '/../backend/session_config.php';
 require_once __DIR__ . '/../backend/db.php';
+require_once __DIR__ . '/../backend/db_init.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
 require_once __DIR__ . '/../backend/I18n.php';
+
+// Ensure the login attempt tracking table and related schema are present before any rate-limit checks run.
+db_init($mysqli);
 
 I18n::getInstance();
 SecurityUtil::sendSecurityHeaders();
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['password'])) {
-    try {
-        $u = $_POST['username'];
-        $p = $_POST['password'];
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        $error = __('invalid_request_csrf', '不正なリクエストです (CSRF Token Mismatch)');
+    } else {
+        try {
+            $u = $_POST['username'];
+            $p = $_POST['password'];
 
-        // --- ログイン試行制限チェック ---
-        $ip          = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $lockMinutes = 15;
-        $lockWindow  = $lockMinutes * 60;
-        $maxAttempts = 5;
+            // --- ログイン試行制限チェック ---
+            $ip          = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+            $lockMinutes = 15;
+            $lockWindow  = $lockMinutes * 60;
+            $maxAttempts = 5;
 
-        $countByUser = 0;
-        $stmtU = $mysqli->prepare(
-            "SELECT COUNT(*) FROM login_attempts
-        WHERE identifier = ?
-        AND attempted_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
-        );
-        if ($stmtU) {
-            $stmtU->bind_param("si", $u, $lockWindow);
-            $stmtU->execute();
-            $stmtU->bind_result($countByUser);
-            $stmtU->fetch();
-            $stmtU->close();
-        }
+            $countByUser = 0;
+            $stmtU = $mysqli->prepare(
+                "SELECT COUNT(*) FROM login_attempts
+            WHERE identifier = ?
+            AND attempted_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
+            );
+            if ($stmtU) {
+                $stmtU->bind_param("si", $u, $lockWindow);
+                $stmtU->execute();
+                $stmtU->bind_result($countByUser);
+                $stmtU->fetch();
+                $stmtU->close();
+            }
 
-        $countByIp = 0;
-        $stmtI = $mysqli->prepare(
-            "SELECT COUNT(*) FROM login_attempts
-        WHERE identifier = ?
-        AND attempted_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
-        );
-        if ($stmtI) {
-            $stmtI->bind_param("si", $ip, $lockWindow);
-            $stmtI->execute();
-            $stmtI->bind_result($countByIp);
-            $stmtI->fetch();
-            $stmtI->close();
-        }
+            $countByIp = 0;
+            $stmtI = $mysqli->prepare(
+                "SELECT COUNT(*) FROM login_attempts
+            WHERE identifier = ?
+            AND attempted_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
+            );
+            if ($stmtI) {
+                $stmtI->bind_param("si", $ip, $lockWindow);
+                $stmtI->execute();
+                $stmtI->bind_result($countByIp);
+                $stmtI->fetch();
+                $stmtI->close();
+            }
 
-        if ((int)$countByUser >= $maxAttempts || (int)$countByIp >= $maxAttempts) {
-            $error = sprintf(__('login_limit_reached', "ログイン試行回数の上限（%d回）に達しました。%d分後に再試行してください。"), $maxAttempts, $lockMinutes);
-        } else {
-            // --- 認証処理 ---
-            $stmt = $mysqli->prepare("SELECT id, username, password, is_verified, last_thread_id FROM users WHERE username = ?");
-            $stmt->bind_param("s", $u);
-            $stmt->execute();
-            $stmt->bind_result($userId, $dbUsername, $dbPassword, $isVerified, $lastThreadId);
-            $stmt->fetch();
-            $stmt->close();
-
-            if ($userId && $dbPassword !== null && password_verify($p, $dbPassword)) {
-                if ($isVerified == 0) {
-                    $error = __('email_not_verified', 'メールアドレスの本登録が完了していません。');
-                } else {
-                    // ログイン成功: セッション固定攻撃対策
-                    session_regenerate_id(true);
-                    $_SESSION['user_id']        = $userId;
-                    $_SESSION['user']           = $dbUsername;
-                    $_SESSION['last_thread_id'] = $lastThreadId ?: 1;
-
-                    // 失敗記録をクリア
-                    $del = $mysqli->prepare("DELETE FROM login_attempts WHERE identifier = ? OR identifier = ?");
-                    if ($del) {
-                        $del->bind_param("ss", $u, $ip);
-                        $del->execute();
-                        $del->close();
-                    }
-
-                    header('Location: index.php');
-                    exit;
-                }
+            if ((int)$countByUser >= $maxAttempts || (int)$countByIp >= $maxAttempts) {
+                $error = sprintf(__('login_limit_reached', "ログイン試行回数の上限（%d回）に達しました。%d分後に再試行してください。"), $maxAttempts, $lockMinutes);
             } else {
-                $error = __('invalid_credentials', 'ユーザー名またはパスワードが正しくありません。');
+                // --- 認証処理 ---
+                $stmt = $mysqli->prepare("SELECT id, username, password, is_verified, last_thread_id FROM users WHERE username = ?");
+                $stmt->bind_param("s", $u);
+                $stmt->execute();
+                $stmt->bind_result($userId, $dbUsername, $dbPassword, $isVerified, $lastThreadId);
+                $stmt->fetch();
+                $stmt->close();
 
-                // ログイン失敗を記録
-                $ins = $mysqli->prepare("INSERT INTO login_attempts (identifier) VALUES (?)");
-                if ($ins) {
-                    $ins->bind_param("s", $u);
-                    $ins->execute();
-                    $ins->close();
-                }
-                $ins2 = $mysqli->prepare("INSERT INTO login_attempts (identifier) VALUES (?)");
-                if ($ins2) {
-                    $ins2->bind_param("s", $ip);
-                    $ins2->execute();
-                    $ins2->close();
+                if ($userId && $dbPassword !== null && password_verify($p, $dbPassword)) {
+                    if ($isVerified == 0) {
+                        $error = __('email_not_verified', 'メールアドレスの本登録が完了していません。');
+                    } else {
+                        // ログイン成功: セッション固定攻撃対策
+                        session_regenerate_id(true);
+                        $_SESSION['user_id']        = $userId;
+                        $_SESSION['user']           = $dbUsername;
+                        $_SESSION['last_thread_id'] = $lastThreadId ?: 1;
+
+                        // 失敗記録をクリア
+                        $del = $mysqli->prepare("DELETE FROM login_attempts WHERE identifier = ? OR identifier = ?");
+                        if ($del) {
+                            $del->bind_param("ss", $u, $ip);
+                            $del->execute();
+                            $del->close();
+                        }
+
+                        header('Location: index.php');
+                        exit;
+                    }
+                } else {
+                    $error = __('invalid_credentials', 'ユーザー名またはパスワードが正しくありません。');
+
+                    // ログイン失敗を記録
+                    $ins = $mysqli->prepare("INSERT INTO login_attempts (identifier) VALUES (?)");
+                    if ($ins) {
+                        $ins->bind_param("s", $u);
+                        $ins->execute();
+                        $ins->close();
+                    }
+                    $ins2 = $mysqli->prepare("INSERT INTO login_attempts (identifier) VALUES (?)");
+                    if ($ins2) {
+                        $ins2->bind_param("s", $ip);
+                        $ins2->execute();
+                        $ins2->close();
+                    }
                 }
             }
+        } catch (Exception $e) {
+            error_log('Login error: ' . $e->getMessage());
+            $error = __('unexpected_error', '予期しないエラーが発生しました。');
         }
-    } catch (Exception $e) {
-        error_log('Login error: ' . $e->getMessage());
-        $error = __('unexpected_error', '予期しないエラーが発生しました。');
     }
 }
 
@@ -743,6 +748,7 @@ if (isset($_GET['api'])) {
         <?php endif; ?>
 
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
             <div class="input-group">
                 <label for="username"><?= __('username') ?></label>
                 <input type="text" id="username" name="username" placeholder="Username" required autofocus>

@@ -2,6 +2,9 @@
 require_once __DIR__ . '/session_config.php';
 require_once __DIR__ . '/Session.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/db_init.php';
+
+db_init($mysqli);
 
 $username = $_POST['username'] ?? '';
 $password = $_POST['password'] ?? '';
