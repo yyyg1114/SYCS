@@ -139,9 +139,9 @@ export async function searchMessages() {
 
   if (!query && !hasAttachment && !dateFrom && !dateTo) return;
 
-  // クエリパラメータを直接渡す（api()は index.php?api= を前置する）
+  // Use 'keyword' to match MessageHandler::searchMessages() backend parameter
   let apiPath = `search_messages`;
-  if (query) apiPath += `&q=${encodeURIComponent(query)}`;
+  if (query) apiPath += `&keyword=${encodeURIComponent(query)}`;
   if (hasAttachment) apiPath += `&has_attachment=1`;
   if (dateFrom) apiPath += `&date_from=${encodeURIComponent(dateFrom)}`;
   if (dateTo) apiPath += `&date_to=${encodeURIComponent(dateTo)}`;
@@ -358,7 +358,11 @@ export async function submitGroupCreation() {
     return;
   }
 
-  const res = await api("create_group", "POST", { name, members });
+  // action='create_group_thread', participant_ids as JSON string to match GroupHandler::createGroupThread()
+  const res = await api("create_group_thread", "POST", {
+    name,
+    participant_ids: JSON.stringify(members)
+  });
   if (res && res.success) {
     location.reload();
   }

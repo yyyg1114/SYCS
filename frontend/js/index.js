@@ -7,6 +7,7 @@ import { api } from './modules/api.js';
 import { showToast, updateMyStatus, loadOnlineUsers } from './modules/ui.js';
 import { renderMessageNode } from './modules/message.js';
 import { loadThreads, loadGroupThreads, loadMessages, loadGroupMessages, updateFavoriteStatus } from './modules/chat.js';
+import { refreshDmIfOpen } from './modules/dm.js';
 import { initSocket, socket } from './modules/socket.js';
 import { initNotifications, showBrowserNotification, requestNotificationPermission, updateTabBadge, resetTabBadge, trackUnread, clearUnread } from './modules/notifications.js';
 
@@ -164,16 +165,44 @@ async function initApp() {
                 }
             }
         },
-        onNewDm: (data) => {
-            const isDmVisible = document.getElementById("dm-pane").classList.contains("active");
-            if (isDmVisible) {
-                // If DM pane is active, we might want to refresh or rely on modules/dm.js
-                // modules/dm.js likely handles its own socket listeners or we can add it here
+        onNewGroupMessage: (data) => {
+            const container = document.getElementById("message-container");
+            // If the currently viewed group thread matches the incoming message, refresh immediately
+            if (container && isGroupChat && data.groupThreadId == currentThreadId) {
+                loadGroupMessages(currentThreadId, container, {currentUserName, currentUserId}, getMessageCallbacks());
+            } else if (data.userId != currentUserId) {
+                // Otherwise show notification and track unread
+                showBrowserNotification(`New message in ${data.groupName || 'Group'}`, {
+                    body: `${data.username}: ${data.content}`,
+                    tag: `group-${data.groupThreadId}`
+                });
+                trackUnread(`group-${data.groupThreadId}`);
+                if (document.visibilityState !== 'visible') {
+                    updateTabBadge();
+                }
             }
-            showBrowserNotification(`New DM from ${data.username}`, {
-                body: data.content,
-                tag: `dm-${data.userId}`
-            });
+        },
+        onNewDm: (data) => {
+            // If the DM conversation with this sender is currently open, refresh messages immediately
+            refreshDmIfOpen(data);
+
+            // Only show notification if it's not from the current user
+            if (data.senderId != currentUserId && data.userId != currentUserId) {
+                const isDmPaneOpen = document.getElementById("dm-pane")?.classList.contains("active");
+                const currentOpenDmId = window.currentDmPartnerId;
+                const senderId = data.senderId ?? data.userId;
+
+                // Show browser notification only if DM pane is not open for this sender
+                if (!isDmPaneOpen || currentOpenDmId != senderId) {
+                    showBrowserNotification(`New DM from ${data.username}`, {
+                        body: data.content,
+                        tag: `dm-${senderId}`
+                    });
+                    if (document.visibilityState !== 'visible') {
+                        updateTabBadge();
+                    }
+                }
+            }
         }
     });
 

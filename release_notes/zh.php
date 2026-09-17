@@ -46,6 +46,52 @@
     </div>
 </article>
 
+<!-- ===== v2.2.30 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.30</span>
+        <span class="release-title">前端 API 同步与社交登录安全强化</span>
+        <span class="release-date">2026-09-17</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 安全与认证 (Security &amp; Auth)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>社交登录的会话固定攻击防护</strong>
+                        <span class="detail">在 OAuth 登录（如 Google）流程中添加了成功登录后的会话 ID 重新生成 (<code>session_regenerate_id</code>) 处理，进一步增强了安全性。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改进与修复 (Improvements &amp; Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔄</span>
+                    <div>
+                        <strong>API 端点与参数同步</strong>
+                        <span class="detail">更新了前端 JavaScript 调用的 API（如消息搜索、群组创建、发送私信等）的端点名称和参数，以匹配最新的后端处理程序架构。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">💬</span>
+                    <div>
+                        <strong>私信 (DM) UI 增强</strong>
+                        <span class="detail">引入了专门用于私信的消息加载逻辑，并结合实时 SSE 通知实现了界面的即时更新。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.29 ===== -->
 <article class="release">
     <div class="release-header">

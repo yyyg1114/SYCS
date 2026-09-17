@@ -223,11 +223,12 @@ class MessageHandler extends BaseHandler
             return;
         }
 
-        // The caller must either be the message author or the creator of its thread.
+        // The caller must either be the message author, the creator of its thread, or the creator of its group thread.
         $chk = $this->mysqli->prepare(
-            "SELECT m.id, m.user_id, t.creator_id
+            "SELECT m.id, m.user_id, t.creator_id AS thread_creator_id, gt.creator_id AS group_creator_id
             FROM messages m
-            JOIN threads t ON m.thread_id = t.id
+            LEFT JOIN threads t ON m.thread_id = t.id
+            LEFT JOIN group_threads gt ON m.group_thread_id = gt.id
             WHERE m.id = ?
             LIMIT 1"
         );
@@ -241,7 +242,11 @@ class MessageHandler extends BaseHandler
             return;
         }
 
-        if ((int)$message['user_id'] !== (int)$this->userId && (int)$message['creator_id'] !== (int)$this->userId) {
+        $isAuthor        = (int)$message['user_id']         === (int)$this->userId;
+        $isThreadCreator = (int)($message['thread_creator_id'] ?? 0) === (int)$this->userId;
+        $isGroupCreator  = (int)($message['group_creator_id']  ?? 0) === (int)$this->userId;
+
+        if (!$isAuthor && !$isThreadCreator && !$isGroupCreator) {
             echo json_encode(['success' => false, 'error' => 'Access denied']);
             return;
         }

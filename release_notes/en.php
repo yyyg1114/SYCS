@@ -37,6 +37,52 @@
     </div>
 </article>
 
+<!-- ===== v2.2.30 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.30</span>
+        <span class="release-title">Frontend API Sync and Social Login Security Enhancements</span>
+        <span class="release-date">2026-09-17</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> Security &amp; Auth
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Session Fixation Protection for Social Logins</strong>
+                        <span class="detail">Added session ID regeneration (<code>session_regenerate_id</code>) upon successful OAuth logins to prevent session fixation attacks and improve overall security.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Improvements &amp; Fixes
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔄</span>
+                    <div>
+                        <strong>API Endpoint and Parameter Synchronization</strong>
+                        <span class="detail">Updated frontend JavaScript API calls (e.g., message search, group creation, DM sending) to perfectly match the latest backend handler architecture and expected parameters.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">💬</span>
+                    <div>
+                        <strong>Direct Message (DM) UI Enhancements</strong>
+                        <span class="detail">Introduced dedicated message loading logic for DMs and integrated it with real-time SSE notifications for instant screen updates.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.29 ===== -->
 <article class="release">
     <div class="release-header">

@@ -74,13 +74,40 @@ class GroupHandler extends BaseHandler
         $chk->close();
 
         $stmt = $this->mysqli->prepare(
-            "SELECT m.*, u.username FROM messages m
+            "SELECT m.*, u.username, u.avatar_url, u.status,
+             r.username AS reply_username
+             FROM messages m
              JOIN users u ON m.user_id = u.id
+             LEFT JOIN users r ON m.reply_to_id = r.id
              WHERE m.group_thread_id = ?
              ORDER BY m.created_at ASC"
         );
         $stmt->bind_param("i", $tid);
         $stmt->execute();
-        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+        $messages = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+        // リアクションを各メッセージに付加（通常メッセージと同モデルに統一）
+        if (!empty($messages)) {
+            $ids          = array_column($messages, 'id');
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $types        = str_repeat('i', count($ids));
+            $rStmt        = $this->mysqli->prepare(
+                "SELECT message_id, user_id, emoji FROM message_reactions WHERE message_id IN ($placeholders)"
+            );
+            $rStmt->bind_param($types, ...$ids);
+            $rStmt->execute();
+            $reactions = $rStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+            $reactMap = [];
+            foreach ($reactions as $r) {
+                $reactMap[$r['message_id']][] = $r;
+            }
+            foreach ($messages as &$msg) {
+                $msg['reactions'] = $reactMap[$msg['id']] ?? [];
+            }
+            unset($msg);
+        }
+
+        echo json_encode($messages);
     }
 }

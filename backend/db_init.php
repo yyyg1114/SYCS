@@ -63,13 +63,19 @@ function db_init($mysqli)
 
     // 79-93: Default data
     $res = $mysqli->query("SELECT id FROM users WHERE id = 1");
-    if ($res->num_rows === 0) {
+    if ($res && $res->num_rows === 0) {
+        // NOTE: No fixed credentials. Generate a random initial password and log it once.
+        // In production, an administrator should set the password via the profile page.
+        $randomInitialPass = bin2hex(random_bytes(8)); // 16-char hex password
         $security = new \SecurityUtil();
-        $hashedAdminPass = password_hash('admin_pass', PASSWORD_DEFAULT);
+        $hashedAdminPass = password_hash($randomInitialPass, PASSWORD_DEFAULT);
         $email = 'admin@example.com';
         $encryptedEmail = $security->encrypt($email);
         $emailHash = hash('sha256', $email);
         $mysqli->query("INSERT INTO users (id, email, email_hash, username, password, is_verified) VALUES (1, '$encryptedEmail', '$emailHash', 'admin', '$hashedAdminPass', 1)");
+        // Log the generated credentials so the admin can log in on first setup.
+        // IMPORTANT: Remove or rotate this password immediately after first login.
+        error_log("[SYCS db_init] Initial admin account created. Username: admin | Temporary password: {$randomInitialPass} | Change this immediately.");
     }
     $res = $mysqli->query("SELECT id FROM threads WHERE id = 1");
     if ($res->num_rows === 0) $mysqli->query("INSERT INTO threads (id, name, creator_id) VALUES (1, 'general', 1)");
@@ -197,40 +203,53 @@ function db_init($mysqli)
         $mysqli->query("ALTER TABLE messages MODIFY COLUMN thread_id INT NULL");
     }
 
-    // 215-374: More Migrations
+    // Migrations ordered by dependency: is_pinned must exist before is_edited (AFTER is_pinned)
     $migrations = [
-        ['threads', 'creator_id', 'INT DEFAULT 1'],
-        ['users', 'last_thread_id', 'INT DEFAULT 1'],
-        ['messages', 'reply_to_id', 'INT DEFAULT NULL AFTER content'],
-        ['messages', 'attachment_path', 'VARCHAR(255) DEFAULT NULL AFTER reply_to_id'],
-        ['users', 'status', "ENUM('online', 'busy', 'away', 'offline', 'not_allowed', 'step_out', 'going_away') DEFAULT 'online' AFTER is_verified"],
-        ['users', 'custom_status', 'VARCHAR(100) NULL AFTER status'],
-        ['users', 'bio', 'TEXT NULL AFTER custom_status'],
-        ['users', 'social_links', 'JSON NULL AFTER bio'],
-        ['users', 'avatar_url', 'VARCHAR(500) NULL AFTER social_links'],
-        ['users', 'banner_color', "VARCHAR(20) DEFAULT '#6366f1' AFTER avatar_url"],
-        ['users', 'banner_url', 'VARCHAR(500) NULL AFTER banner_color'],
-        ['users', 'profile_layout', "VARCHAR(50) DEFAULT 'classic' AFTER banner_url"],
-        ['users', 'badges', 'JSON NULL AFTER profile_layout'],
-        ['users', 'theme_preference', 'JSON NULL AFTER banner_color'],
-        ['users', 'typing_thread_id', 'VARCHAR(50) DEFAULT NULL AFTER theme_preference'],
-        ['users', 'typing_at', 'TIMESTAMP NULL AFTER typing_thread_id'],
-        ['threads', 'category', "VARCHAR(50) DEFAULT 'General' AFTER name"],
-        ['messages', 'is_edited', 'TINYINT(1) DEFAULT 0 AFTER is_pinned'],
-        ['messages', 'expires_at', 'DATETIME NULL AFTER is_edited'],
-        ['direct_messages', 'is_edited', 'TINYINT(1) DEFAULT 0 AFTER is_read'],
-        ['direct_messages', 'expires_at', 'DATETIME NULL AFTER is_edited'],
-        ['users', 'discord_id', 'VARCHAR(255) NULL AFTER banner_color'],
-        ['users', 'google_id', 'VARCHAR(255) NULL AFTER discord_id'],
-        ['users', 'apple_id', 'VARCHAR(255) NULL AFTER google_id'],
-        ['users', 'outlook_id', 'VARCHAR(255) NULL AFTER apple_id'],
-        ['users', 'notification_keywords', 'TEXT DEFAULT NULL AFTER theme_preference'],
-        ['messages', 'is_pinned', 'TINYINT(1) DEFAULT 0 AFTER attachment_path']
+        ['threads',         'creator_id',          'INT DEFAULT 1'],
+        ['users',           'last_thread_id',       'INT DEFAULT 1'],
+        ['messages',        'reply_to_id',          'INT DEFAULT NULL AFTER content'],
+        ['messages',        'attachment_path',      'VARCHAR(255) DEFAULT NULL AFTER reply_to_id'],
+        ['messages',        'is_pinned',            'TINYINT(1) DEFAULT 0 AFTER attachment_path'],  // must be before is_edited
+        ['messages',        'is_edited',            'TINYINT(1) DEFAULT 0 AFTER is_pinned'],
+        ['messages',        'expires_at',           'DATETIME NULL AFTER is_edited'],
+        ['users',           'status',               "ENUM('online', 'busy', 'away', 'offline', 'not_allowed', 'step_out', 'going_away') DEFAULT 'online' AFTER is_verified"],
+        ['users',           'custom_status',        'VARCHAR(100) NULL AFTER status'],
+        ['users',           'bio',                  'TEXT NULL AFTER custom_status'],
+        ['users',           'social_links',         'JSON NULL AFTER bio'],
+        ['users',           'avatar_url',           'VARCHAR(500) NULL AFTER social_links'],
+        ['users',           'banner_color',         "VARCHAR(20) DEFAULT '#6366f1' AFTER avatar_url"],
+        ['users',           'banner_url',           'VARCHAR(500) NULL AFTER banner_color'],
+        ['users',           'profile_layout',       "VARCHAR(50) DEFAULT 'classic' AFTER banner_url"],
+        ['users',           'badges',               'JSON NULL AFTER profile_layout'],
+        ['users',           'theme_preference',     'JSON NULL AFTER banner_color'],
+        ['users',           'typing_thread_id',     'VARCHAR(50) DEFAULT NULL AFTER theme_preference'],
+        ['users',           'typing_at',            'TIMESTAMP NULL AFTER typing_thread_id'],
+        ['users',           'discord_id',           'VARCHAR(255) NULL AFTER banner_color'],
+        ['users',           'google_id',            'VARCHAR(255) NULL AFTER discord_id'],
+        ['users',           'apple_id',             'VARCHAR(255) NULL AFTER google_id'],
+        ['users',           'outlook_id',           'VARCHAR(255) NULL AFTER apple_id'],
+        ['users',           'notification_keywords','TEXT DEFAULT NULL AFTER theme_preference'],
+        ['threads',         'category',             "VARCHAR(50) DEFAULT 'General' AFTER name"],
+        ['direct_messages', 'is_edited',            'TINYINT(1) DEFAULT 0 AFTER is_read'],
+        ['direct_messages', 'expires_at',           'DATETIME NULL AFTER is_edited'],
     ];
 
+    // Execute migrations with failure detection.
+    // If any DDL fails, abort and do NOT write the initialized flag.
+    $migrationFailed = false;
     foreach ($migrations as $m) {
         $res = $mysqli->query("SHOW COLUMNS FROM {$m[0]} LIKE '{$m[1]}'");
-        if ($res->num_rows === 0) $mysqli->query("ALTER TABLE {$m[0]} ADD COLUMN {$m[1]} {$m[2]}");
+        if ($res && $res->num_rows === 0) {
+            $ok = $mysqli->query("ALTER TABLE {$m[0]} ADD COLUMN {$m[1]} {$m[2]}");
+            if (!$ok) {
+                error_log("[SYCS db_init] Migration failed: ALTER TABLE {$m[0]} ADD COLUMN {$m[1]} — " . $mysqli->error);
+                $migrationFailed = true;
+            }
+        }
+    }
+    if ($migrationFailed) {
+        error_log("[SYCS db_init] One or more migrations failed. Initialization flag will NOT be written. Fix the above errors and reload.");
+        return;
     }
 
     $mysqli->query("CREATE TABLE IF NOT EXISTS user_notification_settings (

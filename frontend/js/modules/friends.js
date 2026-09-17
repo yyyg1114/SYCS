@@ -166,7 +166,7 @@ export async function showBlockedModal() {
  * @param {number} userId 
  */
 export async function blockUser(userId) {
-  const res = await api("block_user", "POST", { block_id: userId });
+  const res = await api("block_user", "POST", { target_id: userId });
   if (res && res.success) {
     showToast(t("success", "成功"), t("blocked", "ブロックしました"), "success");
     loadFriends();
@@ -178,7 +178,7 @@ export async function blockUser(userId) {
  * @param {number} userId 
  */
 export async function unblockUser(userId) {
-  const res = await api("unblock_user", "POST", { block_id: userId });
+  const res = await api("unblock_user", "POST", { target_id: userId });
   if (res && res.success) {
     showToast(t("success", "成功"), t("unblocked", "ブロック解除しました"), "success");
     showBlockedModal(); // Refresh

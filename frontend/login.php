@@ -187,6 +187,8 @@ if (isset($_GET['api'])) {
                     $userMatch = ['id' => $newId, 'username' => $finalUsername];
                 }
 
+                // Prevent session fixation attacks (same as regular login flow)
+                session_regenerate_id(true);
                 $_SESSION['user_id'] = $userMatch['id'];
                 $_SESSION['user'] = $userMatch['username'];
                 $_SESSION['last_thread_id'] = $userMatch['last_thread_id'] ?? 1;
@@ -265,6 +267,8 @@ if (isset($_GET['api'])) {
                     $userMatch = ['id' => $newId, 'username' => $finalUsername];
                 }
 
+                // Prevent session fixation attacks (same as regular login flow)
+                session_regenerate_id(true);
                 $_SESSION['user_id'] = $userMatch['id'];
                 $_SESSION['user'] = $userMatch['username'];
                 $_SESSION['last_thread_id'] = $userMatch['last_thread_id'] ?? 1;
@@ -357,6 +361,8 @@ if (isset($_GET['api'])) {
                     $userMatch = ['id' => $newId, 'username' => $finalUsername];
                 }
 
+                // Prevent session fixation attacks (same as regular login flow)
+                session_regenerate_id(true);
                 $_SESSION['user_id'] = $userMatch['id'];
                 $_SESSION['user'] = $userMatch['username'];
                 $_SESSION['last_thread_id'] = $userMatch['last_thread_id'] ?? 1;

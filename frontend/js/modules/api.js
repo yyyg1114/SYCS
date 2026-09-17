@@ -65,6 +65,27 @@ export async function api(path, method = "GET", body = null) {
     const res = await fetch(`index.php?api=${path}`, opts);
     const text = await res.text();
 
+    // Handle HTTP-level errors (403, 404, 500, etc.) before attempting JSON parse
+    if (!res.ok) {
+      let errMsg;
+      if (res.status === 403) {
+        errMsg = t("error_forbidden", "アクセスが拒否されました (403)");
+      } else if (res.status === 404) {
+        errMsg = t("error_not_found", "リソースが見つかりません (404)");
+      } else if (res.status >= 500) {
+        errMsg = t("error_server", `サーバーエラーが発生しました (${res.status})`);
+      } else {
+        errMsg = t("error_http", `HTTPエラー: ${res.status}`);
+      }
+      showToastFn(t("error", "エラー"), errMsg, "error");
+      // Still try to parse JSON body for additional error details
+      try {
+        return JSON.parse(text);
+      } catch (_) {
+        return { success: false, error: errMsg, status: res.status };
+      }
+    }
+
     try {
       if (!text || text.trim() === "") {
         throw new Error("Empty response from server");
@@ -80,10 +101,10 @@ export async function api(path, method = "GET", body = null) {
       return json;
     } catch (parseError) {
       console.error("JSON parse error:", parseError, "Response text:", text);
-      const errorMsg = text.trim() === "" 
+      const errorMsg = text.trim() === ""
         ? t("server_empty_response", "サーバーからのレスポンスが空です")
         : t("server_error_json", "サーバーエラー: JSONパースに失敗しました");
-      
+
       showToastFn(t("system_error", "システムエラー"), errorMsg, "error");
       return {
         error: errorMsg,

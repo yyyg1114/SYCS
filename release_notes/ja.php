@@ -46,6 +46,52 @@
 </div>
 </article>
 
+<!-- ===== v2.2.30 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.30</span>
+        <span class="release-title">フロントエンドのAPI同期とソーシャルログインのセキュリティ強化</span>
+        <span class="release-date">2026-09-17</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> セキュリティ &amp; 認証 (Security &amp; Auth)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>ソーシャルログインのセッション固定化攻撃対策</strong>
+                        <span class="detail">OAuthログイン（Google等）のプロセスにおいて、ログイン成功時にセッションIDを再生成（<code>session_regenerate_id</code>）する処理を追加し、セキュリティを強化しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善 &amp; 修正 (Improvements &amp; Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔄</span>
+                    <div>
+                        <strong>APIエンドポイントとパラメータの同期</strong>
+                        <span class="detail">フロントエンドのJavaScriptが呼び出すAPI（メッセージ検索、グループ作成、DM送信など）のエンドポイント名とパラメータを、最新のバックエンドハンドラー構造に合わせて修正しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">💬</span>
+                    <div>
+                        <strong>ダイレクトメッセージ（DM）のUI強化</strong>
+                        <span class="detail">DM専用のメッセージ読み込みロジックを導入し、リアルタイム通知（SSE）と連携して即座に画面が更新されるよう改善しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.29 ===== -->
 <article class="release">
     <div class="release-header">
