@@ -7,49 +7,10 @@
  */
 ?>
 
-<!-- ===== v2.2.30 ===== -->
+<!-- ===== v2.2.34 ===== -->
 <article class="release">
     <div class="release-header">
-        <span class="version-badge">v2.2.30</span>
-        <span class="release-title">会话加固、登录滥用防护与 DM 访问限制</span>
-        <span class="release-date">2026-08-23</span>
-    </div>
-    <div class="release-body">
-        <div class="section">
-            <div class="section-title">
-                <span class="dot dot-green"></span> 安全与可靠性
-            </div>
-            <ul>
-                <li>
-                    <span class="icon">🛡️</span>
-                    <div>
-                        <strong>登录暴力破解防护</strong>
-                        <span class="detail">现在同时按用户名和 IP 记录登录失败次数，在 15 分钟内连续失败达到上限时自动锁定，并在成功登录后清除失败记录，以降低暴力破解风险。</span>
-                    </div>
-                </li>
-                <li>
-                    <span class="icon">🔒</span>
-                    <div>
-                        <strong>会话安全加固</strong>
-                        <span class="detail">登录时和每 15 分钟定期重新生成会话 ID，同时在 User-Agent 变化时触发警告日志与重新生成，降低会话固定攻击和劫持风险。</span>
-                    </div>
-                </li>
-                <li>
-                    <span class="icon">💬</span>
-                    <div>
-                        <strong>私信访问控制</strong>
-                        <span class="detail">私信读取、发送和已读状态更新现在仅允许已接受好友关系或存在历史 DM 记录的用户访问，防止未经授权的收件箱探测和不当消息访问。</span>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-</article>
-
-<!-- ===== v2.2.30 ===== -->
-<article class="release">
-    <div class="release-header">
-        <span class="version-badge">v2.2.30</span>
+        <span class="version-badge">v2.2.34</span>
         <span class="release-title">前端 API 同步与社交登录安全强化</span>
         <span class="release-date">2026-09-17</span>
     </div>
