@@ -7,6 +7,45 @@
  */
 ?>
 
+<!-- ===== v2.2.35 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.35</span>
+        <span class="release-title">全面强化访问权限与授权边界</span>
+        <span class="release-date">2026-09-17</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 安全与可靠性 (Security &amp; Reliability)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>严格的群组聊天授权控制</strong>
+                        <span class="detail">在消息发送、搜索、回应（Reaction）、置顶以及 SSE 实时推送中强制执行成员资格验证，彻底防止未加入群组的用户访问或操作消息。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>WebRTC 信令与通话房间安全保护</strong>
+                        <span class="detail">在加入视频通话房间以及交换 WebRTC 信令数据（Offer/Answer/Candidate）时加入了严格的权限检查，阻断未经授权的第三方连接尝试。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔍</span>
+                    <div>
+                        <strong>高级搜索过滤器与私信访问控制</strong>
+                        <span class="detail">在私信搜索与附件列表中应用了严格的伙伴用户 ID 限制，并支持附件筛选（<code>has_attachment</code>）和日期范围查询（<code>date_from</code>/<code>date_to</code>）。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.34 ===== -->
 <article class="release">
     <div class="release-header">

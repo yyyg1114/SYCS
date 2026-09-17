@@ -1,8 +1,9 @@
 <?php
 require_once __DIR__ . '/session_config.php';
 require_once __DIR__ . '/EnvLoader.php';
-require_once 'SecurityUtil.php';
-require_once 'Mailer.php';
+require_once __DIR__ . '/SecurityUtil.php';
+require_once __DIR__ . '/Mailer.php';
+require_once __DIR__ . '/db.php';
 
 $username = $_POST['username'] ?? '';
 $email = $_POST['email'] ?? '';
@@ -16,12 +17,6 @@ $encryptedEmail = SecurityUtil::encrypt($email);
 $emailHash = hash('sha256', $email);
 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 $token = SecurityUtil::generateToken();
-
-// Note: Using $mysqli for consistency with index.php if possible, but the original used $pdo.
-// Let's check db.php content to see which one is defined.
-require 'db.php';
-// If db.php defines $mysqli, we should use it. If it defines $pdo, we use that.
-// Earlier I saw db.php uses mysqli. Let's adapt if needed.
 
 if (isset($mysqli)) {
     $stmt = $mysqli->prepare("INSERT INTO users (username, email, email_hash, password, verification_token, is_verified) VALUES (?, ?, ?, ?, ?, 0)");

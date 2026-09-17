@@ -1,3 +1,42 @@
+<!-- ===== v2.2.35 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.35</span>
+        <span class="release-title">Comprehensive Authorization Boundary &amp; Access Control Hardening</span>
+        <span class="release-date">2026-09-17</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> Security &amp; Reliability
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Strict Group Chat Authorization</strong>
+                        <span class="detail">Enforced participant verification for message posting, searching, reactions, message pinning, and SSE event streaming to prevent unauthorized access to non-joined groups.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>WebRTC Signaling &amp; Room Protection</strong>
+                        <span class="detail">Implemented strict room access checks for joining video calls and exchanging WebRTC signaling data (Offers/Answers/ICECandidates), blocking unauthorized third-party connection attempts.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔍</span>
+                    <div>
+                        <strong>Advanced Search Filters &amp; DM Access Control</strong>
+                        <span class="detail">Enforced partner-scoped filtering for DM search and attachments, while introducing support for attachment filtering (<code>has_attachment</code>) and date-range queries (<code>date_from</code>/<code>date_to</code>).</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.34 ===== -->
 <article class="release">
     <div class="release-header">

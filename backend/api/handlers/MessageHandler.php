@@ -71,6 +71,25 @@ class MessageHandler extends BaseHandler
         $tidVal  = ($rawTid  && (int)$rawTid  > 0) ? (int)$rawTid  : null;
         $gtidVal = ($rawGtid && (int)$rawGtid > 0) ? (int)$rawGtid : null;
 
+        // [SECURITY CHECK] グループメッセージ送信時の参加権限確認
+        if ($gtidVal !== null) {
+            if (!$this->isGroupParticipant($gtidVal)) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'Forbidden: Not a group participant']);
+                return;
+            }
+        } elseif ($tidVal !== null) {
+            if (!$this->canAccessThread($tidVal)) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'Forbidden: Invalid thread']);
+                return;
+            }
+        } else {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Thread or Group ID required']);
+            return;
+        }
+
         $stmt = $this->mysqli->prepare(
             "INSERT INTO messages (thread_id, group_thread_id, user_id, content, attachment_path, reply_to_id) VALUES (?, ?, ?, ?, ?, ?)"
         );
@@ -95,6 +114,11 @@ class MessageHandler extends BaseHandler
             $tStmt->bind_param("i", $tidVal);
             $tStmt->execute();
             $threadName = $tStmt->get_result()->fetch_assoc()['name'] ?? 'Thread';
+        } elseif ($gtidVal > 0) {
+            $gtStmt = $this->mysqli->prepare("SELECT name FROM group_threads WHERE id = ?");
+            $gtStmt->bind_param("i", $gtidVal);
+            $gtStmt->execute();
+            $threadName = $gtStmt->get_result()->fetch_assoc()['name'] ?? 'Group';
         }
 
         $messageData = [
@@ -192,8 +216,17 @@ class MessageHandler extends BaseHandler
     public function toggleReaction(): void
     {
         $this->verifyCsrf();
-        $mid  = $this->getPost('message_id', 0);
-        $emo  = $this->getPost('emoji', '');
+        $mid = (int)$this->getPost('message_id', 0);
+        $emo = $this->getPost('emoji', '');
+
+        // [SECURITY CHECK] メッセージのアクセスコントロール（非参加グループメッセージを拒否）
+        $msg = $this->canAccessMessage($mid);
+        if (!$msg) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Access denied or message not found']);
+            return;
+        }
+
         $stmt = $this->mysqli->prepare("SELECT id FROM message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?");
         $stmt->bind_param("iis", $mid, $this->userId, $emo);
         $stmt->execute();
@@ -225,7 +258,7 @@ class MessageHandler extends BaseHandler
 
         // The caller must either be the message author, the creator of its thread, or the creator of its group thread.
         $chk = $this->mysqli->prepare(
-            "SELECT m.id, m.user_id, t.creator_id AS thread_creator_id, gt.creator_id AS group_creator_id
+            "SELECT m.id, m.user_id, m.thread_id, m.group_thread_id, t.creator_id AS thread_creator_id, gt.creator_id AS group_creator_id
             FROM messages m
             LEFT JOIN threads t ON m.thread_id = t.id
             LEFT JOIN group_threads gt ON m.group_thread_id = gt.id
@@ -242,11 +275,19 @@ class MessageHandler extends BaseHandler
             return;
         }
 
+        // グループの場合は参加者チェック
+        if ($message['group_thread_id'] !== null && !$this->isGroupParticipant((int)$message['group_thread_id'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Forbidden']);
+            return;
+        }
+
         $isAuthor        = (int)$message['user_id']         === (int)$this->userId;
         $isThreadCreator = (int)($message['thread_creator_id'] ?? 0) === (int)$this->userId;
         $isGroupCreator  = (int)($message['group_creator_id']  ?? 0) === (int)$this->userId;
 
         if (!$isAuthor && !$isThreadCreator && !$isGroupCreator) {
+            http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Access denied']);
             return;
         }
@@ -258,33 +299,126 @@ class MessageHandler extends BaseHandler
     }
 
     /**
-     * [SECURITY FIX] $kw を直接埋め込まず prepared statement でバインド
+     * [SECURITY & FEATURE ENHANCEMENT]
+     * 検索機能の認可チェック（グループ参加権限/DMパートナー権限）と各種フィルター（添付有無・日付範囲）を実装
      */
     public function searchMessages(): void
     {
-        $tid  = (int)$this->getGet('thread_id', 0);
-        $gtid = (int)$this->getGet('group_thread_id', 0);
-        $pid  = (int)$this->getGet('partner_id', 0);
-        $kw   = '%' . ($this->getGet('keyword', '')) . '%';
+        $tid           = (int)$this->getGet('thread_id', 0);
+        $gtid          = (int)$this->getGet('group_thread_id', 0);
+        $pid           = (int)$this->getGet('partner_id', 0);
+        $kwRaw         = $this->getGet('keyword', '');
+        $hasAttachment = $this->getGet('has_attachment', '0') === '1';
+        $dateFrom      = $this->getGet('date_from', '');
+        $dateTo        = $this->getGet('date_to', '');
+
+        $kw = '%' . $kwRaw . '%';
+
+        // 日付フォーマット簡易検証
+        $dateFromValid = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom) ? $dateFrom . ' 00:00:00' : null;
+        $dateToValid   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)   ? $dateTo   . ' 23:59:59' : null;
 
         if ($pid > 0) {
-            $stmt = $this->mysqli->prepare(
-                "SELECT * FROM direct_messages
-                WHERE (sender_id = ? OR receiver_id = ?)
-                AND content LIKE ?
-                ORDER BY created_at ASC"
-            );
-            $stmt->bind_param("iis", $this->userId, $this->userId, $kw);
+            // DM 検索
+            if (!$this->canAccessDm($pid)) {
+                http_response_code(403);
+                echo json_encode(['error' => 'Forbidden: Cannot search DMs with this user']);
+                return;
+            }
+
+            $sql = "SELECT dm.*, u.username FROM direct_messages dm
+                    JOIN users u ON dm.sender_id = u.id
+                    WHERE ((dm.sender_id = ? AND dm.receiver_id = ?) OR (dm.sender_id = ? AND dm.receiver_id = ?))
+                    AND dm.content LIKE ?";
+            $params = [$this->userId, $pid, $pid, $this->userId, $kw];
+            $types  = "iiiis";
+
+            if ($hasAttachment) {
+                $sql .= " AND dm.attachment_path IS NOT NULL AND dm.attachment_path != ''";
+            }
+            if ($dateFromValid) {
+                $sql .= " AND dm.created_at >= ?";
+                $params[] = $dateFromValid;
+                $types   .= "s";
+            }
+            if ($dateToValid) {
+                $sql .= " AND dm.created_at <= ?";
+                $params[] = $dateToValid;
+                $types   .= "s";
+            }
+            $sql .= " ORDER BY dm.created_at ASC";
+
+            $stmt = $this->mysqli->prepare($sql);
+            $stmt->bind_param($types, ...$params);
         } elseif ($gtid > 0) {
-            $stmt = $this->mysqli->prepare(
-                "SELECT * FROM messages WHERE group_thread_id = ? AND content LIKE ? ORDER BY created_at ASC"
-            );
-            $stmt->bind_param("is", $gtid, $kw);
+            // グループメッセージ検索
+            if (!$this->isGroupParticipant($gtid)) {
+                http_response_code(403);
+                echo json_encode(['error' => 'Forbidden: Not a group participant']);
+                return;
+            }
+
+            $sql = "SELECT m.*, u.username FROM messages m
+                    JOIN users u ON m.user_id = u.id
+                    WHERE m.group_thread_id = ? AND m.content LIKE ?";
+            $params = [$gtid, $kw];
+            $types  = "is";
+
+            if ($hasAttachment) {
+                $sql .= " AND m.attachment_path IS NOT NULL AND m.attachment_path != ''";
+            }
+            if ($dateFromValid) {
+                $sql .= " AND m.created_at >= ?";
+                $params[] = $dateFromValid;
+                $types   .= "s";
+            }
+            if ($dateToValid) {
+                $sql .= " AND m.created_at <= ?";
+                $params[] = $dateToValid;
+                $types   .= "s";
+            }
+            $sql .= " ORDER BY m.created_at ASC";
+
+            $stmt = $this->mysqli->prepare($sql);
+            $stmt->bind_param($types, ...$params);
         } else {
-            $stmt = $this->mysqli->prepare(
-                "SELECT * FROM messages WHERE thread_id = ? AND content LIKE ? ORDER BY created_at ASC"
-            );
-            $stmt->bind_param("is", $tid, $kw);
+            // 通常スレッドメッセージ検索
+            $sql = "SELECT m.*, u.username, t.name AS thread_name FROM messages m
+                    JOIN users u ON m.user_id = u.id
+                    LEFT JOIN threads t ON m.thread_id = t.id
+                    WHERE 1=1";
+            $params = [];
+            $types  = "";
+
+            if ($tid > 0) {
+                $sql .= " AND m.thread_id = ?";
+                $params[] = $tid;
+                $types   .= "i";
+            }
+            if ($kwRaw !== '') {
+                $sql .= " AND m.content LIKE ?";
+                $params[] = $kw;
+                $types   .= "s";
+            }
+            if ($hasAttachment) {
+                $sql .= " AND m.attachment_path IS NOT NULL AND m.attachment_path != ''";
+            }
+            if ($dateFromValid) {
+                $sql .= " AND m.created_at >= ?";
+                $params[] = $dateFromValid;
+                $types   .= "s";
+            }
+            if ($dateToValid) {
+                $sql .= " AND m.created_at <= ?";
+                $params[] = $dateToValid;
+                $types   .= "s";
+            }
+            $sql .= " ORDER BY m.created_at ASC LIMIT 100";
+
+            $stmt = $this->mysqli->prepare($sql);
+            if (!empty($params)) {
+                $stmt->bind_param($types, ...$params);
+            }
         }
 
         $stmt->execute();
@@ -293,15 +427,34 @@ class MessageHandler extends BaseHandler
 
     public function getPinnedMessages(): void
     {
-        $tid = (int)($this->getGet('thread_id', 0));
-        if ($tid <= 0) {
+        $tid  = (int)$this->getGet('thread_id', 0);
+        $gtid = (int)$this->getGet('group_thread_id', 0);
+
+        if ($gtid > 0) {
+            if (!$this->isGroupParticipant($gtid)) {
+                http_response_code(403);
+                echo json_encode([]);
+                return;
+            }
+            $stmt = $this->mysqli->prepare(
+                "SELECT m.*, u.username, u.avatar_url FROM messages m JOIN users u ON m.user_id = u.id WHERE m.group_thread_id = ? AND m.is_pinned = 1 ORDER BY m.created_at DESC"
+            );
+            $stmt->bind_param("i", $gtid);
+        } elseif ($tid > 0) {
+            if (!$this->canAccessThread($tid)) {
+                http_response_code(403);
+                echo json_encode([]);
+                return;
+            }
+            $stmt = $this->mysqli->prepare(
+                "SELECT m.*, u.username, u.avatar_url FROM messages m JOIN users u ON m.user_id = u.id WHERE m.thread_id = ? AND m.is_pinned = 1 ORDER BY m.created_at DESC"
+            );
+            $stmt->bind_param("i", $tid);
+        } else {
             echo json_encode([]);
             return;
         }
-        $stmt = $this->mysqli->prepare(
-            "SELECT m.*, u.username, u.avatar_url FROM messages m JOIN users u ON m.user_id = u.id WHERE m.thread_id = ? AND m.is_pinned = 1 ORDER BY m.created_at DESC"
-        );
-        $stmt->bind_param("i", $tid);
+
         $stmt->execute();
         echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
     }
@@ -309,14 +462,40 @@ class MessageHandler extends BaseHandler
     public function getAttachments(): void
     {
         $tid = (int)$this->getGet('thread_id', 0);
+        $gtid = (int)$this->getGet('group_thread_id', 0);
         $pid = (int)$this->getGet('partner_id', 0);
 
-        if ($tid > 0) {
-            $stmt = $this->mysqli->prepare("SELECT attachment_path FROM messages WHERE thread_id = ? AND attachment_path IS NOT NULL");
+        if ($gtid > 0) {
+            if (!$this->isGroupParticipant($gtid)) {
+                http_response_code(403);
+                echo json_encode([]);
+                return;
+            }
+            $stmt = $this->mysqli->prepare("SELECT attachment_path FROM messages WHERE group_thread_id = ? AND attachment_path IS NOT NULL AND attachment_path != ''");
+            $stmt->bind_param("i", $gtid);
+        } elseif ($tid > 0) {
+            if (!$this->canAccessThread($tid)) {
+                http_response_code(403);
+                echo json_encode([]);
+                return;
+            }
+            $stmt = $this->mysqli->prepare("SELECT attachment_path FROM messages WHERE thread_id = ? AND attachment_path IS NOT NULL AND attachment_path != ''");
             $stmt->bind_param("i", $tid);
+        } elseif ($pid > 0) {
+            if (!$this->canAccessDm($pid)) {
+                http_response_code(403);
+                echo json_encode([]);
+                return;
+            }
+            $stmt = $this->mysqli->prepare(
+                "SELECT attachment_path FROM direct_messages
+                WHERE ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))
+                AND attachment_path IS NOT NULL AND attachment_path != ''"
+            );
+            $stmt->bind_param("iiii", $this->userId, $pid, $pid, $this->userId);
         } else {
-            $stmt = $this->mysqli->prepare("SELECT attachment_path FROM direct_messages WHERE (sender_id = ? OR receiver_id = ?) AND attachment_path IS NOT NULL");
-            $stmt->bind_param("ii", $this->userId, $this->userId);
+            echo json_encode([]);
+            return;
         }
 
         $stmt->execute();

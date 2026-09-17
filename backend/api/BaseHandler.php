@@ -163,4 +163,155 @@ abstract class BaseHandler
             }
         }
     }
+
+    // ----------------------------------------------------------------
+    // Authorization & Access Control Helpers
+    // ----------------------------------------------------------------
+
+    /**
+     * 指定したグループスレッドの参加者かどうかチェック
+     */
+    public function isGroupParticipant(int $groupThreadId, ?int $userId = null): bool
+    {
+        $uid = $userId ?? $this->userId;
+        if ($groupThreadId <= 0 || !$uid) return false;
+
+        $stmt = $this->mysqli->prepare(
+            "SELECT 1 FROM group_thread_participants WHERE thread_id = ? AND user_id = ? LIMIT 1"
+        );
+        $stmt->bind_param("ii", $groupThreadId, $uid);
+        $stmt->execute();
+        $res = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return (bool)$res;
+    }
+
+    /**
+     * 通常スレッドが存在しアクセス可能か確認
+     */
+    public function canAccessThread(int $threadId): bool
+    {
+        if ($threadId <= 0) return false;
+        $stmt = $this->mysqli->prepare("SELECT id FROM threads WHERE id = ? LIMIT 1");
+        $stmt->bind_param("i", $threadId);
+        $stmt->execute();
+        $res = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return (bool)$res;
+    }
+
+    /**
+     * 指定ユーザーとのDMアクセス権限があるか（フレンド承認済み、または既存DM履歴あり）
+     */
+    public function canAccessDm(int $partnerId, ?int $userId = null): bool
+    {
+        $uid = $userId ?? $this->userId;
+        if ($partnerId <= 0 || !$uid || $partnerId === $uid) return false;
+
+        $friendStmt = $this->mysqli->prepare(
+            "SELECT 1 FROM friends
+            WHERE ((user_id_1 = ? AND user_id_2 = ?) OR (user_id_1 = ? AND user_id_2 = ?))
+            AND status = 'accepted'
+            LIMIT 1"
+        );
+        $friendStmt->bind_param("iiii", $uid, $partnerId, $partnerId, $uid);
+        $friendStmt->execute();
+        $friendCheck = $friendStmt->get_result()->fetch_assoc();
+        $friendStmt->close();
+
+        if ($friendCheck) return true;
+
+        $dmStmt = $this->mysqli->prepare(
+            "SELECT 1 FROM direct_messages
+            WHERE ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))
+            LIMIT 1"
+        );
+        $dmStmt->bind_param("iiii", $uid, $partnerId, $partnerId, $uid);
+        $dmStmt->execute();
+        $dmExists = $dmStmt->get_result()->fetch_assoc();
+        $dmStmt->close();
+
+        return (bool)$dmExists;
+    }
+
+    /**
+     * メッセージ情報を取得し、現在のユーザーがそのメッセージにアクセス可能か検証
+     * @return array|null メッセージデータ（アクセス不可・存在しない場合は null）
+     */
+    public function canAccessMessage(int $messageId): ?array
+    {
+        if ($messageId <= 0) return null;
+
+        $stmt = $this->mysqli->prepare(
+            "SELECT m.*, t.creator_id AS thread_creator_id, gt.creator_id AS group_creator_id
+            FROM messages m
+            LEFT JOIN threads t ON m.thread_id = t.id
+            LEFT JOIN group_threads gt ON m.group_thread_id = gt.id
+            WHERE m.id = ?
+            LIMIT 1"
+        );
+        $stmt->bind_param("i", $messageId);
+        $stmt->execute();
+        $msg = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$msg) return null;
+
+        if ($msg['group_thread_id'] !== null) {
+            if (!$this->isGroupParticipant((int)$msg['group_thread_id'])) {
+                return null;
+            }
+        } elseif ($msg['thread_id'] !== null) {
+            if (!$this->canAccessThread((int)$msg['thread_id'])) {
+                return null;
+            }
+        }
+
+        return $msg;
+    }
+
+    /**
+     * ミーティングルームが存在し、アクセス資格があるか確認
+     */
+    public function canAccessMeetingRoom(int $roomId): bool
+    {
+        if ($roomId <= 0) return false;
+
+        $stmt = $this->mysqli->prepare(
+            "SELECT room_name, thread_id, dm_partner_id, creator_id FROM meeting_rooms WHERE id = ? LIMIT 1"
+        );
+        $stmt->bind_param("i", $roomId);
+        $stmt->execute();
+        $room = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$room) return false;
+
+        if ($room['creator_id'] == $this->userId) return true;
+
+        if ($room['thread_id'] !== null && (int)$room['thread_id'] > 0) {
+            return $this->canAccessThread((int)$room['thread_id']);
+        }
+        if ($room['dm_partner_id'] !== null && (int)$room['dm_partner_id'] > 0) {
+            return $this->canAccessDm((int)$room['dm_partner_id']);
+        }
+
+        // ルーム名パターン判定 fallback
+        if (str_starts_with($room['room_name'], 'thread_')) {
+            $tid = (int)str_replace('thread_', '', $room['room_name']);
+            return $this->canAccessThread($tid);
+        }
+        if (str_starts_with($room['room_name'], 'dm_')) {
+            $parts = explode('_', $room['room_name']);
+            if (count($parts) === 3) {
+                $u1 = (int)$parts[1];
+                $u2 = (int)$parts[2];
+                if ($this->userId === $u1) return $this->canAccessDm($u2);
+                if ($this->userId === $u2) return $this->canAccessDm($u1);
+            }
+        }
+
+        return false;
+    }
 }
+

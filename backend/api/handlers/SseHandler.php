@@ -76,11 +76,13 @@ class SseHandler extends BaseHandler
                     JOIN users u ON m.user_id = u.id
                     LEFT JOIN threads t ON m.thread_id = t.id
                     LEFT JOIN group_threads gt ON m.group_thread_id = gt.id
+                    LEFT JOIN group_thread_participants gtp ON gt.id = gtp.thread_id AND gtp.user_id = ?
                     WHERE m.id > ?
+                    AND (m.group_thread_id IS NULL OR gtp.user_id IS NOT NULL)
                     ORDER BY m.id ASC LIMIT 10"
                 );
                 if ($stmt) {
-                    $stmt->bind_param('i', $lastMsgId);
+                    $stmt->bind_param('ii', $this->userId, $lastMsgId);
                     $stmt->execute();
                     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                     $stmt->close();
