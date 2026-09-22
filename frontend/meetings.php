@@ -58,47 +58,89 @@ if (isset($_GET['api'])) {
 
     // Join meeting room with ID/Password
     if ($apiAction === 'join_by_id') {
-        $mId = $_POST['meeting_id'] ?? '';
+        $mId = trim($_POST['meeting_id'] ?? '');
         $mPass = $_POST['password'] ?? '';
 
-        $stmt = $mysqli->prepare("SELECT id, password_hash, room_name FROM meeting_rooms WHERE meeting_id = ?");
+        if ($mId === '' || $mPass === '') {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => 'ミーティングIDとパスワードを入力してください'
+            ]);
+            exit;
+        }
+
+        $stmt = $mysqli->prepare(
+            "SELECT id, password_hash, room_name
+        FROM meeting_rooms
+        WHERE meeting_id = ?
+        LIMIT 1"
+        );
+
         $stmt->bind_param("s", $mId);
         $stmt->execute();
-        $res = $stmt->get_result();
-
-        if ($row = $res->fetch_assoc()) {
-            if (password_verify($mPass, $row['password_hash'])) {
-                echo json_encode([
-                    'success' => true,
-                    'room_id' => $row['id'],
-                    'room_name' => $row['room_name']
-                ]);
-            } else {
-                echo json_encode(['error' => 'パスワードが違います']);
-            }
-        } else {
-            echo json_encode(['error' => 'ミーティングIDが見つかりません']);
-        }
+        $row = $stmt->get_result()->fetch_assoc();
         $stmt->close();
+
+        if (!$row) {
+            http_response_code(404);
+            echo json_encode([
+                'success' => false,
+                'error' => 'ミーティングIDが見つかりません'
+            ]);
+            exit;
+        }
+
+        if (!password_verify($mPass, $row['password_hash'])) {
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'error' => 'パスワードが違います'
+            ]);
+            exit;
+        }
+
+        $roomId = (int)$row['id'];
+
+        // 既存参加レコードを再利用。なければ新規登録。
+        $partStmt = $mysqli->prepare(
+            "SELECT id
+        FROM meeting_participants
+        WHERE room_id = ? AND user_id = ?
+        LIMIT 1"
+        );
+        $partStmt->bind_param("ii", $roomId, $userId);
+        $partStmt->execute();
+        $existing = $partStmt->get_result()->fetch_assoc();
+        $partStmt->close();
+
+        if ($existing) {
+            $partStmt = $mysqli->prepare(
+                "UPDATE meeting_participants
+            SET joined_at = NOW(), left_at = NULL
+            WHERE id = ?"
+            );
+            $partStmt->bind_param("i", $existing['id']);
+            $partStmt->execute();
+            $partStmt->close();
+        } else {
+            $partStmt = $mysqli->prepare(
+                "INSERT INTO meeting_participants
+            (room_id, user_id, joined_at, left_at)
+            VALUES (?, ?, NOW(), NULL)"
+            );
+            $partStmt->bind_param("ii", $roomId, $userId);
+            $partStmt->execute();
+            $partStmt->close();
+        }
+
+        echo json_encode([
+            'success' => true,
+            'room_id' => $roomId,
+            'room_name' => $row['room_name']
+        ]);
         exit;
     }
-
-    $partStmt = $mysqli->prepare(
-        "UPDATE meeting_participants
-    SET joined_at = NOW(), left_at = NULL
-    WHERE room_id = ? AND user_id = ?"
-    );
-
-    $roomId = (int)($_POST['room_id'] ?? $_GET['room_id']);
-
-    $partStmt = $mysqli->prepare(
-        "INSERT INTO meeting_participants (room_id, user_id, joined_at, left_at)
-        VALUES (?, ?, NOW(), NULL)"
-    );
-
-    $partStmt->bind_param("ii", $roomId, $userId);
-    $partStmt->execute();
-    $partStmt->close();
 
     // Get meeting info by room_id
     if ($apiAction === 'get_meeting_info') {
