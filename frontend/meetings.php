@@ -12,6 +12,11 @@ require_once __DIR__ . '/../backend/session_config.php';
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
 
+// 1. CSRF Token Generation
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Ensure user is logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -223,6 +228,13 @@ if (isset($_GET['api'])) {
 <html lang="ja">
 
 <head>
+    <script>
+        window.SYCS_CONFIG = {
+            currentUserId: <?= json_encode($_SESSION['user_id'] ?? null) ?>,
+            currentUserName: <?= json_encode($_SESSION['username'] ?? 'User') ?>,
+            csrfToken: <?= json_encode($_SESSION['csrf_token'] ?? null) ?>
+        };
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meeting SYCS</title>
