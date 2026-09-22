@@ -32,7 +32,7 @@ class MeetingManager {
                 if (groupThreadId) formData.append('group_thread_id', groupThreadId);
                 if (dmPartnerId) formData.append('dm_partner_id', dmPartnerId);
 
-                const res = await fetch('api.php?action=join_meeting', {
+                const res = await fetch('index.php?action=join_meeting', {
                     method: 'POST',
                     body: formData
                 });
@@ -54,7 +54,7 @@ class MeetingManager {
                 const csrfToken = (typeof window.csrfToken !== 'undefined') ? window.csrfToken : '';
                 formData.append('csrf_token', csrfToken);
                 formData.append('room_id', this.roomId);
-                const credRes = await fetch('api.php?action=issue_turn_credentials', {
+                const credRes = await fetch('index.php?action=issue_turn_credentials', {
                     method: 'POST',
                     body: formData
                 });
@@ -199,7 +199,7 @@ class MeetingManager {
                 const csrfToken = (typeof window.csrfToken !== 'undefined') ? window.csrfToken : '';
                 formData.append('csrf_token', csrfToken);
                 formData.append('room_id', this.roomId);
-                await fetch('api.php?action=leave_meeting', {
+                await fetch('index.php?action=leave_meeting', {
                     method: 'POST',
                     body: formData
                 });
