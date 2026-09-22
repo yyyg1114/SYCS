@@ -38,6 +38,8 @@ if (isset($_GET['api'])) {
 
     // Create a new meeting room with ID/Password
     if ($apiAction === 'create_instant_meeting') {
+
+        // Generate 9-digit meeting ID and 6-character password
         $meetingIdStr = number_format(mt_rand(100000000, 999999999), 0, '', ''); // 9-digit ID
         $password = bin2hex(random_bytes(3)); // 6-char random password
         $passHash = password_hash($password, PASSWORD_DEFAULT);
@@ -47,6 +49,22 @@ if (isset($_GET['api'])) {
         $stmt->bind_param("ssis", $meetingIdStr, $passHash, $userId, $roomName);
 
         if ($stmt->execute()) {
+
+            $roomId = (int)$stmt->insert_id;
+
+            $partStmt = $mysqli->prepare(
+                "INSERT INTO meeting_participants
+    (room_id, user_id, joined_at, left_at)
+    VALUES (?, ?, NOW(), NULL)
+    ON DUPLICATE KEY UPDATE
+    joined_at = NOW(),
+    left_at = NULL"
+            );
+
+            $partStmt->bind_param("ii", $roomId, $userId);
+            $partStmt->execute();
+            $partStmt->close();
+
             echo json_encode([
                 'success' => true,
                 'meeting_id' => $meetingIdStr,
@@ -77,9 +95,9 @@ if (isset($_GET['api'])) {
 
         $stmt = $mysqli->prepare(
             "SELECT id, password_hash, room_name
-        FROM meeting_rooms
-        WHERE meeting_id = ?
-        LIMIT 1"
+    FROM meeting_rooms
+    WHERE meeting_id = ?
+    LIMIT 1"
         );
 
         $stmt->bind_param("s", $mId);
@@ -107,12 +125,22 @@ if (isset($_GET['api'])) {
 
         $roomId = (int)$row['id'];
 
+        $partStmt = $mysqli->prepare(
+            "INSERT INTO meeting_participants
+        (room_id, user_id, joined_at, left_at)
+        VALUES (?, ?, NOW(), NULL)"
+        );
+
+        $partStmt->bind_param("ii", $roomId, $userId);
+        $partStmt->execute();
+        $partStmt->close();
+
         // 既存参加レコードを再利用。なければ新規登録。
         $partStmt = $mysqli->prepare(
             "SELECT id
-        FROM meeting_participants
-        WHERE room_id = ? AND user_id = ?
-        LIMIT 1"
+    FROM meeting_participants
+    WHERE room_id = ? AND user_id = ?
+    LIMIT 1"
         );
         $partStmt->bind_param("ii", $roomId, $userId);
         $partStmt->execute();
@@ -122,8 +150,8 @@ if (isset($_GET['api'])) {
         if ($existing) {
             $partStmt = $mysqli->prepare(
                 "UPDATE meeting_participants
-            SET joined_at = NOW(), left_at = NULL
-            WHERE id = ?"
+        SET joined_at = NOW(), left_at = NULL
+        WHERE id = ?"
             );
             $partStmt->bind_param("i", $existing['id']);
             $partStmt->execute();
@@ -131,8 +159,8 @@ if (isset($_GET['api'])) {
         } else {
             $partStmt = $mysqli->prepare(
                 "INSERT INTO meeting_participants
-            (room_id, user_id, joined_at, left_at)
-            VALUES (?, ?, NOW(), NULL)"
+        (room_id, user_id, joined_at, left_at)
+        VALUES (?, ?, NOW(), NULL)"
             );
             $partStmt->bind_param("ii", $roomId, $userId);
             $partStmt->execute();
