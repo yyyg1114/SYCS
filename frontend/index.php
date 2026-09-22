@@ -1,5 +1,5 @@
 <?php
-// v2.2.35
+// v2.2.36
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);

@@ -1,3 +1,49 @@
+<!-- ===== v2.2.36 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.36</span>
+        <span class="release-title">Hardened Message Integrity, WebRTC Authorization &amp; Realtime Handling</span>
+        <span class="release-date">2026-09-19</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> Security &amp; Reliability
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>WebRTC Signaling Recipient Authorization</strong>
+                        <span class="detail">Added strict recipient (receiver_id) authorization checks in <code>MeetingHandler::sendSignaling()</code>, blocking signaling attempts to unauthorized third parties.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧩</span>
+                    <div>
+                        <strong>Conversation Context XOR &amp; Reply Validation</strong>
+                        <span class="detail">Enforced XOR constraints between <code>thread_id</code> and <code>group_thread_id</code> in <code>sendMessage()</code> and validated <code>reply_to_id</code> context to prevent cross-conversation reply pollution.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>Transactional Group Creation &amp; DB Hardening</strong>
+                        <span class="detail">Wrapped group creation and participant assignment in a database transaction, while hardening <code>db_init.php</code> with file locking and sanitized logs.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>SSE Cursor Optimization, DM Typing &amp; Strict Search Dates</strong>
+                        <span class="detail">Eliminated SSE rescan loops for inaccessible messages, integrated DM typing indicators into the UI, and added strict calendar date validation returning 400 for bad ranges.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.35 ===== -->
 <article class="release">
     <div class="release-header">

@@ -71,15 +71,15 @@ class SseHandler extends BaseHandler
                     "SELECT m.id, m.thread_id, m.group_thread_id, m.user_id,
                         m.content, m.attachment_path, m.reply_to_id,
                         m.created_at, u.username,
-                        COALESCE(t.name, gt.name, '') AS thread_name
+                        COALESCE(t.name, gt.name, '') AS thread_name,
+                        (m.group_thread_id IS NULL OR gtp.user_id IS NOT NULL) AS is_accessible
                     FROM messages m
                     JOIN users u ON m.user_id = u.id
                     LEFT JOIN threads t ON m.thread_id = t.id
                     LEFT JOIN group_threads gt ON m.group_thread_id = gt.id
                     LEFT JOIN group_thread_participants gtp ON gt.id = gtp.thread_id AND gtp.user_id = ?
                     WHERE m.id > ?
-                    AND (m.group_thread_id IS NULL OR gtp.user_id IS NOT NULL)
-                    ORDER BY m.id ASC LIMIT 10"
+                    ORDER BY m.id ASC LIMIT 20"
                 );
                 if ($stmt) {
                     $stmt->bind_param('ii', $this->userId, $lastMsgId);
@@ -87,6 +87,10 @@ class SseHandler extends BaseHandler
                     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                     $stmt->close();
                     foreach ($rows as $row) {
+                        $lastMsgId = (int)$row['id'];
+                        if ((int)($row['is_accessible'] ?? 0) !== 1) {
+                            continue;
+                        }
                         $eventName = $row['group_thread_id'] ? 'new_group_message' : 'new_message';
                         $payload   = [
                             'id'              => (int)$row['id'],
@@ -95,6 +99,7 @@ class SseHandler extends BaseHandler
                             'userId'          => (int)$row['user_id'],
                             'username'        => $row['username'],
                             'threadName'      => $row['thread_name'],
+                            'groupName'       => $row['thread_name'],
                             'content'         => $row['content'],
                             'attachment_path' => $row['attachment_path'],
                             'reply_to_id'     => $row['reply_to_id'],
@@ -102,7 +107,6 @@ class SseHandler extends BaseHandler
                         ];
                         echo "event: {$eventName}\n";
                         echo "data: " . json_encode($payload) . "\n\n";
-                        $lastMsgId = (int)$row['id'];
                     }
                 }
             }

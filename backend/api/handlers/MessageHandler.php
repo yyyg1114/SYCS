@@ -71,6 +71,13 @@ class MessageHandler extends BaseHandler
         $tidVal  = ($rawTid  && (int)$rawTid  > 0) ? (int)$rawTid  : null;
         $gtidVal = ($rawGtid && (int)$rawGtid > 0) ? (int)$rawGtid : null;
 
+        // [SECURITY CHECK] Enforce XOR: exactly one conversation context must be specified
+        if ($tidVal !== null && $gtidVal !== null) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Cannot specify both thread_id and group_thread_id']);
+            return;
+        }
+
         // [SECURITY CHECK] グループメッセージ送信時の参加権限確認
         if ($gtidVal !== null) {
             if (!$this->isGroupParticipant($gtidVal)) {
@@ -88,6 +95,29 @@ class MessageHandler extends BaseHandler
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Thread or Group ID required']);
             return;
+        }
+
+        // [SECURITY CHECK] reply_to_id の会話文脈（同一スレッド/グループ）整合性検証
+        if ($replyToId !== null) {
+            $parent = $this->canAccessMessage($replyToId);
+            if (!$parent) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Invalid reply_to_id or message inaccessible']);
+                return;
+            }
+            if ($tidVal !== null) {
+                if ($parent['thread_id'] === null || (int)$parent['thread_id'] !== $tidVal) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => 'reply_to_id context mismatch: parent belongs to a different thread']);
+                    return;
+                }
+            } elseif ($gtidVal !== null) {
+                if ($parent['group_thread_id'] === null || (int)$parent['group_thread_id'] !== $gtidVal) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => 'reply_to_id context mismatch: parent belongs to a different group']);
+                    return;
+                }
+            }
         }
 
         $stmt = $this->mysqli->prepare(
@@ -314,9 +344,35 @@ class MessageHandler extends BaseHandler
 
         $kw = '%' . $kwRaw . '%';
 
-        // 日付フォーマット簡易検証
-        $dateFromValid = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom) ? $dateFrom . ' 00:00:00' : null;
-        $dateToValid   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)   ? $dateTo   . ' 23:59:59' : null;
+        // [SECURITY CHECK] 日付フォーマットの厳格な検証 (DateTime::createFromFormat) と日付順序検証
+        $dateFromValid = null;
+        $dateToValid   = null;
+
+        if (!empty($dateFrom)) {
+            $dFrom = \DateTime::createFromFormat('Y-m-d', $dateFrom);
+            if (!$dFrom || $dFrom->format('Y-m-d') !== $dateFrom) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Invalid date_from format. Expected YYYY-MM-DD']);
+                return;
+            }
+            $dateFromValid = $dateFrom . ' 00:00:00';
+        }
+
+        if (!empty($dateTo)) {
+            $dTo = \DateTime::createFromFormat('Y-m-d', $dateTo);
+            if (!$dTo || $dTo->format('Y-m-d') !== $dateTo) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Invalid date_to format. Expected YYYY-MM-DD']);
+                return;
+            }
+            $dateToValid = $dateTo . ' 23:59:59';
+        }
+
+        if (!empty($dateFrom) && !empty($dateTo) && $dateFrom > $dateTo) {
+            http_response_code(400);
+            echo json_encode(['error' => 'date_from cannot be later than date_to']);
+            return;
+        }
 
         if ($pid > 0) {
             // DM 検索

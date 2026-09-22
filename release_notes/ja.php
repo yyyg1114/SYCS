@@ -7,6 +7,52 @@
  */
 ?>
 
+<!-- ===== v2.2.36 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.36</span>
+        <span class="release-title">メッセージ整合性・WebRTC認可・リアルタイム処理の徹底セキュリティ強化</span>
+        <span class="release-date">2026-09-19</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> セキュリティ &amp; 信頼性 (Security &amp; Reliability)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>WebRTCシグナリング受動者アクセス認可の追加</strong>
+                        <span class="detail"><code>MeetingHandler::sendSignaling()</code> において受動者（receiver_id）のルームアクセス権限を厳格に検証し、非参加者への不正なシグナリング送信を完全にブロックしました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧩</span>
+                    <div>
+                        <strong>メッセージ会話コンテキストの排他性（XOR）と返信先整合性検証</strong>
+                        <span class="detail"><code>sendMessage()</code> で <code>thread_id</code> と <code>group_thread_id</code> の XOR 制約を適用し、返信先（<code>reply_to_id</code>）が同一スレッド/グループに属しているかを厳格に検証します。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>グループ作成のDBトランザクション化と運用保護</strong>
+                        <span class="detail"><code>GroupHandler::createGroupThread()</code> のグループ作成および全参加者追加を DB トランザクションで保護し、不完全なグループ生成を防ぐとともに <code>db_init.php</code> のファイルロックとログ保護を強化しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>SSEカーソル効率化・DMタイピング表示・検索日付検証の強化</strong>
+                        <span class="detail">アクセス不可メッセージによるSSE再検索ループを解消し、DMタイピングインジケーターのUI統合および検索日付の厳格な検証（400エラー応答）を実装しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.35 ===== -->
 <article class="release">
     <div class="release-header">

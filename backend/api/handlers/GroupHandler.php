@@ -14,30 +14,61 @@ class GroupHandler extends BaseHandler
     public function createGroupThread(): void
     {
         $this->verifyCsrf();
-        $name = $this->getPost('name', 'Group');
-        $pids = json_decode($this->getPost('participant_ids', '[]'), true);
+        $name = trim((string)$this->getPost('name', 'Group'));
+        if ($name === '') {
+            $name = 'Group';
+        }
+        $rawPids = json_decode($this->getPost('participant_ids', '[]'), true);
+        if (!is_array($rawPids)) {
+            $rawPids = [];
+        }
 
-        $stmt = $this->mysqli->prepare("INSERT INTO group_threads (name, creator_id) VALUES (?, ?)");
-        $stmt->bind_param("si", $name, $this->userId);
-        $stmt->execute();
-        $tid = $stmt->insert_id;
-
-        // 自分を参加者として追加
-        $ins = $this->mysqli->prepare("INSERT INTO group_thread_participants (thread_id, user_id) VALUES (?, ?)");
-        $ins->bind_param("ii", $tid, $this->userId);
-        $ins->execute();
-
-        // 指定した参加者を追加
-        foreach ($pids as $p) {
-            $p = (int)$p;
-            if ($p > 0) {
-                $ins2 = $this->mysqli->prepare("INSERT INTO group_thread_participants (thread_id, user_id) VALUES (?, ?)");
-                $ins2->bind_param("ii", $tid, $p);
-                $ins2->execute();
+        // Validate participant IDs prior to mutation
+        $pids = [];
+        foreach ($rawPids as $p) {
+            $pInt = (int)$p;
+            if ($pInt > 0 && $pInt !== (int)$this->userId && !in_array($pInt, $pids, true)) {
+                $chkUser = $this->mysqli->prepare("SELECT id FROM users WHERE id = ? LIMIT 1");
+                $chkUser->bind_param("i", $pInt);
+                $chkUser->execute();
+                if ($chkUser->get_result()->fetch_assoc()) {
+                    $pids[] = $pInt;
+                }
+                $chkUser->close();
             }
         }
 
-        echo json_encode(['success' => true, 'id' => $tid]);
+        $this->mysqli->begin_transaction();
+        try {
+            $stmt = $this->mysqli->prepare("INSERT INTO group_threads (name, creator_id) VALUES (?, ?)");
+            $stmt->bind_param("si", $name, $this->userId);
+            $stmt->execute();
+            $tid = $stmt->insert_id;
+            $stmt->close();
+
+            // 自分を参加者として追加
+            $ins = $this->mysqli->prepare("INSERT INTO group_thread_participants (thread_id, user_id) VALUES (?, ?)");
+            $ins->bind_param("ii", $tid, $this->userId);
+            $ins->execute();
+            $ins->close();
+
+            // 指定した参加者を追加
+            if (!empty($pids)) {
+                $ins2 = $this->mysqli->prepare("INSERT INTO group_thread_participants (thread_id, user_id) VALUES (?, ?)");
+                foreach ($pids as $pInt) {
+                    $ins2->bind_param("ii", $tid, $pInt);
+                    $ins2->execute();
+                }
+                $ins2->close();
+            }
+
+            $this->mysqli->commit();
+            echo json_encode(['success' => true, 'id' => $tid]);
+        } catch (\Throwable $e) {
+            $this->mysqli->rollback();
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Failed to create group thread']);
+        }
     }
 
     public function getGroupThreads(): void

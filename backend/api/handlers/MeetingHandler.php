@@ -64,9 +64,15 @@ class MeetingHandler extends BaseHandler
         $type       = $this->getPost('type');
         $content    = $this->getPost('content');
 
-        if (!$this->canAccessMeetingRoom($rid)) {
+        if (!$this->canAccessMeetingRoom($rid, $this->userId)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Forbidden: Access denied to meeting room']);
+            return;
+        }
+
+        if ($receiverId <= 0 || !$this->canAccessMeetingRoom($rid, $receiverId)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Forbidden: Invalid or unauthorized receiver']);
             return;
         }
 

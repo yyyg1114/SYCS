@@ -273,9 +273,10 @@ abstract class BaseHandler
     /**
      * ミーティングルームが存在し、アクセス資格があるか確認
      */
-    public function canAccessMeetingRoom(int $roomId): bool
+    public function canAccessMeetingRoom(int $roomId, ?int $userId = null): bool
     {
-        if ($roomId <= 0) return false;
+        $uid = $userId ?? $this->userId;
+        if ($roomId <= 0 || !$uid) return false;
 
         $stmt = $this->mysqli->prepare(
             "SELECT room_name, thread_id, dm_partner_id, creator_id FROM meeting_rooms WHERE id = ? LIMIT 1"
@@ -287,13 +288,13 @@ abstract class BaseHandler
 
         if (!$room) return false;
 
-        if ($room['creator_id'] == $this->userId) return true;
+        if ((int)$room['creator_id'] === $uid) return true;
 
         if ($room['thread_id'] !== null && (int)$room['thread_id'] > 0) {
             return $this->canAccessThread((int)$room['thread_id']);
         }
         if ($room['dm_partner_id'] !== null && (int)$room['dm_partner_id'] > 0) {
-            return $this->canAccessDm((int)$room['dm_partner_id']);
+            return $this->canAccessDm((int)$room['dm_partner_id'], $uid);
         }
 
         // ルーム名パターン判定 fallback
@@ -306,8 +307,8 @@ abstract class BaseHandler
             if (count($parts) === 3) {
                 $u1 = (int)$parts[1];
                 $u2 = (int)$parts[2];
-                if ($this->userId === $u1) return $this->canAccessDm($u2);
-                if ($this->userId === $u2) return $this->canAccessDm($u1);
+                if ($uid === $u1) return $this->canAccessDm($u2, $uid);
+                if ($uid === $u2) return $this->canAccessDm($u1, $uid);
             }
         }
 

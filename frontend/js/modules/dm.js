@@ -9,6 +9,10 @@ import { t } from './utils.js';
 
 let currentDmPartnerId = null;
 
+let lastTypingSentTime = 0;
+let typingTimer = null;
+let typingPollInterval = null;
+
 /**
  * Switch to a DM chat with a specific user
  * @param {number} userId
@@ -21,7 +25,33 @@ export async function switchToDm(userId, userName) {
   document.getElementById("dm-chat-view").style.display = "flex";
   document.getElementById("current-header-title").innerText = userName;
 
+  if (typingPollInterval) clearInterval(typingPollInterval);
+  typingPollInterval = setInterval(checkDmTypingStatus, 3000);
+  checkDmTypingStatus();
+
   await loadDmMessages(userId);
+}
+
+/**
+ * Check and display typing status for current DM partner
+ */
+export async function checkDmTypingStatus() {
+  const indicator = document.getElementById("dm-typing-indicator");
+  if (!indicator) return;
+
+  if (!currentDmPartnerId) {
+    indicator.textContent = "";
+    return;
+  }
+
+  const threadId = `dm_${currentDmPartnerId}`;
+  const res = await api(`get_typing_users&thread_id=${threadId}`);
+  if (Array.isArray(res) && res.length > 0) {
+    const names = res.map(u => u.username).join(', ');
+    indicator.textContent = t('is_typing', `${names} が入力中...`);
+  } else {
+    indicator.textContent = "";
+  }
 }
 
 /**
@@ -74,8 +104,18 @@ export function refreshDmIfOpen(data) {
  * Go back to DM hub (friend list)
  */
 export function backToHub() {
+  if (currentDmPartnerId) {
+    const threadId = `dm_${currentDmPartnerId}`;
+    api("update_typing_status", "POST", { thread_id: threadId, is_typing: "0" });
+  }
+  if (typingPollInterval) {
+    clearInterval(typingPollInterval);
+    typingPollInterval = null;
+  }
   currentDmPartnerId = null;
   window.currentDmPartnerId = null;
+  const indicator = document.getElementById("dm-typing-indicator");
+  if (indicator) indicator.textContent = "";
   document.getElementById("dm-hub-view").style.display = "flex";
   document.getElementById("dm-chat-view").style.display = "none";
 }
@@ -96,6 +136,10 @@ export async function sendDm() {
 
   if (res && res.success) {
     input.value = "";
+    const threadId = `dm_${currentDmPartnerId}`;
+    api("update_typing_status", "POST", { thread_id: threadId, is_typing: "0" });
+    const indicator = document.getElementById("dm-typing-indicator");
+    if (indicator) indicator.textContent = "";
     // Reload DM messages to show the newly sent message
     await loadDmMessages(currentDmPartnerId);
   }
@@ -130,6 +174,22 @@ export function handleDmInputKey(event) {
  * Handle Typing Indicator
  */
 export function handleTyping() {
-  // Logic to emit typing event via Socket.io
-  console.log("User is typing...");
+  if (!currentDmPartnerId) return;
+
+  const now = Date.now();
+  if (now - lastTypingSentTime > 2000) {
+    lastTypingSentTime = now;
+    const threadId = `dm_${currentDmPartnerId}`;
+    api("update_typing_status", "POST", { thread_id: threadId, is_typing: "1" });
+  }
+
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(() => {
+    if (currentDmPartnerId) {
+      const threadId = `dm_${currentDmPartnerId}`;
+      api("update_typing_status", "POST", { thread_id: threadId, is_typing: "0" });
+      const indicator = document.getElementById("dm-typing-indicator");
+      if (indicator) indicator.textContent = "";
+    }
+  }, 3000);
 }

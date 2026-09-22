@@ -7,6 +7,52 @@
  */
 ?>
 
+<!-- ===== v2.2.36 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.36</span>
+        <span class="release-title">消息完整性、WebRTC信令授权与实时处理彻底强化</span>
+        <span class="release-date">2026-09-19</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 安全与可靠性 (Security &amp; Reliability)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>WebRTC 信令接收者权限验证</strong>
+                        <span class="detail">在 <code>MeetingHandler::sendSignaling()</code> 中对接收者（receiver_id）的房间访问权限进行严格校验，彻底防止向未授权用户发送信令。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🧩</span>
+                    <div>
+                        <strong>消息上下文互斥（XOR）与回复上下文校验</strong>
+                        <span class="detail">在 <code>sendMessage()</code> 中对 <code>thread_id</code> 和 <code>group_thread_id</code> 施加 XOR 互斥约束，并验证 <code>reply_to_id</code> 是否属于同一会话上下文。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚙️</span>
+                    <div>
+                        <strong>群组创建事务化与数据库初始化强化</strong>
+                        <span class="detail">将群组创建与成员添加统一包裹在数据库事务中以保证原子性，并为 <code>db_init.php</code> 添加文件锁与安全日志处理。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>SSE 游标优化、私信输入指示器与严格日期校验</strong>
+                        <span class="detail">解决了不可访问消息导致的 SSE 重复扫描循环，集成了 DM 输入中指示器 UI，并为搜索日期添加了严格的日历校验（错误或倒置范围返回 400）。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.35 ===== -->
 <article class="release">
     <div class="release-header">
