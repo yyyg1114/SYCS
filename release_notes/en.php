@@ -1,3 +1,35 @@
+<!-- ===== v2.2.37 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.37</span>
+        <span class="release-title">WebRTC Video Conferencing and Custom Signaling Server</span>
+        <span class="release-date">2026-09-22</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> New Features
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎥</span>
+                    <div>
+                        <strong>WebRTC-based Video and Voice Calls</strong>
+                        <span class="detail">Implemented comprehensive WebRTC frontend modules to support low-latency peer-to-peer video and audio conferencing.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">📡</span>
+                    <div>
+                        <strong>Dedicated Node.js Signaling Server</strong>
+                        <span class="detail">Introduced a custom Node.js real-time signaling server to manage secure rooms and facilitate WebSocket-based P2P connection handshakes.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.36 ===== -->
 <article class="release">
     <div class="release-header">

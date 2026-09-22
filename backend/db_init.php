@@ -145,13 +145,30 @@ function db_init($mysqli)
 
         $mysqli->query("CREATE TABLE IF NOT EXISTS meeting_rooms (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    thread_id INT DEFAULT NULL,
-    dm_partner_id INT DEFAULT NULL,
-    creator_id INT NOT NULL,
+    room_uuid VARCHAR(64) NULL UNIQUE,
     room_name VARCHAR(100) NOT NULL UNIQUE,
+    room_type ENUM('thread', 'group', 'dm', 'instant') DEFAULT 'thread',
+    thread_id INT DEFAULT NULL,
+    group_thread_id INT DEFAULT NULL,
+    dm_user_1 INT DEFAULT NULL,
+    dm_user_2 INT DEFAULT NULL,
+    meeting_id VARCHAR(20) DEFAULT NULL,
+    password_hash VARCHAR(255) DEFAULT NULL,
+    creator_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    closed_at TIMESTAMP NULL DEFAULT NULL,
     FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE,
     FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
+)");
+
+        $mysqli->query("CREATE TABLE IF NOT EXISTS meeting_participants (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    room_id INT NOT NULL,
+    user_id INT NOT NULL,
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    left_at TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (room_id) REFERENCES meeting_rooms(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 )");
 
         $mysqli->query("CREATE TABLE IF NOT EXISTS signaling (
@@ -239,6 +256,12 @@ function db_init($mysqli)
             ['threads',         'category',             "VARCHAR(50) DEFAULT 'General' AFTER name"],
             ['direct_messages', 'is_edited',            'TINYINT(1) DEFAULT 0 AFTER is_read'],
             ['direct_messages', 'expires_at',           'DATETIME NULL AFTER is_edited'],
+            ['meeting_rooms',   'room_uuid',            'VARCHAR(64) NULL AFTER id'],
+            ['meeting_rooms',   'room_type',            "ENUM('thread', 'group', 'dm', 'instant') DEFAULT 'thread' AFTER room_name"],
+            ['meeting_rooms',   'group_thread_id',      'INT DEFAULT NULL AFTER thread_id'],
+            ['meeting_rooms',   'dm_user_1',            'INT DEFAULT NULL AFTER group_thread_id'],
+            ['meeting_rooms',   'dm_user_2',            'INT DEFAULT NULL AFTER dm_user_1'],
+            ['meeting_rooms',   'closed_at',            'TIMESTAMP NULL DEFAULT NULL AFTER created_at'],
         ];
 
         // Execute migrations with failure detection.

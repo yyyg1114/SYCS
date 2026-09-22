@@ -20,7 +20,7 @@ if (!isset($currentUserStatus)) {
     <div class="sidebar-top">
         <div class="logo-container">
             <img src="./assets/img/SYCS_Logo.svg" alt="SYCS_Logo" class="logo">
-            <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v2.2.36</span>
+            <span class="logo-version" style="font-size: 0.8rem; margin-left: 10px; align-items: end;">v2.2.37</span>
         </div>
         <div class="sidebar-secondary">
             <div class="release-notes">
@@ -54,6 +54,14 @@ if (!isset($currentUserStatus)) {
                             points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                     </svg>
                     <span><?= __('favorites') ?></span>
+                </li>
+                <li class="nav-item <?= $currentPage === 'meetings' ? 'active' : '' ?>" data-tab="meetings" onclick="location.href='meetings.php'">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                    </svg>
+                    <span><?= __('video_meeting') ?></span>
                 </li>
             </ul>
         </nav>

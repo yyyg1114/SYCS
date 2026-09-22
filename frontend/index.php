@@ -1,5 +1,5 @@
 <?php
-// v2.2.36
+// v2.2.37
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -576,7 +576,11 @@ if ($isLoggedIn) {
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
-    <script src="js/webrtc.js" defer></script>
+    <script src="js/webrtc/media-manager.js" defer></script>
+    <script src="js/webrtc/signaling-client.js" defer></script>
+    <script src="js/webrtc/peer-connection-manager.js" defer></script>
+    <script src="js/webrtc/meeting-ui.js" defer></script>
+    <script src="js/webrtc/meeting-manager.js" defer></script>
     <script src="js/locate.js" defer></script>
 
 

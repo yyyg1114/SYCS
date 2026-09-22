@@ -7,6 +7,38 @@
  */
 ?>
 
+<!-- ===== v2.2.37 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.37</span>
+        <span class="release-title">WebRTCビデオ会議と専用シグナリングサーバーの導入</span>
+        <span class="release-date">2026-09-22</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 (New Features)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎥</span>
+                    <div>
+                        <strong>WebRTCベースのビデオ通話・会議システム</strong>
+                        <span class="detail">フロントエンドにWebRTC関連のモジュール群を追加し、ピアツーピアの低遅延なビデオ・音声通話機能を実現しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">📡</span>
+                    <div>
+                        <strong>Node.js専用シグナリングサーバー</strong>
+                        <span class="detail">バックエンドにNode.jsベースのリアルタイムシグナリングサーバーを新規構築し、WebSocket経由でのセキュアなルーム管理とP2P接続をサポートします。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.36 ===== -->
 <article class="release">
     <div class="release-header">

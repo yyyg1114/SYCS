@@ -7,6 +7,38 @@
  */
 ?>
 
+<!-- ===== v2.2.37 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.37</span>
+        <span class="release-title">WebRTC 视频会议与专用信令服务器</span>
+        <span class="release-date">2026-09-22</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新功能 (New Features)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎥</span>
+                    <div>
+                        <strong>基于 WebRTC 的视频通话系统</strong>
+                        <span class="detail">在前端新增了 WebRTC 相关模块，实现了低延迟的点对点视频与语音通话功能。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">📡</span>
+                    <div>
+                        <strong>Node.js 专用信令服务器</strong>
+                        <span class="detail">在后端引入了基于 Node.js 的实时信令服务器，通过 WebSocket 支持安全的房间管理和 P2P 连接握手。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.36 ===== -->
 <article class="release">
     <div class="release-header">

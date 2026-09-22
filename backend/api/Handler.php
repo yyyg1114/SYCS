@@ -114,6 +114,10 @@ class ApiHandler
 
                 // ---- Meeting / Signaling ----
                 'join_meeting' => [MeetingHandler::class, 'joinMeeting'],
+                'leave_meeting' => [MeetingHandler::class, 'leaveMeeting'],
+                'get_meeting' => [MeetingHandler::class, 'getMeeting'],
+                'get_meeting_participants' => [MeetingHandler::class, 'getMeetingParticipants'],
+                'issue_turn_credentials' => [MeetingHandler::class, 'issueTurnCredentials'],
                 'send_signaling' => [MeetingHandler::class, 'sendSignaling'],
                 'get_signaling' => [MeetingHandler::class, 'getSignaling'],
 

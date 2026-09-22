@@ -139,9 +139,9 @@ if ($isLoggedIn) {
                     <?php
                     $headerTitle = __('friend_hub');
                     $headerActions = '
-                        <button class="btn-primary" onclick="showAddFriendModal()">'.__('add_friend').'</button>
-                        <button class="btn-primary" onclick="showPendingRequestsModal()" id="btn-pending-req">'.__('approve_friend').'</button>
-                        <button class="btn-primary" onclick="showBlockedModal()" style="background-color: #333">'.__('block_list').'</button>
+                        <button class="btn-primary" onclick="showAddFriendModal()">' . __('add_friend') . '</button>
+                        <button class="btn-primary" onclick="showPendingRequestsModal()" id="btn-pending-req">' . __('approve_friend') . '</button>
+                        <button class="btn-primary" onclick="showBlockedModal()" style="background-color: #333">' . __('block_list') . '</button>
                     ';
                     include 'includes/app_header.php';
                     ?>
@@ -158,16 +158,16 @@ if ($isLoggedIn) {
                     $headerTitle = __('select_user');
                     $headerIcon = '@';
                     $headerActions = '
-                        <button class="icon-btn" onclick="startMeeting()" title="'.__('video_meeting').'">
+                        <button class="icon-btn" onclick="startMeeting()" title="' . __('video_meeting') . '">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polygon points="23 7 16 12 23 17 23 7"></polygon>
                                 <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                             </svg>
                         </button>
-                        <button class="icon-btn" onclick="showAttachmentGallery()" title="'.__('attachment_list').'">
-                            <img src="assets/img/files.svg" alt="'.__('attachment_gallery').'" style="width:16px; height:16px; filter: grayscale(1) invert(1);">
+                        <button class="icon-btn" onclick="showAttachmentGallery()" title="' . __('attachment_list') . '">
+                            <img src="assets/img/files.svg" alt="' . __('attachment_gallery') . '" style="width:16px; height:16px; filter: grayscale(1) invert(1);">
                         </button>
-                        <button class="icon-btn" onclick="blockCurrentPartner()" title="'.__('block').'" style="color:#ef4444;">
+                        <button class="icon-btn" onclick="blockCurrentPartner()" title="' . __('block') . '" style="color:#ef4444;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10" />
                                 <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
@@ -212,7 +212,11 @@ if ($isLoggedIn) {
     <?php include 'includes/modals.php'; ?>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="js/webrtc.js"></script>
+    <script src="js/webrtc/media-manager.js"></script>
+    <script src="js/webrtc/signaling-client.js"></script>
+    <script src="js/webrtc/peer-connection-manager.js"></script>
+    <script src="js/webrtc/meeting-ui.js"></script>
+    <script src="js/webrtc/meeting-manager.js"></script>
     <script src="js/locate.js"></script>
     <script src="js/index.js" type="module"></script>
     <script src="js/widgets.js"></script>

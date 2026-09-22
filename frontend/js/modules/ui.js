@@ -465,8 +465,21 @@ export function dismissInstallBanner() {
  * Start WebRTC Meeting
  */
 export function startMeeting() {
-  showToast(t("info", "情報"), t("meeting_start_clicked", "ミーティング機能は準備中です"), "info");
-  // Logic for meetingManager would go here
+  if (typeof window.meetingManager !== 'undefined') {
+    if (window.isDmMode && window.currentPartnerId) {
+      window.meetingManager.start({ dmPartnerId: window.currentPartnerId });
+    } else if (window.isGroupMode && window.currentGroupThreadId) {
+      window.meetingManager.start({ groupThreadId: window.currentGroupThreadId });
+    } else if (window.currentThreadId) {
+      window.meetingManager.start({ threadId: window.currentThreadId });
+    } else {
+      window.meetingManager.start({});
+    }
+  } else if (typeof window.startMeetingGlobal === 'function') {
+    window.startMeetingGlobal();
+  } else {
+    showToast(t("info", "情報"), t("meeting_start_clicked", "ミーティング機能を開始できませんでした"), "error");
+  }
 }
 
 /**

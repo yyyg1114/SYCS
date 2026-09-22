@@ -336,29 +336,87 @@ if (isset($_GET['api'])) {
         }
 
         .meeting-controls {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 1rem;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(10px);
-            padding: 1rem 2rem;
-            border-radius: 100px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: fixed !important;
+            bottom: 30px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 16px !important;
+            background: rgba(15, 23, 42, 0.85) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            padding: 12px 24px !important;
+            border-radius: 9999px !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+            z-index: 99999 !important;
+            width: auto !important;
+            height: auto !important;
+            max-width: 90vw !important;
         }
 
-        .control-btn.active {
-            background: var(--accent);
+        .meeting-controls .control-btn {
+            width: 48px !important;
+            height: 48px !important;
+            min-width: 48px !important;
+            min-height: 48px !important;
+            max-width: 48px !important;
+            max-height: 48px !important;
+            border-radius: 50% !important;
+            border: none !important;
+            background: rgba(255, 255, 255, 0.12) !important;
+            color: #ffffff !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            flex-shrink: 0 !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
         }
 
-        .hangup {
-            background: #ef4444;
+        .meeting-controls .control-btn:hover {
+            background: rgba(255, 255, 255, 0.25) !important;
+            transform: translateY(-2px) scale(1.05) !important;
         }
 
-        .hangup:hover {
-            background: #ef4444;
+        .meeting-controls .control-btn.active {
+            background: #6366f1 !important;
+            color: #ffffff !important;
+        }
+
+        .meeting-controls .control-btn.muted {
+            background: #ef4444 !important;
+            color: #ffffff !important;
+        }
+
+        .meeting-controls .control-btn.hangup-btn,
+        .meeting-controls .control-btn.hangup,
+        .meeting-controls .control-btn#hangup-btn {
+            background: #ef4444 !important;
+            color: #ffffff !important;
+        }
+
+        .meeting-controls .control-btn.hangup-btn:hover,
+        .meeting-controls .control-btn.hangup:hover,
+        .meeting-controls .control-btn#hangup-btn:hover {
+            background: #dc2626 !important;
+        }
+
+        .meeting-controls .control-btn img,
+        .meeting-controls .control-btn svg {
+            width: 22px !important;
+            height: 22px !important;
+            max-width: 22px !important;
+            max-height: 22px !important;
+            object-fit: contain !important;
+            flex-shrink: 0 !important;
+            filter: brightness(0) invert(1) !important;
         }
 
         /* Meeting Info Bar (Keep as it is custom for meetings.php) */
@@ -382,13 +440,38 @@ if (isset($_GET['api'])) {
             color: #94a3b8;
         }
 
-        .info-item {
-            font-family: monospace;
-            font-size: 1rem;
-            color: #818cf8;
-            user-select: all;
+        .status-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            backdrop-filter: blur(4px);
+        }
+
+        .status-badge.connected {
+            background: rgba(34, 197, 94, 0.8);
+            color: white;
+        }
+
+        .status-badge.connecting {
+            background: rgba(234, 179, 8, 0.8);
+            color: white;
+        }
+
+        .status-badge.failed,
+        .status-badge.disconnected {
+            background: rgba(239, 68, 68, 0.8);
+            color: white;
         }
     </style>
+    <script src="js/webrtc/media-manager.js"></script>
+    <script src="js/webrtc/signaling-client.js"></script>
+    <script src="js/webrtc/peer-connection-manager.js"></script>
+    <script src="js/webrtc/meeting-ui.js"></script>
+    <script src="js/webrtc/meeting-manager.js"></script>
 </head>
 
 <body>
@@ -440,7 +523,7 @@ if (isset($_GET['api'])) {
         </div>
         <div class="meeting-controls">
             <button class="control-btn" id="toggle-info" onclick="toggleMeetingInfo()" title="ミーティング詳細">
-                <span style="font-size: 1.2rem; color: #1a1a2e; font-weight: 1000;">i</span>
+                <img id="info-icon" src="assets/img/info.svg" alt="">
             </button>
             <button class="control-btn" id="toggle-mic" onclick="meetingManager.toggleMic()" title="マイク オン/オフ">
                 <img id="mic-icon" src="assets/img/mic.svg" alt="">
@@ -493,7 +576,9 @@ if (isset($_GET['api'])) {
 
         async function joinCreatedMeeting() {
             if (lastCreatedMeeting) {
-                await meetingManager.start(lastCreatedMeeting.room_id);
+                await meetingManager.start({
+                    roomId: lastCreatedMeeting.room_id
+                });
             }
         }
 
@@ -507,14 +592,13 @@ if (isset($_GET['api'])) {
 
             const res = await api('join_by_id', 'POST', body);
             if (res.success) {
-                // Prep info display for joiner
                 document.getElementById('info-id').innerText = mId;
-                // Joint passive participants don't see the plain text password from server hash verification,
-                // but since the browser user just typed it, we can use that.
                 document.getElementById('info-pass').innerText = mPass;
                 document.getElementById('info-pass-row').style.display = 'block';
 
-                await meetingManager.start(res.room_id);
+                await meetingManager.start({
+                    roomId: res.room_id
+                });
             } else {
                 alert(res.error);
             }
@@ -527,276 +611,7 @@ if (isset($_GET['api'])) {
             box.style.display = isVisible ? 'none' : 'block';
             btn.classList.toggle('active', !isVisible);
         }
-
-        // Full-featured WebRTC Manager for meetings.php (Synced with webrtc.js)
-        class MeetingManager {
-            constructor() {
-                this.localStream = null;
-                this.peers = {}; // peerUserId -> PC
-                this.pendingCandidates = {}; // userId -> [candidates]
-                this.roomId = null;
-                this.lastSignalingId = 0;
-                this.pollingInterval = null;
-                this.isMuted = false;
-                this.isVideoOff = false;
-                this.isScreenSharing = false;
-                this.screenStream = null;
-                this.iceServers = {
-                    iceServers: [{
-                            urls: "stun:stun.l.google.com:19302"
-                        },
-                        {
-                            urls: "stun:stun1.l.google.com:19302"
-                        },
-                    ],
-                };
-            }
-
-            async start(roomId) {
-                this.roomId = roomId;
-                try {
-                    this.localStream = await navigator.mediaDevices.getUserMedia({
-                        video: true,
-                        audio: true
-                    });
-                    this.addVideoTrack(currentUserId, this.localStream, true);
-                    document.getElementById('meeting-modal').showModal();
-                    document.getElementById('join-card').style.display = 'none';
-                    this.startPolling();
-
-                    // Initial knock: get other members
-                    const members = await api(`get_room_members&room_id=${this.roomId}`);
-                    members.forEach(m => {
-                        if (m.sender_id != currentUserId) this.initiateCall(m.sender_id);
-                    });
-                } catch (e) {
-                    console.error(e);
-                    alert("メディアデバイスへのアクセスに失敗しました。");
-                }
-            }
-
-            startPolling() {
-                this.pollingInterval = setInterval(async () => {
-                    if (!this.roomId) return;
-                    const msgs = await api(`get_signaling&room_id=${this.roomId}&last_id=${this.lastSignalingId}`);
-                    if (msgs && msgs.length > 0) {
-                        for (const msg of msgs) {
-                            this.lastSignalingId = Math.max(this.lastSignalingId, msg.id);
-                            await this.handleSignaling(msg);
-                        }
-                    }
-                }, 2000);
-            }
-
-            async handleSignaling(msg) {
-                const from = msg.sender_id;
-                const content = JSON.parse(msg.content);
-                if (msg.type === 'offer') {
-                    const pc = this.getOrCreatePeer(from);
-                    await pc.setRemoteDescription(new RTCSessionDescription(content));
-                    await this.flushPendingCandidates(from);
-                    const answer = await pc.createAnswer();
-                    await pc.setLocalDescription(answer);
-                    this.sendSignaling(from, 'answer', answer);
-                } else if (msg.type === 'answer') {
-                    const pc = this.peers[from];
-                    if (pc) {
-                        await pc.setRemoteDescription(new RTCSessionDescription(content));
-                        await this.flushPendingCandidates(from);
-                    }
-                } else if (msg.type === 'candidate') {
-                    const pc = this.peers[from];
-                    if (!pc || !pc.remoteDescription) {
-                        if (!this.pendingCandidates[from]) this.pendingCandidates[from] = [];
-                        this.pendingCandidates[from].push(content);
-                    } else {
-                        await pc.addIceCandidate(new RTCIceCandidate(content));
-                    }
-                }
-            }
-
-            async flushPendingCandidates(userId) {
-                const pc = this.peers[userId];
-                const candidates = this.pendingCandidates[userId] || [];
-                if (!pc || !pc.remoteDescription) return;
-
-                while (candidates.length > 0) {
-                    const candidate = candidates.shift();
-                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
-                }
-                delete this.pendingCandidates[userId];
-            }
-
-            async initiateCall(targetId) {
-                const pc = this.getOrCreatePeer(targetId);
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-                this.sendSignaling(targetId, 'offer', offer);
-            }
-
-            getOrCreatePeer(targetId) {
-                if (this.peers[targetId]) return this.peers[targetId];
-                const pc = new RTCPeerConnection(this.iceServers);
-
-                // Add current active tracks (could be camera or screen)
-                const activeStream = this.isScreenSharing ? this.screenStream : this.localStream;
-                activeStream.getTracks().forEach(t => pc.addTrack(t, activeStream));
-
-                pc.onicecandidate = e => {
-                    if (e.candidate) this.sendSignaling(targetId, 'candidate', e.candidate);
-                };
-                pc.ontrack = e => {
-                    const stream = e.streams[0] || new MediaStream([e.track]);
-                    this.addVideoTrack(targetId, stream, false);
-                };
-                pc.onconnectionstatechange = () => {
-                    if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
-                        this.removeVideoTrack(targetId);
-                    }
-                };
-                this.peers[targetId] = pc;
-                return pc;
-            }
-
-            async sendSignaling(recvId, type, content) {
-                const body = new FormData();
-                body.append('room_id', this.roomId);
-                body.append('receiver_id', recvId);
-                body.append('type', type);
-                body.append('content', JSON.stringify(content));
-                await api('send_signaling', 'POST', body);
-            }
-
-            addVideoTrack(userId, stream, isLocal) {
-                const grid = document.getElementById('video-grid');
-                let wrap = document.getElementById(`v-wrap-${userId}`);
-                if (!wrap) {
-                    wrap = document.createElement('div');
-                    wrap.id = `v-wrap-${userId}`;
-                    wrap.className = 'video-wrapper';
-                    const v = document.createElement('video');
-                    v.autoplay = true;
-                    v.muted = isLocal;
-                    v.setAttribute('playsinline', '');
-                    v.playsInline = true;
-                    const l = document.createElement('div');
-                    l.className = 'video-label';
-                    l.innerText = isLocal ? '自分' : `参加者 ${userId}`;
-                    wrap.append(v, l);
-                    grid.append(wrap);
-                }
-                const video = wrap.querySelector('video');
-                if (video.srcObject !== stream) {
-                    video.srcObject = stream;
-                    video.play().catch(err => console.warn("Playback failed", err));
-                }
-            }
-
-            removeVideoTrack(userId) {
-                const wrap = document.getElementById(`v-wrap-${userId}`);
-                if (wrap) wrap.remove();
-                if (this.peers[userId]) {
-                    this.peers[userId].close();
-                    delete this.peers[userId];
-                }
-            }
-
-            toggleMic() {
-                this.isMuted = !this.isMuted;
-                this.localStream.getAudioTracks().forEach(t => t.enabled = !this.isMuted);
-                const micIcon = document.getElementById("mic-icon");
-                if (micIcon) {
-                    micIcon.src = this.isMuted ? "assets/img/mic_muted.svg" : "assets/img/mic.svg";
-                }
-                document.getElementById('toggle-mic').classList.toggle('muted', this.isMuted);
-            }
-
-            toggleVideo() {
-                this.isVideoOff = !this.isVideoOff;
-                this.localStream.getVideoTracks().forEach(t => t.enabled = !this.isVideoOff);
-                const videoIcon = document.getElementById("video-icon");
-                if (videoIcon) {
-                    videoIcon.src = this.isVideoOff ? "assets/img/camera_off.svg" : "assets/img/camera_on.svg";
-                }
-                document.getElementById('toggle-video').classList.toggle('muted', this.isVideoOff);
-            }
-
-            async toggleScreenShare() {
-                if (this.isScreenSharing) {
-                    this.stopScreenShare();
-                } else {
-                    await this.startScreenShare();
-                }
-            }
-
-            async startScreenShare() {
-                try {
-                    this.screenStream = await navigator.mediaDevices.getDisplayMedia({
-                        video: true
-                    });
-                    this.isScreenSharing = true;
-                    const screenTrack = this.screenStream.getVideoTracks()[0];
-
-                    // Replace track for all peers
-                    for (const userId in this.peers) {
-                        const pc = this.peers[userId];
-                        const videoSender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-                        if (videoSender) videoSender.replaceTrack(screenTrack);
-                    }
-
-                    // Update local preview
-                    const localVideo = document.querySelector(`#v-wrap-${currentUserId} video`);
-                    if (localVideo) localVideo.srcObject = this.screenStream;
-
-                    screenTrack.onended = () => this.stopScreenShare();
-                    document.getElementById('toggle-screen').classList.add('active');
-                } catch (e) {
-                    console.error("Screen share failed:", e);
-                }
-            }
-
-            stopScreenShare() {
-                if (!this.isScreenSharing) return;
-                if (this.screenStream) {
-                    this.screenStream.getTracks().forEach(t => t.stop());
-                    this.screenStream = null;
-                }
-                this.isScreenSharing = false;
-                const videoTrack = this.localStream.getVideoTracks()[0];
-
-                for (const userId in this.peers) {
-                    const pc = this.peers[userId];
-                    const videoSender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-                    if (videoSender) videoSender.replaceTrack(videoTrack);
-                }
-
-                const localVideo = document.querySelector(`#v-wrap-${currentUserId} video`);
-                if (localVideo) localVideo.srcObject = this.localStream;
-                document.getElementById('toggle-screen').classList.remove('active');
-            }
-
-            async leave() {
-                if (this.pollingInterval) clearInterval(this.pollingInterval);
-
-                // Clear meeting ID/Pass from DB on exit
-                if (this.roomId) {
-                    const body = new FormData();
-                    body.append('room_id', this.roomId);
-                    await api('delete_meeting', 'POST', body);
-                }
-
-                for (const userId in this.peers) {
-                    this.peers[userId].close();
-                }
-                if (this.localStream) {
-                    this.localStream.getTracks().forEach(t => t.stop());
-                }
-                location.reload();
-            }
-        }
-        const meetingManager = new MeetingManager();
     </script>
-
 </body>
 
 </html>

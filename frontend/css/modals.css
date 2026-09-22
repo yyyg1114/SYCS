@@ -388,3 +388,94 @@ dialog.profile-modal[open]::backdrop {
 .modal-input:focus {
   border-color: var(--accent-color);
 }
+
+/* WebRTC Meeting Controls */
+.meeting-controls {
+    position: fixed !important;
+    bottom: 30px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 16px !important;
+    background: rgba(15, 23, 42, 0.85) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    padding: 12px 24px !important;
+    border-radius: 9999px !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+    z-index: 99999 !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: 90vw !important;
+}
+
+.meeting-controls .control-btn {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+    max-width: 48px !important;
+    max-height: 48px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+.meeting-controls .control-btn:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+    transform: translateY(-2px) scale(1.05) !important;
+}
+
+.meeting-controls .control-btn.active {
+    background: #6366f1 !important;
+    color: #ffffff !important;
+}
+
+.meeting-controls .control-btn.muted {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+}
+
+.meeting-controls .control-btn.hangup-btn,
+.meeting-controls .control-btn.hangup,
+.meeting-controls .control-btn#hangup-btn {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+}
+
+.meeting-controls .control-btn.hangup-btn:hover,
+.meeting-controls .control-btn.hangup:hover,
+.meeting-controls .control-btn#hangup-btn:hover {
+    background: #dc2626 !important;
+}
+
+.meeting-controls .control-btn img,
+.meeting-controls .control-btn svg {
+    width: 22px !important;
+    height: 22px !important;
+    max-width: 22px !important;
+    max-height: 22px !important;
+    object-fit: contain !important;
+    flex-shrink: 0 !important;
+    filter: brightness(0) invert(1) !important;
+}
+
+.meeting-controls .control-btn.hangup-btn img,
+.meeting-controls .control-btn.hangup img,
+.meeting-controls .control-btn#hangup-btn img {
+    filter: brightness(0) invert(1) !important;
+}
