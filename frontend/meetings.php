@@ -54,11 +54,11 @@ if (isset($_GET['api'])) {
 
             $partStmt = $mysqli->prepare(
                 "INSERT INTO meeting_participants
-    (room_id, user_id, joined_at, left_at)
-    VALUES (?, ?, NOW(), NULL)
-    ON DUPLICATE KEY UPDATE
-    joined_at = NOW(),
-    left_at = NULL"
+            (room_id, user_id, joined_at, left_at)
+            VALUES (?, ?, NOW(), NULL)
+            ON DUPLICATE KEY UPDATE
+            joined_at = NOW(),
+            left_at = NULL"
             );
 
             $partStmt->bind_param("ii", $roomId, $userId);

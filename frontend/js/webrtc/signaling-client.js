@@ -176,45 +176,51 @@ console.error(
 }
 
 async pollParticipants() {
-const params = new URLSearchParams({
-    api: 'get_meeting_participants',
-    room_id: String(this.roomId)
-});
+    if (!this.roomId) return;
 
-    const res = await fetch(`index.php?${params.toString()}`);
+    try {
+        const params = new URLSearchParams({
+            api: 'get_meeting_participants',
+            room_id: String(this.roomId)
+        });
 
-    if (!res.ok) {
-        console.error(
-            '[SignalingClient] Participant polling error:',
-            res.status
-        );
-        return;
-    }
+        const res = await fetch(`index.php?${params.toString()}`);
 
-    const data = await res.json();
-
-    if (!data.success || !Array.isArray(data.participants)) {
-        return;
-    }
-
-    for (const participant of data.participants) {
-        const peerId = Number(participant.user_id);
-
-        if (!peerId || peerId === Number(this.userId)) {
-            continue;
+        if (!res.ok) {
+            console.error(
+                '[SignalingClient] Participant polling error:',
+                res.status,
+                await res.text()
+            );
+            return;
         }
 
-        this.emitEvent('peer_joined', {
-            peerId,
-            userId: peerId,
-            username: participant.username
-        });
+        const data = await res.json();
+
+        if (!data.success || !Array.isArray(data.participants)) {
+            return;
+        }
+
+        for (const participant of data.participants) {
+            const peerId = Number(participant.user_id);
+
+            if (!peerId || peerId === Number(this.userId)) {
+                continue;
+            }
+
+            this.emitEvent('peer_joined', {
+                peerId,
+                userId: peerId,
+                username: participant.username
+            });
+        }
+    } catch (e) {
+        console.error(
+            '[SignalingClient] Participant polling failed:',
+            e
+        );
     }
-await this.pollParticipants();
 }
-
-
-
 
 startPollingFallback() {
 
@@ -229,6 +235,8 @@ clearInterval(this.pollingInterval);
 
 this.pollingInterval = setInterval(async () => {
 if (!this.roomId) return;
+
+await this.pollParticipants();
 
 try {
     const params = new URLSearchParams({
