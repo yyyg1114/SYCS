@@ -276,43 +276,101 @@ abstract class BaseHandler
     public function canAccessMeetingRoom(int $roomId, ?int $userId = null): bool
     {
         $uid = $userId ?? $this->userId;
-        if ($roomId <= 0 || !$uid) return false;
+
+        if ($roomId <= 0 || !$uid) {
+            return false;
+        }
 
         $stmt = $this->mysqli->prepare(
-            "SELECT room_name, thread_id, dm_partner_id, creator_id FROM meeting_rooms WHERE id = ? LIMIT 1"
+            "SELECT
+            id,
+            room_name,
+            room_type,
+            thread_id,
+            group_thread_id,
+            dm_user_1,
+            dm_user_2,
+            creator_id
+        FROM meeting_rooms
+        WHERE id = ?
+        LIMIT 1"
         );
+
+        if (!$stmt) {
+            return false;
+        }
+
         $stmt->bind_param("i", $roomId);
         $stmt->execute();
         $room = $stmt->get_result()->fetch_assoc();
         $stmt->close();
 
-        if (!$room) return false;
-
-        if ((int)$room['creator_id'] === $uid) return true;
-
-        if ($room['thread_id'] !== null && (int)$room['thread_id'] > 0) {
-            return $this->canAccessThread((int)$room['thread_id']);
-        }
-        if ($room['dm_partner_id'] !== null && (int)$room['dm_partner_id'] > 0) {
-            return $this->canAccessDm((int)$room['dm_partner_id'], $uid);
+        if (!$room) {
+            return false;
         }
 
-        // ルーム名パターン判定 fallback
-        if (str_starts_with($room['room_name'], 'thread_')) {
-            $tid = (int)str_replace('thread_', '', $room['room_name']);
-            return $this->canAccessThread($tid);
+        // 作成者は常にアクセス可能
+        if ((int)$room['creator_id'] === $uid) {
+            return true;
         }
-        if (str_starts_with($room['room_name'], 'dm_')) {
-            $parts = explode('_', $room['room_name']);
-            if (count($parts) === 3) {
-                $u1 = (int)$parts[1];
-                $u2 = (int)$parts[2];
-                if ($uid === $u1) return $this->canAccessDm($u2, $uid);
-                if ($uid === $u2) return $this->canAccessDm($u1, $uid);
+
+        // 現在参加中の参加者ならアクセス可能
+        $participantStmt = $this->mysqli->prepare(
+            "SELECT 1
+        FROM meeting_participants
+        WHERE room_id = ?
+        AND user_id = ?
+        AND left_at IS NULL
+        LIMIT 1"
+        );
+
+        if ($participantStmt) {
+            $participantStmt->bind_param("ii", $roomId, $uid);
+            $participantStmt->execute();
+            $participant = $participantStmt->get_result()->fetch_assoc();
+            $participantStmt->close();
+
+            if ($participant) {
+                return true;
             }
         }
 
-        return false;
+        // まだ参加者登録されていない場合は、
+        // ルーム種別ごとの元のリソース権限を確認する
+        switch ($room['room_type']) {
+            case 'thread':
+                return $room['thread_id']
+                    ? $this->canAccessThread((int)$room['thread_id'])
+                    : false;
+
+            case 'group':
+                return $room['group_thread_id']
+                    ? $this->isGroupParticipant(
+                        (int)$room['group_thread_id'],
+                        $uid
+                    )
+                    : false;
+
+            case 'dm':
+                $u1 = (int)$room['dm_user_1'];
+                $u2 = (int)$room['dm_user_2'];
+
+                if ($uid === $u1) {
+                    return $u2 > 0 && $this->canAccessDm($u2, $uid);
+                }
+
+                if ($uid === $u2) {
+                    return $u1 > 0 && $this->canAccessDm($u1, $uid);
+                }
+
+                return false;
+
+            case 'instant':
+                // instant room は creator または明示的に参加登録されたユーザーのみ
+                return false;
+
+            default:
+                return false;
+        }
     }
 }
-

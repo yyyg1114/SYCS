@@ -83,6 +83,23 @@ if (isset($_GET['api'])) {
         exit;
     }
 
+    $partStmt = $mysqli->prepare(
+        "UPDATE meeting_participants
+    SET joined_at = NOW(), left_at = NULL
+    WHERE room_id = ? AND user_id = ?"
+    );
+
+    $roomId = (int)($_POST['room_id'] ?? $_GET['room_id']);
+
+    $partStmt = $mysqli->prepare(
+        "INSERT INTO meeting_participants (room_id, user_id, joined_at, left_at)
+        VALUES (?, ?, NOW(), NULL)"
+    );
+
+    $partStmt->bind_param("ii", $roomId, $userId);
+    $partStmt->execute();
+    $partStmt->close();
+
     // Get meeting info by room_id
     if ($apiAction === 'get_meeting_info') {
         $roomId = $_GET['room_id'] ?? 0;

@@ -102,7 +102,7 @@ sendAnswer(peerId, description) {
 
 sendCandidate(peerId, candidate) {
     this.send({
-        type: 'ice_candidate',
+        type: 'candidate',
         peer_id: peerId,
         candidate
     });

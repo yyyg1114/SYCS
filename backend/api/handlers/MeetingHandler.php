@@ -53,26 +53,38 @@ class MeetingHandler extends BaseHandler
             $roomType = 'thread';
             $tVal = $tidInt;
             $name = "thread_{$tidInt}";
-        } else {
+        } elseif ($tid === '0' && $gtid === '0' && $pid === '0') {
             // Instant meeting fallback
             $roomType = 'instant';
-            $uuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-                mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-                mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000,
-                mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+            $uuid = sprintf(
+                '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                mt_rand(0, 0xffff),
+                mt_rand(0, 0xffff),
+                mt_rand(0, 0xffff),
+                mt_rand(0, 0x0fff) | 0x4000,
+                mt_rand(0, 0x3fff) | 0x8000,
+                mt_rand(0, 0xffff),
+                mt_rand(0, 0xffff),
+                mt_rand(0, 0xffff)
             );
             $name = "instant_" . substr($uuid, 0, 8);
         }
 
-        $uuidVal = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-            mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000,
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        $uuidVal = sprintf(
+            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff)
         );
 
         $stmt = $this->mysqli->prepare(
             "INSERT IGNORE INTO meeting_rooms (room_uuid, room_name, room_type, thread_id, group_thread_id, dm_user_1, dm_user_2, creator_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         );
         $stmt->bind_param("sssiiiii", $uuidVal, $name, $roomType, $tVal, $gtVal, $dm1, $dm2, $this->userId);
         $stmt->execute();
@@ -161,9 +173,9 @@ class MeetingHandler extends BaseHandler
 
         $stmt = $this->mysqli->prepare(
             "SELECT p.user_id, u.username, u.avatar_url, p.joined_at
-             FROM meeting_participants p
-             JOIN users u ON p.user_id = u.id
-             WHERE p.room_id = ? AND p.left_at IS NULL"
+        FROM meeting_participants p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.room_id = ? AND p.left_at IS NULL"
         );
         $stmt->bind_param("i", $roomId);
         $stmt->execute();
@@ -190,8 +202,18 @@ class MeetingHandler extends BaseHandler
         ];
 
         // If turn environment variable configured
-        $turnSecret = getenv('TURN_SECRET') ?: 'sycs_turn_secret';
+        $turnSecret = getenv('TURN_SECRET');
         $turnDomain = getenv('TURN_DOMAIN');
+
+        if ($turnDomain && !$turnSecret) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'TURN configuration is incomplete'
+            ]);
+            return;
+        }
+
         if ($turnDomain) {
             $ttl = 3600;
             $username = (time() + $ttl) . ":" . $this->userId;

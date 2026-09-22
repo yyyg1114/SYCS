@@ -26,16 +26,13 @@ async start({ threadId = null, groupThreadId = null, dmPartnerId = null, roomId 
             joinRes = { room_id: roomId };
         } else {
             const formData = new FormData();
-            const csrfToken =
-window.SYCS_CONFIG?.csrfToken ||
-window.csrfToken ||
-'';
+            const csrfToken = window.SYCS_CONFIG?.csrfToken || window.csrfToken || '';
             formData.append('csrf_token', csrfToken);
             if (threadId) formData.append('thread_id', threadId);
             if (groupThreadId) formData.append('group_thread_id', groupThreadId);
             if (dmPartnerId) formData.append('dm_partner_id', dmPartnerId);
 
-            const res = await fetch('index.php?action=join_meeting', {
+            const res = await fetch('index.php?api=join_meeting', {
                 method: 'POST',
                 body: formData
             });
@@ -54,10 +51,10 @@ window.csrfToken ||
         let iceServers = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
         try {
             const formData = new FormData();
-            const csrfToken = (typeof window.csrfToken !== 'undefined') ? window.csrfToken : '';
+            const csrfToken = window.SYCS_CONFIG?.csrfToken || window.csrfToken || '';
             formData.append('csrf_token', csrfToken);
             formData.append('room_id', this.roomId);
-            const credRes = await fetch('index.php?action=issue_turn_credentials', {
+            const credRes = await fetch('index.php?api=issue_turn_credentials', {
                 method: 'POST',
                 body: formData
             });
@@ -199,10 +196,10 @@ async leave() {
     if (this.roomId) {
         try {
             const formData = new FormData();
-            const csrfToken = (typeof window.csrfToken !== 'undefined') ? window.csrfToken : '';
+            const csrfToken = window.SYCS_CONFIG?.csrfToken || window.csrfToken || '';
             formData.append('csrf_token', csrfToken);
             formData.append('room_id', this.roomId);
-            await fetch('index.php?action=leave_meeting', {
+            await fetch('index.php?api=leave_meeting', {
                 method: 'POST',
                 body: formData
             });
