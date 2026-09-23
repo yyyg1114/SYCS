@@ -18,7 +18,7 @@
   --overlay-backdrop: rgba(15, 23, 42, 0.75);
   --clock-index-color: rgba(255, 255, 255, 0.2);
   --clock-index-small-color: rgba(255, 255, 255, 0.1);
-  --clock-sub-index-color: rgba(255, 255, 255, 0.4);
+  --clock-sub-index-color: rgba(255, 255, 255, 0.1);
   --toggle-knob-bg: var(--surface-bg);
   --placeholder-color: rgba(255, 255, 255, 0.55);
   

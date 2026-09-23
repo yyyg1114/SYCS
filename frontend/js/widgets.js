@@ -67,7 +67,7 @@ function initClock() {
         if (sub9) {
             for (let i = 0; i < 12; i++) {
                 const index = document.createElement('div');
-                index.className = 'sub-index' + (i % 3 === 0 ? ' major' : '');
+                index.className = 'sub-index' + (i % 6 === 0 ? ' major' : '');
                 index.style.setProperty('--si', i);
                 index.style.setProperty('--sa', '30deg');
                 sub9.appendChild(index);

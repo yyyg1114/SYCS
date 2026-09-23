@@ -104,15 +104,17 @@ if (!isset($currentUserStatus)) {
                     <div id="analog-clock" class="analog-clock">
                         <div class="clock-face">
                             <div class="sub-dial sub-9">
-                                <div class="sub-hand"></div><span class="sub-label">24H</span>
+                                <div class="sub-hand"></div><span class="sub-label">&nbsp;24H</span>
+                                <div class="sub-indi1">A</div>
+                                <div class="sub-indi2">P</div>
                                 <div class="sub-center-dot"></div>
                             </div>
                             <div class="sub-dial sub-3">
-                                <div class="sub-hand"></div><span class="sub-label">DAY</span>
+                                <div class="sub-hand"></div><span class="sub-label">&nbsp;DAY</span>
                                 <div class="sub-center-dot"></div>
                             </div>
                             <div class="sub-dial sub-6">
-                                <div class="sub-hand"></div><span class="sub-label">SEC</span>
+                                <div class="sub-hand"></div><span class="sub-label">&nbsp;SEC</span>
                                 <div class="sub-center-dot"></div>
                             </div>
                             <div class="date-window"><span><?= date('j') ?></span></div>

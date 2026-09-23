@@ -1,201 +1,201 @@
 /* Sidebar Widgets Container */
 .sidebar-widgets {
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-    background: var(--sidebar-widgets-bg);
-    border-top: 1px solid var(--border-color);
-    flex-shrink: 0;
+display: flex;
+flex-direction: column;
+padding: 10px;
+background: var(--sidebar-widgets-bg);
+border-top: 1px solid var(--border-color);
+flex-shrink: 0;
 }
 
 .widget-tabs {
-    display: flex;
-    justify-content: space-around;
-    background: var(--widget-tabs-bg);
-    border-radius: 8px;
-    margin-bottom: 10px;
-    padding: 2px;
+display: flex;
+justify-content: space-around;
+background: var(--widget-tabs-bg);
+border-radius: 8px;
+margin-bottom: 10px;
+padding: 2px;
 }
 
 .widget-tab {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    padding: 6px;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+background: transparent;
+border: none;
+color: var(--text-secondary);
+padding: 6px;
+cursor: pointer;
+border-radius: 6px;
+transition: all 0.2s ease;
+flex: 1;
+display: flex;
+justify-content: center;
+align-items: center;
 }
 
 .widget-tab:hover {
-    background: var(--widget-tab-hover-bg);
-    color: var(--text-primary);
+background: var(--widget-tab-hover-bg);
+color: var(--text-primary);
 }
 
 .widget-tab.active {
-    background: var(--accent-color);
-    color: white;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+background: var(--accent-color);
+color: white;
+box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
 .widget-content {
-    height: 260px;
-    position: relative;
-    overflow: hidden;
+height: 260px;
+position: relative;
+overflow: hidden;
 }
 
 .widget-pane {
-    display: none;
-    height: 100%;
-    flex-direction: column;
-    animation: fadeIn 0.3s ease;
+display: none;
+height: 100%;
+flex-direction: column;
+animation: fadeIn 0.3s ease;
 }
 
 .widget-pane.active {
-    display: flex;
+display: flex;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+from {
+opacity: 0;
+transform: translateY(5px);
+}
+to {
+opacity: 1;
+transform: translateY(0);
+}
 }
 
 /* Clock Widget */
 .clock-display {
-    flex-grow: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 6px;
+flex-grow: 1;
+display: flex;
+justify-content: center;
+align-items: center;
+padding: 6px;
 }
 
 .digital-clock {
-    font-family: 'Inter', monospace;
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    text-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
+font-family: "Inter", monospace;
+font-size: 1.6rem;
+font-weight: 700;
+color: var(--text-primary);
+text-shadow: 0 0 12px rgba(0, 0, 0, 0.08);
 }
 
 /* Analog Clock
-   Geometry: 140px total, 6px border => 128px inner diameter, 64px radius */
+Geometry: 140px total, 6px border => 128px inner diameter, 64px radius */
 .analog-clock {
-    width: 140px;
-    height: 140px;
-    position: relative;
-    background: var(--clock-bg);
-    border-radius: 50%;
-    border: 6px solid var(--clock-border);
-    box-shadow: inset 0 0 18px rgba(0,0,0,0.35), 0 8px 16px rgba(0,0,0,0.2);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: visible;
+width: 140px;
+height: 140px;
+position: relative;
+background: var(--clock-bg);
+border-radius: 50%;
+border: 6px solid var(--clock-border);
+box-shadow:
+inset 0 0 18px rgba(0, 0, 0, 0.35),
+0 8px 16px rgba(0, 0, 0, 0.2);
+display: flex;
+justify-content: center;
+align-items: center;
+overflow: visible;
 }
 
 .clock-face {
-    width: 100%;
-    height: 100%;
-    position: relative;
+width: 100%;
+height: 100%;
+position: relative;
 }
 
 /* Index markers: top:0 + transform-origin at center = 64px */
 .clock-index {
-    position: absolute;
-    left: 50%;
-    top: 0;
-    transform-origin: 50% 64px;
-    z-index: 2;
-    border-radius: 2px;
+position: absolute;
+left: 50%;
+top: 0;
+transform-origin: 50% 64px;
+z-index: 2;
+border-radius: 2px;
 }
 
 .clock-index.hour {
-    width: 3px;
-    height: 12px;
-    background: #8b5cf6;
-    margin-left: -1.5px;
-    transform: rotate(calc(var(--i) * 30deg));
-    box-shadow: 0 0 8px rgba(139, 92, 246, 0.8);
+width: 3px;
+height: 12px;
+background: #8b5cf6;
+margin-left: -1.5px;
+transform: rotate(calc(var(--i) * 30deg));
+box-shadow: 0 0 8px rgba(139, 92, 246, 0.8);
 }
 
 .clock-index.minute {
-    width: 1px;
-    height: 6px;
-    background: var(--clock-index-color);
-    margin-left: -0.5px;
-    transform: rotate(calc(var(--i) * 6deg));
+width: 1px;
+height: 6px;
+background: var(--clock-index-color);
+margin-left: -0.5px;
+transform: rotate(calc(var(--i) * 6deg));
 }
 
 .clock-index.fifth {
-    width: 0.5px;
-    height: 3px;
-    background: var(--clock-index-small-color);
-    margin-left: -0.25px;
-    transform: rotate(calc(var(--i) * 1.2deg));
+width: 0.5px;
+height: 3px;
+background: var(--clock-index-small-color);
+margin-left: -0.25px;
+transform: rotate(calc(var(--i) * 1.2deg));
 }
 
 /* Sub-dials (34px diameter = 17px radius, 16px usable for indices) */
 .sub-dial {
-    position: absolute;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: var(--clock-subdial-bg);
-    border: 1px solid var(--clock-subdial-border);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-sizing: border-box !important;
+position: absolute;
+width: 34px;
+height: 34px;
+border-radius: 50%;
+background: var(--clock-subdial-bg);
+border: 1px solid var(--clock-subdial-border);
+display: flex;
+justify-content: center;
+align-items: center;
+box-sizing: border-box !important;
 }
 
-.sub-9 { top: 50%; left: 25%; transform: translate(-50%, -50%); }
-.sub-3 { top: 50%; right: 25%; transform: translate(50%, -50%); }
-.sub-6 { top: 75%; left: 50%; transform: translate(-50%, -50%); }
+.sub-9 {
+top: 50%;
+left: 25%;
+transform: translate(-50%, -50%);
+}
+.sub-3 {
+top: 50%;
+right: 25%;
+transform: translate(50%, -50%);
+}
+.sub-6 {
+top: 75%;
+left: 50%;
+transform: translate(-50%, -50%);
+}
 
 /* Sub-hand: centered at 16px from top (sub-dial radius minus border) */
 .sub-hand {
-    position: absolute;
-    top: 5px;
-    left: calc(50% - 0.75px);
-    width: 1.5px;
-    height: 12px;
-    background: var(--clock-hand-color);
-    transform-origin: 0.75px 11px;
-    transform: rotate(var(--sub-angle, 0deg));
-    z-index: 5;
-    border-radius: 1px;
-    box-shadow: 0 0 5px rgba(99, 102, 241, 0.35);
+position: absolute;
+top: 5px;
+left: calc(50% - 0.75px);
+width: 1.5px;
+height: 12px;
+background: var(--clock-hand-color);
+transform-origin: 0.75px 11px;
+transform: rotate(var(--sub-angle, 0deg));
+z-index: 5;
+border-radius: 1px;
+box-shadow: 0 0 5px rgba(99, 102, 241, 0.35);
 }
 
-/* Sub-indices: origin at sub-dial center (16px from top edge) */
-.sub-index {
+.sub-indi1{
     position: absolute;
-    left: calc(50% - 0.5px);
-    top: 2px;
-    width: 1px;
-    height: 3px;
-    background: var(--clock-sub-index-color);
-    transform-origin: 0.5px 14px;
-    transform: rotate(calc(var(--si) * var(--sa)));
-}
-
-.sub-index.major {
-    width: 1.5px;
-    left: calc(50% - 0.75px);
-    height: 5px;
-    background: #8b5cf6;
-    transform-origin: 0.75px 14px;
-}
-
-.sub-label {
-    position: absolute;
-    top: 58%;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 52%;
+    left: 13%;
+    transform: translate(-50%, -50%);
     font-size: 6px;
     font-weight: 700;
     color: rgba(139, 92, 246, 0.5);
@@ -205,350 +205,400 @@
     letter-spacing: 0.5px;
 }
 
-.sub-center-dot {
+.sub-indi2{
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 52%;
+    left: 87%;
     transform: translate(-50%, -50%);
-    width: 4px;
-    height: 4px;
-    background: var(--surface-border);
-    border: 1px solid var(--accent-color);
-    border-radius: 50%;
-    z-index: 10;
+    font-size: 6px;
+    font-weight: 700;
+    color: rgba(139, 92, 246, 0.5);
+    pointer-events: none;
+    z-index: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Sub-indices: origin at sub-dial center (16px from top edge) */
+.sub-index {
+position: absolute;
+left: calc(50% - 0.5px);
+top: 2px;
+width: 1px;
+height: 3px;
+background: var(--clock-sub-index-color);
+transform-origin: 0.5px 14px;
+transform: rotate(calc(var(--si) * var(--sa)));
+}
+
+.sub-index.major {
+width: 1.0px;
+left: calc(50% - 0.75px);
+height: 5px;
+background: #8b5cf6;
+transform-origin: 0.75px 14px;
+}
+
+.sub-label {
+position: absolute;
+top: 54%;
+left: 50%;
+transform: translateX(-50%);
+font-size: 5px;
+font-weight: 500;
+color: rgba(139, 92, 246, 0.5);
+pointer-events: none;
+z-index: 1;
+text-transform: uppercase;
+letter-spacing: 0.5px;
+}
+
+.sub-center-dot {
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+width: 4px;
+height: 4px;
+background: var(--surface-border);
+border: 1px solid var(--accent-color);
+border-radius: 50%;
+z-index: 10;
 }
 
 /* Date Window – positioned at 3 o'clock, rotated 45° with counter-rotation on text */
 .date-window {
-    position: absolute;
-    top: 50%;
-    right: 16%;
-    width: 14px;
-    height: 14px;
-    margin-top: -7px;
-    background: var(--date-window-bg);
-    border: 1px solid var(--date-window-border);
-    font-size: 8px;
-    color: var(--clock-hand-color);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transform: rotate(45deg);
+position: absolute;
+top: 73%;
+right: 20%;
+width: 14px;
+height: 14px;
+margin-top: -7px;
+background: var(--date-window-bg);
+border: 1px solid var(--date-window-border);
+font-size: 8px;
+color: var(--clock-hand-color);
+display: flex;
+justify-content: center;
+align-items: center;
+transform: rotate(45deg);
 }
 
 .date-window span {
-    transform: rotate(-45deg);
+transform: rotate(-45deg);
+font-weight: bold;
+font-size: 8px;
 }
 
 /* Custom Watch Face details */
 .clock-logo {
-    position: absolute;
-    top: 20%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 45px;
-    height: 18px;
-    opacity: 0.8;
-    background-color: var(--clock-logo-bg);
-    border-radius: 4px;
+position: absolute;
+top: 20%;
+left: 50%;
+transform: translateX(-50%);
+width: 45px;
+height: 18px;
+opacity: 0.8;
+background-color: var(--clock-logo-bg);
+border-radius: 4px;
 }
 
 /* Hands – sized to fit within 64px radius */
 .hand {
-    position: absolute;
-    bottom: 50%;
-    left: 50%;
-    transform-origin: bottom center;
-    border-radius: 10px;
-    z-index: 5;
+position: absolute;
+bottom: 50%;
+left: 50%;
+transform-origin: bottom center;
+border-radius: 10px;
+z-index: 5;
 }
 
 .hour-hand {
-    width: 5px;
-    height: 34px;
-    background: transparent;
-    border: 2px solid var(--clock-hand-color);
-    margin-left: -2.5px;
+width: 5px;
+height: 34px;
+background: transparent;
+border: 2px solid var(--clock-hand-color);
+margin-left: -2.5px;
 }
 
 .minute-hand {
-    width: 4px;
-    height: 48px;
-    background: transparent;
-    border: 2px solid var(--clock-hand-color);
-    margin-left: -2px;
+width: 4px;
+height: 48px;
+background: transparent;
+border: 2px solid var(--clock-hand-color);
+margin-left: -2px;
 }
 
 .second-hand {
-    width: 1.5px;
-    height: 56px;
-    background: var(--clock-hand-color);
-    margin-left: -0.75px;
-    z-index: 6;
+width: 1.5px;
+height: 56px;
+background: var(--clock-hand-color);
+margin-left: -0.75px;
+z-index: 6;
 }
 
 .center-dot {
-    width: 6px;
-    height: 6px;
-    background: var(--clock-bg);
-    border: 1.5px solid var(--clock-hand-color);
-    border-radius: 50%;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 10;
+width: 6px;
+height: 6px;
+background: var(--clock-bg);
+border: 1.5px solid var(--clock-hand-color);
+border-radius: 50%;
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+z-index: 10;
 }
 
-
 .clock-controls {
-    display: flex;
-    justify-content: center;
-    padding: 4px;
+display: flex;
+justify-content: center;
+padding: 4px;
 }
 
 /* Switch Styling */
 .switch-label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.7rem;
-    color: var(--text-secondary);
-    cursor: pointer;
+display: flex;
+align-items: center;
+gap: 10px;
+font-size: 0.7rem;
+color: var(--text-secondary);
+cursor: pointer;
 }
 
 .switch {
-    position: relative;
-    display: inline-block;
-    width: 34px;
-    height: 20px;
+position: relative;
+display: inline-block;
+width: 34px;
+height: 20px;
 }
 
 .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
+opacity: 0;
+width: 0;
+height: 0;
 }
 
 .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--input-bg);
-    transition: .4s;
-    border-radius: 20px;
+position: absolute;
+cursor: pointer;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background-color: var(--input-bg);
+transition: 0.4s;
+border-radius: 20px;
 }
 
 .slider:before {
-    position: absolute;
-    content: "";
-    height: 14px;
-    width: 14px;
-    left: 3px;
-    bottom: 3px;
-    background-color: var(--toggle-knob-bg);
-    transition: .4s;
-    border-radius: 50%;
+position: absolute;
+content: "";
+height: 14px;
+width: 14px;
+left: 3px;
+bottom: 3px;
+background-color: var(--toggle-knob-bg);
+transition: 0.4s;
+border-radius: 50%;
 }
 
 input:checked + .slider {
-    background-color: var(--accent-color);
+background-color: var(--accent-color);
 }
 
 input:checked + .slider:before {
-    transform: translateX(14px);
+transform: translateX(14px);
 }
 
 /* Notepad Widget */
 #notepad-area {
-    width: 100%;
-    height: 100%;
-    background: var(--surface-bg);
-    border: 1px solid var(--surface-border);
-    border-radius: 8px;
-    color: var(--text-primary);
-    padding: 12px;
-    font-size: 0.85rem;
-    resize: none;
-    outline: none;
-    font-family: 'Inter', sans-serif;
-    line-height: 1.5;
+width: 100%;
+height: 100%;
+background: var(--surface-bg);
+border: 1px solid var(--surface-border);
+border-radius: 8px;
+color: var(--text-primary);
+padding: 12px;
+font-size: 0.85rem;
+resize: none;
+outline: none;
+font-family: "Inter", sans-serif;
+line-height: 1.5;
 }
 
 #notepad-area:focus {
-    border-color: var(--accent-color);
-    background: var(--surface-hover-bg);
+border-color: var(--accent-color);
+background: var(--surface-hover-bg);
 }
 
 /* Filer Widget */
 .file-list {
-    height: 100%;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 2px;
+height: 100%;
+overflow-y: auto;
+display: flex;
+flex-direction: column;
+gap: 4px;
+padding: 2px;
 }
 
 .file-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    background: var(--surface-bg);
-    border-radius: 6px;
-    text-decoration: none;
-    color: var(--text-secondary);
-    transition: all 0.2s ease;
+display: flex;
+align-items: center;
+gap: 10px;
+padding: 8px 12px;
+background: var(--surface-bg);
+border-radius: 6px;
+text-decoration: none;
+color: var(--text-secondary);
+transition: all 0.2s ease;
 }
 
 .file-item:hover {
-    background: var(--surface-hover-bg);
-    color: var(--text-primary);
-    transform: translateX(2px);
+background: var(--surface-hover-bg);
+color: var(--text-primary);
+transform: translateX(2px);
 }
 
 .file-icon {
-    font-size: 1.2rem;
-    flex-shrink: 0;
+font-size: 1.2rem;
+flex-shrink: 0;
 }
 
 .file-info {
-    overflow: hidden;
+overflow: hidden;
 }
 
 .file-name {
-    font-size: 0.8rem;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    display: block;
+font-size: 0.8rem;
+white-space: nowrap;
+text-overflow: ellipsis;
+overflow: hidden;
+display: block;
 }
 
 .file-date {
-    font-size: 0.65rem;
-    opacity: 0.5;
+font-size: 0.65rem;
+opacity: 0.5;
 }
 
-.loading, .empty-files {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    opacity: 0.6;
+.loading,
+.empty-files {
+display: flex;
+justify-content: center;
+align-items: center;
+height: 100%;
+font-size: 0.8rem;
+color: var(--text-secondary);
+opacity: 0.6;
 }
 
 /* Todo Widget */
 .todo-container {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    gap: 10px;
+display: flex;
+flex-direction: column;
+height: 100%;
+gap: 10px;
 }
 
 .todo-input-area {
-    display: flex;
-    gap: 6px;
+display: flex;
+gap: 6px;
 }
 
 #todo-input {
-    flex: 1;
-    background: var(--surface-bg);
-    border: 1px solid var(--surface-border);
-    border-radius: 6px;
-    color: var(--text-primary);
-    padding: 6px 10px;
-    font-size: 0.8rem;
-    outline: none;
+flex: 1;
+background: var(--surface-bg);
+border: 1px solid var(--surface-border);
+border-radius: 6px;
+color: var(--text-primary);
+padding: 6px 10px;
+font-size: 0.8rem;
+outline: none;
 }
 
 #todo-input:focus {
-    border-color: var(--accent-color);
-    background: var(--surface-hover-bg);
+border-color: var(--accent-color);
+background: var(--surface-hover-bg);
 }
 
 .todo-add-btn {
-    background: var(--accent-color);
-    border: none;
-    color: white;
-    padding: 0 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s;
+background: var(--accent-color);
+border: none;
+color: white;
+padding: 0 10px;
+border-radius: 6px;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: background 0.2s;
 }
 
 .todo-add-btn:hover {
-    background: var(--accent-hover);
+background: var(--accent-hover);
 }
 
 .todo-list {
-    flex: 1;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+flex: 1;
+overflow-y: auto;
+display: flex;
+flex-direction: column;
+gap: 4px;
 }
 
 .todo-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    background: var(--surface-bg);
-    border-radius: 6px;
-    transition: all 0.2s ease;
+display: flex;
+align-items: center;
+gap: 8px;
+padding: 8px 10px;
+background: var(--surface-bg);
+border-radius: 6px;
+transition: all 0.2s ease;
 }
 
 .todo-item:hover {
-    background: var(--surface-hover-bg);
+background: var(--surface-hover-bg);
 }
 
 .todo-item.completed .todo-text {
-    text-decoration: line-through;
-    opacity: 0.5;
+text-decoration: line-through;
+opacity: 0.5;
 }
 
 .todo-checkbox {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    accent-color: var(--accent-color);
+width: 16px;
+height: 16px;
+cursor: pointer;
+accent-color: var(--accent-color);
 }
 
 .todo-text {
-    flex: 1;
-    font-size: 0.8rem;
-    color: var(--text-primary);
-    word-break: break-all;
+flex: 1;
+font-size: 0.8rem;
+color: var(--text-primary);
+word-break: break-all;
 }
 
 .todo-delete {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    opacity: 0;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+background: transparent;
+border: none;
+color: var(--text-secondary);
+cursor: pointer;
+padding: 4px;
+border-radius: 4px;
+opacity: 0;
+transition: all 0.2s ease;
+display: flex;
+align-items: center;
+justify-content: center;
 }
 
 .todo-item:hover .todo-delete {
-    opacity: 1;
+opacity: 1;
 }
 
 .todo-delete:hover {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+background: rgba(239, 68, 68, 0.2);
+color: #ef4444;
 }
