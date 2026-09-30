@@ -7,6 +7,38 @@
  */
 ?>
 
+<!-- ===== v2.2.39 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.39</span>
+        <span class="release-title">UI Family System と多言語ローカライズの強化</span>
+        <span class="release-date">2026-09-30</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新機能 (New Features)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>UI Family コンポーネントの追加</strong>
+                        <span class="detail">新しい UI スタイリングシステム (UI Family) を導入し、画面全体の一貫性とデザイン性を向上させました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌐</span>
+                    <div>
+                        <strong>多言語化 (i18n) ファイルの拡張</strong>
+                        <span class="detail">英語および日本語のローカライズファイル (JSON) を更新し、各種ページにおける翻訳カバレッジを向上しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.37 ===== -->
 <article class="release">
     <div class="release-header">

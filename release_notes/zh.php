@@ -7,6 +7,38 @@
  */
 ?>
 
+<!-- ===== v2.2.39 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.39</span>
+        <span class="release-title">UI Family 系统与本地化增强</span>
+        <span class="release-date">2026-09-30</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 新功能 (New Features)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>UI Family 组件</strong>
+                        <span class="detail">引入了全新的 UI 样式系统 (UI Family)，提高了整个应用程序的一致性和设计美感。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌐</span>
+                    <div>
+                        <strong>多语言 (i18n) 扩展</strong>
+                        <span class="detail">更新了英文和日文本地化 JSON 文件，显著提高了各页面的翻译覆盖率。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.37 ===== -->
 <article class="release">
     <div class="release-header">

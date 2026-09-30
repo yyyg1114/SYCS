@@ -25,6 +25,7 @@ function checkAndBuildCss()
         __DIR__ . '/css/markdown.css',
         __DIR__ . '/css/map.css',
         __DIR__ . '/css/widgets.css',
+        __DIR__ . '/css/ui-family.css',
     ];
 
     $shouldBuild = !file_exists($bundleFile);

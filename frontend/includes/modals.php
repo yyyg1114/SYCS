@@ -95,6 +95,17 @@ $currentUserData = $currentUserData ?? ['notification_keywords' => $currentUserK
                 </div>
 
                 <div class="modal-form-group">
+                    <label class="modal-label"><?= __('ui_style') ?></label>
+                    <select id="edit-ui-family-input" class="modal-input" onchange="setUiFamily(this.value, true)">
+                        <option value="auto"><?= __('ui_style_auto') ?></option>
+                        <option value="apple"><?= __('ui_style_apple') ?></option>
+                        <option value="android"><?= __('ui_style_android') ?></option>
+                        <option value="windows"><?= __('ui_style_windows') ?></option>
+                        <option value="generic"><?= __('ui_style_generic') ?></option>
+                    </select>
+                </div>
+
+                <div class="modal-form-group">
                     <label class="modal-label"><?= __('notification_settings') ?></label>
                     <button class="btn-premium-primary" onclick="requestNotificationPermission()" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px;">
                         <span>🔔</span> <?= __('enable_push_notifications') ?>

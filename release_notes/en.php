@@ -1,3 +1,35 @@
+<!-- ===== v2.2.39 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.39</span>
+        <span class="release-title">UI Family System and Localization Enhancements</span>
+        <span class="release-date">2026-09-30</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> New Features
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>UI Family Components</strong>
+                        <span class="detail">Introduced a new UI styling system (UI Family) to improve consistency and design aesthetics across the application.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌐</span>
+                    <div>
+                        <strong>Localization (i18n) Expansion</strong>
+                        <span class="detail">Updated English and Japanese localization JSON files, significantly improving translation coverage on various pages.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.37 ===== -->
 <article class="release">
     <div class="release-header">

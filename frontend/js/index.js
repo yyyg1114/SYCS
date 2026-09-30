@@ -10,6 +10,7 @@ import { loadThreads, loadGroupThreads, loadMessages, loadGroupMessages, updateF
 import { refreshDmIfOpen } from './modules/dm.js';
 import { initSocket, socket } from './modules/socket.js';
 import { initNotifications, showBrowserNotification, requestNotificationPermission, updateTabBadge, resetTabBadge, trackUnread, clearUnread } from './modules/notifications.js';
+import { initUiFamily, setUiFamily } from './modules/ui_family.js';
 
 // --- Emoji Picker state ---
 let emojiPickerTarget = null;
@@ -103,6 +104,7 @@ window.cancelUpload = cancelUpload;
 window.closeEmojiPicker = closeEmojiPicker;
 window.toggleReactionPicker = toggleReactionPicker;
 window.requestNotificationPermission = requestNotificationPermission;
+window.setUiFamily = setUiFamily;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -111,6 +113,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initApp() {
+    // Apply UI Family
+    initUiFamily();
+
     // Apply Theme
     let themeToApply = localStorage.getItem('sycs_theme');
     if (!themeToApply && currentUserTheme && typeof currentUserTheme === 'object' && currentUserTheme.theme) {

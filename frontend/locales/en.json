@@ -204,5 +204,12 @@
     "deselect_all": "Deselect All",
     "delete_selected_confirm": "Are you sure you want to delete the selected messages?",
     "deleted_selected_success": "Selected messages deleted.",
-    "selected_count": "{count} selected"
+    "selected_count": "{count} selected",
+    "ui_style": "UI Style (UI Family)",
+    "ui_style_auto": "Auto (Match Device)",
+    "ui_style_apple": "Liquid Glass (Apple)",
+    "ui_style_android": "Material 3 (Android)",
+    "ui_style_windows": "Windows / Fluent",
+    "ui_style_generic": "Classic (Standard)",
+    "ui_style_changed": "UI Style updated."
 }

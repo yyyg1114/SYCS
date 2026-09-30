@@ -1,5 +1,5 @@
 <?php
-// v2.2.37
+// v2.2.39
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -11,6 +11,7 @@ require_once __DIR__ . '/../backend/session_config.php';
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
 require_once __DIR__ . '/../backend/I18n.php';
+require_once __DIR__ . '/../backend/ui_profile.php';
 
 // 1.5 Initialize Internationalization
 I18n::getInstance();
@@ -123,9 +124,10 @@ if ($isLoggedIn) {
     }
     $stmt->close();
 }
+$uiFamily = detectUiFamily();
 ?>
 <!DOCTYPE html>
-<html lang="<?= I18n::getInstance()->getCurrentLang() ?>">
+<html lang="<?= I18n::getInstance()->getCurrentLang() ?>" data-ui-family="<?= htmlspecialchars($uiFamily, ENT_QUOTES, 'UTF-8') ?>">
 
 <head>
     <meta charset="UTF-8">

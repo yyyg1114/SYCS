@@ -11,6 +11,7 @@ error_reporting(E_ALL);
 require_once __DIR__ . '/../backend/session_config.php';
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
+require_once __DIR__ . '/../backend/ui_profile.php';
 
 // 1. CSRF Token Generation
 if (empty($_SESSION['csrf_token'])) {
@@ -250,10 +251,12 @@ if (isset($_GET['api'])) {
         exit;
     }
 }
+
+$uiFamily = detectUiFamily();
 ?>
 
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-ui-family="<?= htmlspecialchars($uiFamily, ENT_QUOTES, 'UTF-8') ?>">
 
 <head>
     <script>

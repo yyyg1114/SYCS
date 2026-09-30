@@ -1,0 +1,200 @@
+/* ==========================================================================
+SYCS Device UI Family Design System
+Separated layer from color theme (light/dark/night)
+========================================================================== */
+
+/* --------------------------------------------------------------------------
+1. UI Family Design Tokens
+-------------------------------------------------------------------------- */
+
+/* Apple UI Family (Liquid Glass) */
+[data-ui-family="apple"] {
+--ui-radius-sm: 10px;
+--ui-radius-md: 16px;
+--ui-radius-lg: 22px;
+--ui-radius-full: 9999px;
+--ui-blur: 20px;
+--ui-border-width: 1px;
+--ui-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+--ui-shadow-floating: 0 12px 40px rgba(0, 0, 0, 0.22);
+}
+
+/* Android UI Family (Material 3) */
+[data-ui-family="android"] {
+--ui-radius-sm: 8px;
+--ui-radius-md: 16px;
+--ui-radius-lg: 28px;
+--ui-radius-full: 9999px;
+--ui-blur: 0px;
+--ui-border-width: 1px;
+--ui-font-family: "Roboto", "Noto Sans JP", system-ui, sans-serif;
+--ui-shadow-floating: 0 4px 20px rgba(0, 0, 0, 0.18);
+}
+
+/* Windows UI Family (Fluent UI) */
+[data-ui-family="windows"] {
+--ui-radius-sm: 4px;
+--ui-radius-md: 6px;
+--ui-radius-lg: 8px;
+--ui-radius-full: 4px;
+--ui-blur: 12px;
+--ui-border-width: 1px;
+--ui-font-family: "Segoe UI", "Segoe UI Variable Text", system-ui, sans-serif;
+--ui-shadow-floating: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+/* Generic / Classic UI Family */
+[data-ui-family="generic"] {
+--ui-radius-sm: 6px;
+--ui-radius-md: 8px;
+--ui-radius-lg: 12px;
+--ui-radius-full: 9999px;
+--ui-blur: 8px;
+--ui-border-width: 1px;
+--ui-font-family: "Outfit", "Inter", system-ui, sans-serif;
+--ui-shadow-floating: var(--shadow-lg);
+}
+
+/* Global Font Family Apply (if specific family token is active) */
+[data-ui-family] body {
+font-family: var(--ui-font-family);
+}
+
+/* --------------------------------------------------------------------------
+2. Apple (Liquid Glass) Style Specs
+-------------------------------------------------------------------------- */
+[data-ui-family="apple"] .card,
+[data-ui-family="apple"] .modal-content,
+[data-ui-family="apple"] .profile-content,
+[data-ui-family="apple"] .chat-area,
+[data-ui-family="apple"] .sidebar,
+[data-ui-family="apple"] .panel,
+[data-ui-family="apple"] .glass-panel {
+border-radius: var(--ui-radius-lg);
+border: var(--ui-border-width) solid var(--border-color);
+background: color-mix(in srgb, var(--surface-bg) 72%, transparent);
+backdrop-filter: blur(var(--ui-blur)) saturate(180%);
+-webkit-backdrop-filter: blur(var(--ui-blur)) saturate(180%);
+box-shadow: var(--ui-shadow-floating), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+[data-ui-family="apple"] button,
+[data-ui-family="apple"] .btn,
+[data-ui-family="apple"] .btn-primary,
+[data-ui-family="apple"] .btn-secondary,
+[data-ui-family="apple"] .btn-premium-primary {
+border-radius: var(--ui-radius-full);
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+[data-ui-family="apple"] input,
+[data-ui-family="apple"] textarea,
+[data-ui-family="apple"] select,
+[data-ui-family="apple"] .chat-input {
+border-radius: var(--ui-radius-md);
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+border: var(--ui-border-width) solid var(--border-color);
+}
+
+[data-ui-family="apple"] button:active,
+[data-ui-family="apple"] .btn:active {
+transform: scale(0.97);
+}
+
+/* --------------------------------------------------------------------------
+3. Android (Material 3) Style Specs
+-------------------------------------------------------------------------- */
+[data-ui-family="android"] .card,
+[data-ui-family="android"] .modal-content,
+[data-ui-family="android"] .profile-content,
+[data-ui-family="android"] .panel {
+border-radius: var(--ui-radius-lg);
+border: var(--ui-border-width) solid var(--border-color);
+box-shadow: var(--ui-shadow-floating);
+}
+
+[data-ui-family="android"] button,
+[data-ui-family="android"] .btn,
+[data-ui-family="android"] .btn-primary,
+[data-ui-family="android"] .btn-secondary,
+[data-ui-family="android"] .btn-premium-primary {
+min-height: 48px;
+padding: 0 24px;
+border-radius: var(--ui-radius-full);
+font-weight: 600;
+letter-spacing: 0.2px;
+box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-ui-family="android"] input,
+[data-ui-family="android"] textarea,
+[data-ui-family="android"] select,
+[data-ui-family="android"] .chat-input {
+min-height: 48px;
+border-radius: var(--ui-radius-md);
+padding: 0 16px;
+border: var(--ui-border-width) solid var(--border-strong);
+}
+
+[data-ui-family="android"] button:hover,
+[data-ui-family="android"] .btn:hover {
+box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* --------------------------------------------------------------------------
+4. Windows (Fluent UI) Style Specs
+-------------------------------------------------------------------------- */
+[data-ui-family="windows"] .card,
+[data-ui-family="windows"] .modal-content,
+[data-ui-family="windows"] .profile-content,
+[data-ui-family="windows"] .panel,
+[data-ui-family="windows"] .sidebar {
+border-radius: var(--ui-radius-md);
+border: var(--ui-border-width) solid var(--border-strong);
+backdrop-filter: blur(var(--ui-blur));
+-webkit-backdrop-filter: blur(var(--ui-blur));
+box-shadow: var(--ui-shadow-floating);
+}
+
+[data-ui-family="windows"] button,
+[data-ui-family="windows"] .btn,
+[data-ui-family="windows"] .btn-primary,
+[data-ui-family="windows"] .btn-secondary,
+[data-ui-family="windows"] .btn-premium-primary {
+min-height: 36px;
+border-radius: var(--ui-radius-sm);
+border: var(--ui-border-width) solid var(--border-strong);
+font-size: 0.9rem;
+transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+[data-ui-family="windows"] input,
+[data-ui-family="windows"] textarea,
+[data-ui-family="windows"] select,
+[data-ui-family="windows"] .chat-input {
+min-height: 34px;
+border-radius: var(--ui-radius-sm);
+border: var(--ui-border-width) solid var(--border-strong);
+border-bottom: 2px solid var(--accent-color);
+}
+
+[data-ui-family="windows"] button:focus-visible,
+[data-ui-family="windows"] input:focus-visible {
+outline: 2px solid var(--accent-color);
+outline-offset: 1px;
+}
+
+/* --------------------------------------------------------------------------
+5. Generic / Classic UI Style Specs
+-------------------------------------------------------------------------- */
+[data-ui-family="generic"] .card,
+[data-ui-family="generic"] .modal-content,
+[data-ui-family="generic"] .profile-content {
+border-radius: var(--ui-radius-md);
+border: var(--ui-border-width) solid var(--border-color);
+}

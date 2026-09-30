@@ -4,6 +4,7 @@ require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/db_init.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
 require_once __DIR__ . '/../backend/I18n.php';
+require_once __DIR__ . '/../backend/ui_profile.php';
 
 // Ensure the login attempt tracking table and related schema are present before any rate-limit checks run.
 db_init($mysqli);
@@ -374,9 +375,10 @@ if (isset($_GET['api'])) {
         exit;
     }
 }
+$uiFamily = detectUiFamily();
 ?>
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-ui-family="<?= htmlspecialchars($uiFamily, ENT_QUOTES, 'UTF-8') ?>">
 
 <head>
     <meta charset="UTF-8">

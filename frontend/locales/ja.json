@@ -204,5 +204,12 @@
     "deselect_all": "選択解除",
     "delete_selected_confirm": "選択したメッセージを削除してもよろしいですか？",
     "deleted_selected_success": "選択したメッセージを削除しました。",
-    "selected_count": "{count} 件選択中"
+    "selected_count": "{count} 件選択中",
+    "ui_style": "UIスタイル (UI Family)",
+    "ui_style_auto": "自動 (端末に合わせる)",
+    "ui_style_apple": "Liquid Glass (Apple)",
+    "ui_style_android": "Material 3 (Android)",
+    "ui_style_windows": "Windows / Fluent",
+    "ui_style_generic": "Classic (標準)",
+    "ui_style_changed": "UIスタイルを変更しました"
 }
