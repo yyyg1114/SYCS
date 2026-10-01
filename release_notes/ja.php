@@ -7,6 +7,52 @@
  */
 ?>
 
+<!-- ===== v2.2.40 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.40</span>
+        <span class="release-title">API契約不整合の全面解消 & Optimistic UIの完成</span>
+        <span class="release-date">2026-10-01</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 修正・改善 (Bug Fixes & Improvements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔗</span>
+                    <div>
+                        <strong>ブロック機能パラメータ統一</strong>
+                        <span class="detail"><code>block_user</code> / <code>unblock_user</code> が <code>target_id</code> と <code>block_id</code> の両方を受け付けるよう対応しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">👥</span>
+                    <div>
+                        <strong>グループ作成パラメータ統一</strong>
+                        <span class="detail"><code>create_group_thread</code> が <code>participant_ids</code> と <code>members</code> の両方（JSON文字列・配列）を受け付けるよう対応しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔍</span>
+                    <div>
+                        <strong>検索パラメータ統一 & ナビゲーション修正</strong>
+                        <span class="detail">検索APIが <code>keyword</code> と <code>q</code> の両方を受け付けるよう対応。検索結果クリック時にグループ・DM・通常スレッドを正確に識別して画面遷移するようになりました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>Optimistic UI の完成</strong>
+                        <span class="detail">メッセージ送信成功時にサーバー確定の <code>created_at</code> を即時タイムスタンプに反映。添付ファイルのblobプレビューをサーバーパスに差し替えるようになりました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.39 ===== -->
 <article class="release">
     <div class="release-header">

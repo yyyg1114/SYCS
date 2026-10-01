@@ -689,10 +689,20 @@ async function sendMessage() {
             if (tempEl) {
                 tempEl.id = "message-" + res.id;
                 tempEl.classList.remove("message-pending");
-                // 添付ファイルがあれば差し替え
+
+                // サーバー確定の created_at をタイムスタンプ表示に同期
+                if (res.created_at) {
+                    const timeEl = tempEl.querySelector(".message-time");
+                    if (timeEl) timeEl.textContent = res.created_at;
+                }
+
+                // 添付ファイルがサーバー保存済みのパスに変わった場合に差し替え
                 if (res.attachment_path) {
-                    const { renderMessageNode: rmn } = await import('./modules/message.js');
-                    // 再描画は不要、ファイルのプレビューは既にローカルで見えているためスキップ
+                    // ローカルプレビュー（blob URL）を実際のサーバーパスに差し替え
+                    const previewImg = tempEl.querySelector("img.preview-img");
+                    if (previewImg && previewImg.src.startsWith("blob:")) {
+                        previewImg.src = res.attachment_path;
+                    }
                 }
             }
         } else {

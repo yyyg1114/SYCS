@@ -28,44 +28,57 @@ class FriendHandler extends BaseHandler
     public function sendFriendRequestAction(): void
     {
         $this->verifyCsrf();
+
         $tid = (int)$this->getPost('friend_id', $this->getPost('target_id', 0));
-        if ($tid > 0) {
-            $stmt = $this->mysqli->prepare(
-                "INSERT IGNORE INTO friends (user_id_1, user_id_2, status) VALUES (?, ?, 'pending')"
-            );
-            $stmt->bind_param("ii", $this->userId, $tid);
-            $stmt->execute();
-            $stmt->close();
-            echo json_encode(['success' => true]);
-        } else {
+
+        // 早期リターン：IDが不正な場合は先にエラーを返して終了
+        if ($tid <= 0) {
             echo json_encode(['success' => false, 'error' => 'Invalid friend ID']);
+            return;
         }
+
+        // 主要な処理：正常系（ネストが浅くなり、elseも不要に）
+        $stmt = $this->mysqli->prepare(
+            "INSERT IGNORE INTO friends (user_id_1, user_id_2, status) VALUES (?, ?, 'pending')"
+        );
+        $stmt->bind_param("ii", $this->userId, $tid);
+        $stmt->execute();
+        $stmt->close();
+
+        echo json_encode(['success' => true]);
     }
+
 
     public function handleFriendRequestAction(): void
     {
         $this->verifyCsrf();
         $rid = (int)$this->getPost('request_id', 0);
         $act = $this->getPost('action', '');
-        if ($rid > 0) {
-            if ($act === 'accept') {
-                $stmt = $this->mysqli->prepare("UPDATE friends SET status = 'accepted' WHERE id = ? AND user_id_2 = ?");
-                $stmt->bind_param("ii", $rid, $this->userId);
-                $stmt->execute();
-                $stmt->close();
-                echo json_encode(['success' => true]);
-            } elseif ($act === 'reject') {
-                $stmt = $this->mysqli->prepare("DELETE FROM friends WHERE id = ? AND user_id_2 = ?");
-                $stmt->bind_param("ii", $rid, $this->userId);
-                $stmt->execute();
-                $stmt->close();
-                echo json_encode(['success' => true]);
-            } else {
-                echo json_encode(['success' => false, 'error' => 'Invalid action']);
-            }
-        } else {
+
+        if ($rid <= 0) {
             echo json_encode(['success' => false, 'error' => 'Invalid request ID']);
+            return;
         }
+
+        if ($act === 'accept') {
+            $stmt = $this->mysqli->prepare("UPDATE friends SET status = 'accepted' WHERE id = ? AND user_id_2 = ?");
+            $stmt->bind_param("ii", $rid, $this->userId);
+            $stmt->execute();
+            $stmt->close();
+            echo json_encode(['success' => true]);
+            return;
+        }
+
+        if ($act === 'reject') {
+            $stmt = $this->mysqli->prepare("DELETE FROM friends WHERE id = ? AND user_id_2 = ?");
+            $stmt->bind_param("ii", $rid, $this->userId);
+            $stmt->execute();
+            $stmt->close();
+            echo json_encode(['success' => true]);
+            return;
+        }
+
+        echo json_encode(['success' => false, 'error' => 'Invalid action']);
     }
 
     /**
@@ -119,7 +132,13 @@ class FriendHandler extends BaseHandler
     public function blockUser(): void
     {
         $this->verifyCsrf();
-        $tid  = (int)$this->getPost('target_id', 0);
+        // target_id / block_id 双方を受容（フロントエンドの命名揺れ対応）
+        $tid  = (int)$this->getPost('target_id', $this->getPost('block_id', 0));
+        if ($tid <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'target_id or block_id required']);
+            return;
+        }
         $stmt = $this->mysqli->prepare(
             "INSERT IGNORE INTO blocked_users (blocker_id, blocked_id) VALUES (?, ?)"
         );
@@ -134,7 +153,13 @@ class FriendHandler extends BaseHandler
     public function unblockUser(): void
     {
         $this->verifyCsrf();
-        $tid  = (int)$this->getPost('target_id', 0);
+        // target_id / block_id 双方を受容（フロントエンドの命名揺れ対応）
+        $tid  = (int)$this->getPost('target_id', $this->getPost('block_id', 0));
+        if ($tid <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'target_id or block_id required']);
+            return;
+        }
         $stmt = $this->mysqli->prepare(
             "DELETE FROM blocked_users WHERE blocker_id = ? AND blocked_id = ?"
         );

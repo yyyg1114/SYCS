@@ -176,7 +176,21 @@ export async function searchMessages() {
       item.appendChild(meta);
       item.appendChild(contentDiv);
       item.onclick = () => {
-        window.switchThread(m.thread_id, m.thread_name || m.thread_id);
+        // グループメッセージの場合はグループ画面へ
+        if (m.group_thread_id) {
+          window.switchThread(m.group_thread_id, m.thread_name || `Group ${m.group_thread_id}`, null, true);
+        }
+        // DM（sender_id/receiver_id を持つ）の場合はDM画面へ
+        else if (m.sender_id !== undefined || m.receiver_id !== undefined) {
+          const partnerId = (m.sender_id != null) ? m.sender_id : m.receiver_id;
+          if (window.switchToDm) {
+            window.switchToDm(partnerId, m.username || partnerId);
+          }
+        }
+        // 通常スレッド
+        else {
+          window.switchThread(m.thread_id, m.thread_name || m.thread_id);
+        }
         document.getElementById('search-results-overlay').classList.remove('active');
       };
       list.appendChild(item);

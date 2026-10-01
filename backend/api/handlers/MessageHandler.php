@@ -174,7 +174,7 @@ class MessageHandler extends BaseHandler
             error_log("Realtime notification failed: " . $e->getMessage());
         }
 
-        echo json_encode(['success' => true, 'id' => $msgId, 'attachment_path' => $att]);
+        echo json_encode(['success' => true, 'id' => $msgId, 'attachment_path' => $att, 'created_at' => date('Y-m-d H:i:s')]);
     }
 
     public function editMessage(): void
@@ -337,7 +337,8 @@ class MessageHandler extends BaseHandler
         $tid           = (int)$this->getGet('thread_id', 0);
         $gtid          = (int)$this->getGet('group_thread_id', 0);
         $pid           = (int)$this->getGet('partner_id', 0);
-        $kwRaw         = $this->getGet('keyword', '');
+        // keyword / q 双方を受容（フロントエンドの命名揺れ対応）
+        $kwRaw         = $this->getGet('keyword', $this->getGet('q', ''));
         $hasAttachment = $this->getGet('has_attachment', '0') === '1';
         $dateFrom      = $this->getGet('date_from', '');
         $dateTo        = $this->getGet('date_to', '');

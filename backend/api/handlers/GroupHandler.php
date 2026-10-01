@@ -18,7 +18,14 @@ class GroupHandler extends BaseHandler
         if ($name === '') {
             $name = 'Group';
         }
-        $rawPids = json_decode($this->getPost('participant_ids', '[]'), true);
+        // participant_ids / members 双方を受容（フロントエンドの命名揺れ対応）
+        $pidsRaw = $this->getPost('participant_ids', null) ?? $this->getPost('members', '[]');
+        // JSON文字列または配列の両方に対応
+        if (is_string($pidsRaw)) {
+            $rawPids = json_decode($pidsRaw, true);
+        } else {
+            $rawPids = $pidsRaw;
+        }
         if (!is_array($rawPids)) {
             $rawPids = [];
         }

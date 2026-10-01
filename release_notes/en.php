@@ -1,3 +1,49 @@
+<!-- ===== v2.2.40 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.40</span>
+        <span class="release-title">Full API Contract Mismatch Resolution & Optimistic UI Completion</span>
+        <span class="release-date">2026-10-01</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> Bug Fixes &amp; Improvements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔗</span>
+                    <div>
+                        <strong>Block/Unblock Parameter Unification</strong>
+                        <span class="detail"><code>block_user</code> / <code>unblock_user</code> now accept both <code>target_id</code> and <code>block_id</code>.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">👥</span>
+                    <div>
+                        <strong>Group Creation Parameter Unification</strong>
+                        <span class="detail"><code>create_group_thread</code> now accepts both <code>participant_ids</code> and <code>members</code> (JSON string or array).</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔍</span>
+                    <div>
+                        <strong>Search Parameter Unification & Navigation Fix</strong>
+                        <span class="detail">Search API now accepts both <code>keyword</code> and <code>q</code>. Clicking a search result now correctly navigates to group, DM, or regular thread views.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">⚡</span>
+                    <div>
+                        <strong>Optimistic UI Completion</strong>
+                        <span class="detail">On successful message send, the server-confirmed <code>created_at</code> is now reflected in the timestamp immediately. Attachment blob previews are replaced with the actual server path.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.39 ===== -->
 <article class="release">
     <div class="release-header">

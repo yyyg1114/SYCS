@@ -14,7 +14,19 @@ class DirectMessageHandler extends BaseHandler
             db_cleanup_expired($this->mysqli);
         }
 
-        $pid = (int)$this->getGet('partner_id', 0);
+        $rawPid = $this->getGet('partner_id', $this->getGet('recipient_id', $this->getGet('receiver_id', $this->getGet('thread_id'))));
+        $pid = 0;
+        if (is_numeric($rawPid)) {
+            $pid = (int)$rawPid;
+        } elseif (is_string($rawPid) && str_starts_with($rawPid, 'dm_')) {
+            $parts = explode('_', $rawPid);
+            if (count($parts) === 3) {
+                $u1 = (int)$parts[1];
+                $u2 = (int)$parts[2];
+                $pid = ($this->userId === $u1) ? $u2 : (($this->userId === $u2) ? $u1 : 0);
+            }
+        }
+
         if ($pid <= 0 || $pid === $this->userId) {
             echo json_encode([]);
             return;
@@ -66,7 +78,7 @@ class DirectMessageHandler extends BaseHandler
         if (function_exists('db_cleanup_expired')) {
             db_cleanup_expired($this->mysqli);
         }
-        $rid = (int)$this->getParam('receiver_id', 0);
+        $rid = (int)$this->getParam('receiver_id', $this->getParam('recipient_id', $this->getParam('partner_id', 0)));
         if ($rid <= 0 || $rid === $this->userId) {
             echo json_encode(['success' => false, 'error' => 'Invalid receiver']);
             return;

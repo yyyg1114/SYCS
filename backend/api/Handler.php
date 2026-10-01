@@ -75,7 +75,9 @@ class ApiHandler
 
                 // ---- Direct Messages ----
                 'get_direct_messages' => [DirectMessageHandler::class, 'getDirectMessages'],
+                'get_dm_messages' => [DirectMessageHandler::class, 'getDirectMessages'],
                 'send_direct_message' => [DirectMessageHandler::class, 'sendDirectMessage'],
+                'send_dm' => [DirectMessageHandler::class, 'sendDirectMessage'],
                 'mark_dms_as_read' => [DirectMessageHandler::class, 'markDmsAsRead'],
                 'get_dm_partners' => [DirectMessageHandler::class, 'getDmPartners'],
                 'get_unread_dm_counts' => [DirectMessageHandler::class, 'getUnreadDmCounts'],
@@ -93,6 +95,7 @@ class ApiHandler
 
                 // ---- Group ----
                 'create_group_thread' => [GroupHandler::class, 'createGroupThread'],
+                'create_group' => [GroupHandler::class, 'createGroupThread'],
                 'get_group_threads' => [GroupHandler::class, 'getGroupThreads'],
                 'get_group_messages' => [GroupHandler::class, 'getGroupMessages'],
 
