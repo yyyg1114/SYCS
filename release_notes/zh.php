@@ -7,6 +7,45 @@
  */
 ?>
 
+<!-- ===== v2.2.41 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.41</span>
+        <span class="release-title">WebRTC 信令 & 会议 API 安全强化</span>
+        <span class="release-date">2026-10-07</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 安全增强 (Security Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>WebRTC 信令短时 HMAC 令牌认证</strong>
+                        <span class="detail">信令服务器连接全面采用 HMAC-SHA256 签名 Token 验证，彻底防止身份伪造和未授权连接。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>信令服务器防护加固</strong>
+                        <span class="detail">引入 Origin 验证、连接数限制、消息大小限制(64KB)、速率限制(20条/秒)以及心跳超时清理机制。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🚫</span>
+                    <div>
+                        <strong>废除 meetings.php 未受保护 API 端点</strong>
+                        <span class="detail">全面删除缺乏 CSRF 验证和权限检查的内联 API，统一归集至受保护的 <code>index.php?api=...</code> 处理器架构。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.40 ===== -->
 <article class="release">
     <div class="release-header">

@@ -79,12 +79,31 @@ async start({ threadId = null, groupThreadId = null, dmPartnerId = null, roomId 
             }
         });
 
-        // 5. Connect to Signaling Server (WebSocket with HTTP Polling fallback)
+        // 5. Issue Join Token & Connect to Signaling Server
+        let joinToken = null;
+        try {
+            const formData = new FormData();
+            const csrfToken = window.SYCS_CONFIG?.csrfToken || window.csrfToken || '';
+            formData.append('csrf_token', csrfToken);
+            formData.append('room_id', this.roomId);
+            const tokenRes = await fetch('index.php?api=issue_join_token', {
+                method: 'POST',
+                body: formData
+            });
+            const tokenData = await tokenRes.json();
+            if (tokenData.success) {
+                joinToken = tokenData.token;
+            }
+        } catch (e) {
+            console.warn('[MeetingManager] Failed to fetch join token:', e);
+        }
+
         this.setupSignalingEvents();
         await this.signalingClient.connect({
             roomId: this.roomId,
             userId: this.userId,
-            username: this.username
+            username: this.username,
+            token: joinToken
         });
 
         // 6. Show UI Modal & render local video

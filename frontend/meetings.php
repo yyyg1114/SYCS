@@ -32,225 +32,8 @@ $username = $_SESSION['username'] ?? 'User';
 $mysqli->query("ALTER TABLE meeting_rooms ADD COLUMN IF NOT EXISTS meeting_id VARCHAR(20) UNIQUE AFTER id");
 $mysqli->query("ALTER TABLE meeting_rooms ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255) AFTER meeting_id");
 
-// --- API Logic for meetings.php ---
-if (isset($_GET['api'])) {
-    header('Content-Type: application/json');
-    $apiAction = $_GET['api'];
+// API handlers for meetings are managed via backend/api/Handler.php (index.php?api=...)
 
-    // Create a new meeting room with ID/Password
-    if ($apiAction === 'create_instant_meeting') {
-
-        // Generate 9-digit meeting ID and 6-character password
-        $meetingIdStr = number_format(mt_rand(100000000, 999999999), 0, '', ''); // 9-digit ID
-        $password = bin2hex(random_bytes(3)); // 6-char random password
-        $passHash = password_hash($password, PASSWORD_DEFAULT);
-        $roomName = "meeting_" . $meetingIdStr;
-
-        $stmt = $mysqli->prepare("INSERT INTO meeting_rooms (meeting_id, password_hash, creator_id, room_name) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("ssis", $meetingIdStr, $passHash, $userId, $roomName);
-
-        if ($stmt->execute()) {
-
-            $roomId = (int)$stmt->insert_id;
-
-            $partStmt = $mysqli->prepare(
-                "INSERT INTO meeting_participants
-            (room_id, user_id, joined_at, left_at)
-            VALUES (?, ?, NOW(), NULL)
-            ON DUPLICATE KEY UPDATE
-            joined_at = NOW(),
-            left_at = NULL"
-            );
-
-            $partStmt->bind_param("ii", $roomId, $userId);
-            $partStmt->execute();
-            $partStmt->close();
-
-            echo json_encode([
-                'success' => true,
-                'meeting_id' => $meetingIdStr,
-                'password' => $password,
-                'room_id' => $stmt->insert_id,
-                'room_name' => $roomName
-            ]);
-        } else {
-            echo json_encode(['error' => 'Could not create meeting room.']);
-        }
-        $stmt->close();
-        exit;
-    }
-
-    // Join meeting room with ID/Password
-    if ($apiAction === 'join_by_id') {
-        $mId = trim($_POST['meeting_id'] ?? '');
-        $mPass = $_POST['password'] ?? '';
-
-        if ($mId === '' || $mPass === '') {
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'error' => 'ミーティングIDとパスワードを入力してください'
-            ]);
-            exit;
-        }
-
-        $stmt = $mysqli->prepare(
-            "SELECT id, password_hash, room_name
-    FROM meeting_rooms
-    WHERE meeting_id = ?
-    LIMIT 1"
-        );
-
-        $stmt->bind_param("s", $mId);
-        $stmt->execute();
-        $row = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
-
-        if (!$row) {
-            http_response_code(404);
-            echo json_encode([
-                'success' => false,
-                'error' => 'ミーティングIDが見つかりません'
-            ]);
-            exit;
-        }
-
-        if (!password_verify($mPass, $row['password_hash'])) {
-            http_response_code(403);
-            echo json_encode([
-                'success' => false,
-                'error' => 'パスワードが違います'
-            ]);
-            exit;
-        }
-
-        $roomId = (int)$row['id'];
-
-        $partStmt = $mysqli->prepare(
-            "INSERT INTO meeting_participants
-        (room_id, user_id, joined_at, left_at)
-        VALUES (?, ?, NOW(), NULL)"
-        );
-
-        $partStmt->bind_param("ii", $roomId, $userId);
-        $partStmt->execute();
-        $partStmt->close();
-
-        // 既存参加レコードを再利用。なければ新規登録。
-        $partStmt = $mysqli->prepare(
-            "SELECT id
-    FROM meeting_participants
-    WHERE room_id = ? AND user_id = ?
-    LIMIT 1"
-        );
-        $partStmt->bind_param("ii", $roomId, $userId);
-        $partStmt->execute();
-        $existing = $partStmt->get_result()->fetch_assoc();
-        $partStmt->close();
-
-        if ($existing) {
-            $partStmt = $mysqli->prepare(
-                "UPDATE meeting_participants
-        SET joined_at = NOW(), left_at = NULL
-        WHERE id = ?"
-            );
-            $partStmt->bind_param("i", $existing['id']);
-            $partStmt->execute();
-            $partStmt->close();
-        } else {
-            $partStmt = $mysqli->prepare(
-                "INSERT INTO meeting_participants
-        (room_id, user_id, joined_at, left_at)
-        VALUES (?, ?, NOW(), NULL)"
-            );
-            $partStmt->bind_param("ii", $roomId, $userId);
-            $partStmt->execute();
-            $partStmt->close();
-        }
-
-        echo json_encode([
-            'success' => true,
-            'room_id' => $roomId,
-            'room_name' => $row['room_name']
-        ]);
-        exit;
-    }
-
-    // Get meeting info by room_id
-    if ($apiAction === 'get_meeting_info') {
-        $roomId = $_GET['room_id'] ?? 0;
-        $stmt = $mysqli->prepare("SELECT meeting_id, password_hash FROM meeting_rooms WHERE id = ?");
-        $stmt->bind_param("i", $roomId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($row = $res->fetch_assoc()) {
-            echo json_encode([
-                'success' => true,
-                'meeting_id' => $row['meeting_id'],
-                // Note: password_hash is not helpful for display, 
-                // but in this simple demo we'll assume the client might need to know the room is valid.
-                // Ideally, we'd store the plain password or a hint if needed.
-                // Since mt_rand/bin2hex was used, we'll just show the ID for now.
-            ]);
-        } else {
-            echo json_encode(['error' => 'Meeting not found']);
-        }
-        $stmt->close();
-        exit;
-    }
-
-    // Delete meeting ID and password (cleanup)
-    if ($apiAction === 'delete_meeting') {
-        $roomId = $_POST['room_id'] ?? ($_GET['room_id'] ?? 0);
-        // We only clear the meeting_id and password_hash to "deactivate" it
-        $stmt = $mysqli->prepare("UPDATE meeting_rooms SET meeting_id = NULL, password_hash = NULL WHERE id = ?");
-        $stmt->bind_param("i", $roomId);
-        if ($stmt->execute()) {
-            echo json_encode(['success' => true]);
-        } else {
-            echo json_encode(['error' => 'Could not clean up meeting.']);
-        }
-        $stmt->close();
-        exit;
-    }
-
-    // Standard signaling (reuse from index.php if needed, but here's a copy for independence)
-    if ($apiAction === 'send_signaling') {
-        $roomId = $_POST['room_id'];
-        $receiverId = $_POST['receiver_id'];
-        $type = $_POST['type'];
-        $content = $_POST['content'];
-
-        $stmt = $mysqli->prepare("INSERT INTO signaling (room_id, sender_id, receiver_id, type, content) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("iiiss", $roomId, $userId, $receiverId, $type, $content);
-        $stmt->execute();
-        echo json_encode(['success' => true]);
-        exit;
-    }
-
-    if ($apiAction === 'get_signaling') {
-        $roomId = $_GET['room_id'];
-        $lastId = $_GET['last_id'] ?? 0;
-
-        $stmt = $mysqli->prepare("SELECT * FROM signaling WHERE room_id = ? AND receiver_id = ? AND id > ? ORDER BY id ASC");
-        $stmt->bind_param("iii", $roomId, $userId, $lastId);
-        $stmt->execute();
-        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
-        exit;
-    }
-
-    // Get members in room
-    if ($apiAction === 'get_room_members') {
-        $roomId = $_GET['room_id'];
-        // In this simple mode, we consider anyone who sent signaling recently as "in room"
-        // Better: A real membership table. For now, let's keep it simple.
-        $stmt = $mysqli->prepare("SELECT DISTINCT sender_id FROM signaling WHERE room_id = ? AND created_at > (NOW() - INTERVAL 10 SECOND)");
-        $stmt->bind_param("i", $roomId);
-        $stmt->execute();
-        echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
-        exit;
-    }
-}
 
 $uiFamily = detectUiFamily();
 ?>
@@ -648,11 +431,25 @@ $uiFamily = detectUiFamily();
         const currentUsername = <?= json_encode($username) ?>;
 
         async function api(action, method = 'GET', body = null) {
-            const url = `meetings.php?api=${action}`;
-            const options = {
-                method
-            };
-            if (body) options.body = body;
+            const url = `index.php?api=${action}`;
+            const options = { method };
+
+            const csrfToken = window.SYCS_CONFIG?.csrfToken || '<?= $_SESSION['csrf_token'] ?? '' ?>';
+
+            if (body instanceof FormData) {
+                body.append('csrf_token', csrfToken);
+                options.body = body;
+            } else if (method === 'POST') {
+                const formData = new FormData();
+                formData.append('csrf_token', csrfToken);
+                if (body && typeof body === 'object') {
+                    for (const key in body) {
+                        formData.append(key, body[key]);
+                    }
+                }
+                options.body = formData;
+            }
+
             const res = await fetch(url, options);
             return res.json();
         }
@@ -660,19 +457,17 @@ $uiFamily = detectUiFamily();
         let lastCreatedMeeting = null;
 
         async function createInstantMeeting() {
-            const res = await api('create_instant_meeting', 'POST');
+            const res = await api('join_meeting', 'POST', { thread_id: '0', group_thread_id: '0', dm_partner_id: '0' });
             if (res.success) {
                 lastCreatedMeeting = res;
-                document.getElementById('res-id').innerText = res.meeting_id;
-                document.getElementById('res-pass').innerText = res.password;
+                document.getElementById('res-id').innerText = res.room_name || res.room_uuid;
+                document.getElementById('res-pass').innerText = "(なし)";
                 document.getElementById('result-area').style.display = 'block';
 
-                // Prep info display
-                document.getElementById('info-id').innerText = res.meeting_id;
-                document.getElementById('info-pass').innerText = res.password;
-                document.getElementById('info-pass-row').style.display = 'block';
+                document.getElementById('info-id').innerText = res.room_name || res.room_uuid;
+                document.getElementById('info-pass-row').style.display = 'none';
             } else {
-                alert("エラー: " + res.error);
+                alert("エラー: " + (res.error || "作成できませんでした"));
             }
         }
 
@@ -690,19 +485,19 @@ $uiFamily = detectUiFamily();
 
             const body = new FormData();
             body.append('meeting_id', mId);
-            body.append('password', mPass);
+            body.append('passcode', mPass);
 
-            const res = await api('join_by_id', 'POST', body);
+            const res = await api('join_by_meeting_id', 'POST', body);
             if (res.success) {
                 document.getElementById('info-id').innerText = mId;
-                document.getElementById('info-pass').innerText = mPass;
+                document.getElementById('info-pass').innerText = mPass ? '******' : '(なし)';
                 document.getElementById('info-pass-row').style.display = 'block';
 
                 await meetingManager.start({
                     roomId: res.room_id
                 });
             } else {
-                alert(res.error);
+                alert(res.error || "参加に失敗しました");
             }
         }
 

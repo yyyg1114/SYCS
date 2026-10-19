@@ -25,10 +25,11 @@ const handlers = this.listeners[event] || [];
 handlers.forEach(h => h(data));
 }
 
-async connect({ roomId, userId, username, signalingUrl }) {
+async connect({ roomId, userId, username, token, signalingUrl }) {
 this.roomId = roomId;
 this.userId = userId;
 this.username = username;
+this.token = token;
 this.serverUrl = signalingUrl || this.getWebsocketUrl();
 
 return new Promise((resolve) => {
@@ -41,7 +42,8 @@ return new Promise((resolve) => {
                 type: 'join',
                 room_id: this.roomId,
                 user_id: this.userId,
-                username: this.username
+                username: this.username,
+                token: this.token
             });
             resolve(true);
         };

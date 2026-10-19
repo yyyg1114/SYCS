@@ -121,6 +121,9 @@ class ApiHandler
                 'get_meeting' => [MeetingHandler::class, 'getMeeting'],
                 'get_meeting_participants' => [MeetingHandler::class, 'getMeetingParticipants'],
                 'issue_turn_credentials' => [MeetingHandler::class, 'issueTurnCredentials'],
+                'issue_join_token' => [MeetingHandler::class, 'issueJoinToken'],
+                'close_meeting' => [MeetingHandler::class, 'closeMeeting'],
+                'join_by_meeting_id' => [MeetingHandler::class, 'joinByMeetingId'],
                 'send_signaling' => [MeetingHandler::class, 'sendSignaling'],
                 'get_signaling' => [MeetingHandler::class, 'getSignaling'],
 

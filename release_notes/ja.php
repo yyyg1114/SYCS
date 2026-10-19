@@ -7,6 +7,45 @@
  */
 ?>
 
+<!-- ===== v2.2.41 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.41</span>
+        <span class="release-title">WebRTCシグナリング & 会議APIのセキュリティ強化</span>
+        <span class="release-date">2026-10-07</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> セキュリティ強化 (Security Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>WebRTC シグナリング認証の短時間HMACトークン化</strong>
+                        <span class="detail">シグナリングサーバーへの接続認証をHMAC-SHA256署名付きTokenに移行。ユーザーID・ルームID偽装および未認可接続を完全に遮断。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>シグナリングサーバーの堅牢化</strong>
+                        <span class="detail">Origin検証、接続数上限制限、メッセージサイズ上限(64KB)、IP/コネクション別のレートリミット(20msg/s)、Heartbeat idleタイムアウトを導入。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🚫</span>
+                    <div>
+                        <strong>meetings.php 非保護APIエンドポイントの廃止</strong>
+                        <span class="detail">認可・CSRF検証が不十分だった旧APIエンドポイントを全面削除し、完全認可＋CSRFトークン検証付きの <code>index.php?api=...</code> ハンドラー構造へ一元化。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.40 ===== -->
 <article class="release">
     <div class="release-header">

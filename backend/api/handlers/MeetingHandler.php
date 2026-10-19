@@ -275,4 +275,139 @@ class MeetingHandler extends BaseHandler
         $stmt->execute();
         echo json_encode($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
     }
+
+    /**
+     * Issue a signed HMAC-SHA256 token for WebRTC signaling server authentication.
+     */
+    public function issueJoinToken(): void
+    {
+        $this->verifyCsrf();
+        $roomId = (int)$this->getPost('room_id', 0);
+        $roomName = $this->getPost('room_name', '');
+
+        if ($roomId > 0 && empty($roomName)) {
+            $stmt = $this->mysqli->prepare("SELECT room_name FROM meeting_rooms WHERE id = ? LIMIT 1");
+            $stmt->bind_param("i", $roomId);
+            $stmt->execute();
+            $res = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if ($res) {
+                $roomName = $res['room_name'];
+            }
+        }
+
+        if (empty($roomName)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Missing room identification']);
+            return;
+        }
+
+        // Validate user access to room
+        if ($roomId > 0 && !$this->canAccessMeetingRoom($roomId)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Forbidden: Cannot access this meeting room']);
+            return;
+        }
+
+        $secret = getenv('SIGNALING_SECRET') ?: 'sycs-default-signaling-secret-change-me-in-prod';
+        $exp = time() + 120; // Token valid for 2 minutes
+        $payload = [
+            'uid' => (int)$this->userId,
+            'rid' => (string)$roomName,
+            'exp' => $exp
+        ];
+
+        $payloadEncoded = $this->base64UrlEncode(json_encode($payload));
+        $signature = hash_hmac('sha256', $payloadEncoded, $secret, true);
+        $sigEncoded = $this->base64UrlEncode($signature);
+
+        $token = $payloadEncoded . '.' . $sigEncoded;
+
+        echo json_encode([
+            'success' => true,
+            'token' => $token,
+            'expires_at' => $exp,
+            'room_name' => $roomName
+        ]);
+    }
+
+    /**
+     * Close meeting (Creator or Authorized)
+     */
+    public function closeMeeting(): void
+    {
+        $this->verifyCsrf();
+        $roomId = (int)$this->getPost('room_id', 0);
+
+        if ($roomId <= 0 || !$this->canAccessMeetingRoom($roomId)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Forbidden']);
+            return;
+        }
+
+        $stmt = $this->mysqli->prepare("UPDATE meeting_rooms SET closed_at = NOW() WHERE id = ?");
+        $stmt->bind_param("i", $roomId);
+        $stmt->execute();
+        $stmt->close();
+
+        echo json_encode(['success' => true]);
+    }
+
+    /**
+     * Join meeting by meeting ID/UUID & password (sanitized version of meetings.php join_by_id)
+     */
+    public function joinByMeetingId(): void
+    {
+        $this->verifyCsrf();
+        $meetingId = trim($this->getPost('meeting_id', ''));
+        $passcode = trim($this->getPost('passcode', ''));
+
+        if (empty($meetingId)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Meeting ID is required']);
+            return;
+        }
+
+        $stmt = $this->mysqli->prepare(
+            "SELECT id, room_uuid, room_name, room_type, passcode_hash, is_active FROM meeting_rooms WHERE (id = ? OR room_uuid = ? OR room_name = ?) AND closed_at IS NULL LIMIT 1"
+        );
+        $midInt = (int)$meetingId;
+        $stmt->bind_param("iss", $midInt, $meetingId, $meetingId);
+        $stmt->execute();
+        $room = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$room) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'error' => 'Meeting not found or already closed']);
+            return;
+        }
+
+        if (!empty($room['passcode_hash']) && !password_verify($passcode, $room['passcode_hash'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Invalid passcode']);
+            return;
+        }
+
+        // Record participant
+        $partStmt = $this->mysqli->prepare(
+            "INSERT INTO meeting_participants (room_id, user_id, joined_at) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE left_at = NULL"
+        );
+        $partStmt->bind_param("ii", $room['id'], $this->userId);
+        $partStmt->execute();
+        $partStmt->close();
+
+        echo json_encode([
+            'success' => true,
+            'room_id' => $room['id'],
+            'room_uuid' => $room['room_uuid'],
+            'room_name' => $room['room_name'],
+            'room_type' => $room['room_type']
+        ]);
+    }
+
+    private function base64UrlEncode(string $data): string
+    {
+        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+    }
 }

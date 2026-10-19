@@ -1,3 +1,42 @@
+<!-- ===== v2.2.41 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.41</span>
+        <span class="release-title">WebRTC Signaling & Meeting API Security Hardening</span>
+        <span class="release-date">2026-10-07</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> Security Enhancements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>Short-lived HMAC Tokens for WebRTC Signaling</strong>
+                        <span class="detail">Implemented HMAC-SHA256 token verification for signaling connection authentication, preventing impersonation and unauthorized access.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Signaling Server Hardening</strong>
+                        <span class="detail">Added WebSocket origin check, connection limits, message size cap (64KB), rate limiting (20 msg/sec), and heartbeat idle timeouts.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🚫</span>
+                    <div>
+                        <strong>Deprecated Insecure Endpoints in meetings.php</strong>
+                        <span class="detail">Removed unauthenticated inline API handlers in meetings.php and routed all requests to secure API handlers with CSRF and authorization checks.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.40 ===== -->
 <article class="release">
     <div class="release-header">
