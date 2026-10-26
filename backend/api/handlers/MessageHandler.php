@@ -174,7 +174,7 @@ class MessageHandler extends BaseHandler
             error_log("Realtime notification failed: " . $e->getMessage());
         }
 
-        echo json_encode(['success' => true, 'id' => $msgId, 'attachment_path' => $att, 'created_at' => date('Y-m-d H:i:s')]);
+        echo json_encode(['success' => true, 'id' => $msgId, 'attachment_path' => $att]);
     }
 
     public function editMessage(): void

@@ -11,7 +11,6 @@ error_reporting(E_ALL);
 require_once __DIR__ . '/../backend/session_config.php';
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
-require_once __DIR__ . '/../backend/ui_profile.php';
 
 // 1. CSRF Token Generation
 if (empty($_SESSION['csrf_token'])) {
@@ -36,8 +35,6 @@ try {
     // Ignore migration error if columns exist
 }
 
-$uiFamily = detectUiFamily();
-
 // URLパラメータ（招待リンク等）の取得
 $initialMid = preg_replace('/[\s\-_]/', '', trim((string)($_GET['mid'] ?? '')));
 $initialPwd = trim((string)($_GET['pwd'] ?? ''));
@@ -45,7 +42,7 @@ $initialTab = isset($_GET['create']) ? 'create' : 'join';
 ?>
 
 <!DOCTYPE html>
-<html lang="ja" data-ui-family="<?= htmlspecialchars($uiFamily, ENT_QUOTES, 'UTF-8') ?>">
+<html lang="ja">
 
 <head>
     <script>
@@ -677,11 +674,11 @@ $initialTab = isset($_GET['create']) ? 'create' : 'join';
             font-weight: 600;
         }
     </style>
-    <script src="js/webrtc/media-manager.js"></script>
-    <script src="js/webrtc/signaling-client.js"></script>
-    <script src="js/webrtc/peer-connection-manager.js"></script>
-    <script src="js/webrtc/meeting-ui.js"></script>
-    <script src="js/webrtc/meeting-manager.js"></script>
+    <script type="module" src="../backend/js/webrtc/media-manager.js"></script>
+    <script type="module" src="../backend/js/webrtc/signaling-client.js"></script>
+    <script type="module" src="../backend/js/webrtc/peer-connection-manager.js"></script>
+    <script type="module" src="../backend/js/webrtc/meeting-ui.js"></script>
+    <script type="module" src="../backend/js/webrtc/meeting-manager.js"></script>
 </head>
 
 <body>

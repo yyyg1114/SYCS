@@ -121,7 +121,7 @@
 <article class="release">
     <div class="release-header">
         <span class="version-badge">v2.2.40</span>
-        <span class="release-title">API契約不整合の全面解消 & Optimistic UIの完成</span>
+        <span class="release-title">API契約不整合の全面解消</span>
         <span class="release-date">2026-10-01</span>
     </div>
     <div class="release-body">
@@ -149,13 +149,6 @@
                     <div>
                         <strong>検索パラメータ統一 & ナビゲーション修正</strong>
                         <span class="detail">検索APIが <code>keyword</code> と <code>q</code> の両方を受け付けるよう対応。検索結果クリック時にグループ・DM・通常スレッドを正確に識別して画面遷移するようになりました。</span>
-                    </div>
-                </li>
-                <li>
-                    <span class="icon">⚡</span>
-                    <div>
-                        <strong>Optimistic UI の完成</strong>
-                        <span class="detail">メッセージ送信成功時にサーバー確定の <code>created_at</code> を即時タイムスタンプに反映。添付ファイルのblobプレビューをサーバーパスに差し替えるようになりました。</span>
                     </div>
                 </li>
             </ul>

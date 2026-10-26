@@ -2,7 +2,6 @@
 require_once __DIR__ . '/../backend/session_config.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
 require_once __DIR__ . '/../backend/I18n.php';
-require_once __DIR__ . '/../backend/ui_profile.php';
 
 SecurityUtil::sendSecurityHeaders();
 I18n::getInstance();
@@ -85,10 +84,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-$uiFamily = detectUiFamily();
 ?>
 <!DOCTYPE html>
-<html lang="<?= htmlspecialchars(I18n::getInstance()->getCurrentLang()) ?>" data-ui-family="<?= htmlspecialchars($uiFamily, ENT_QUOTES, 'UTF-8') ?>">
+<html lang="<?= htmlspecialchars(I18n::getInstance()->getCurrentLang()) ?>">
 
 <head>
     <meta charset="UTF-8">

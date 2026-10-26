@@ -121,7 +121,7 @@
 <article class="release">
     <div class="release-header">
         <span class="version-badge">v2.2.40</span>
-        <span class="release-title">全面解决 API 契约不一致 & Optimistic UI 完成</span>
+        <span class="release-title">全面解决 API 契约不一致</span>
         <span class="release-date">2026-10-01</span>
     </div>
     <div class="release-body">
@@ -149,13 +149,6 @@
                     <div>
                         <strong>搜索参数统一 &amp; 导航修复</strong>
                         <span class="detail">搜索 API 现在同时接受 <code>keyword</code> 和 <code>q</code>。点击搜索结果时，现在能正确识别群组、DM 和普通线程并跳转。</span>
-                    </div>
-                </li>
-                <li>
-                    <span class="icon">⚡</span>
-                    <div>
-                        <strong>Optimistic UI 完成</strong>
-                        <span class="detail">消息发送成功时，服务器确认的 <code>created_at</code> 即时反映到时间戳。附件 blob 预览现在替换为实际服务器路径。</span>
                     </div>
                 </li>
             </ul>

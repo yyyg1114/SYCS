@@ -112,7 +112,7 @@
 <article class="release">
     <div class="release-header">
         <span class="version-badge">v2.2.40</span>
-        <span class="release-title">Full API Contract Mismatch Resolution & Optimistic UI Completion</span>
+        <span class="release-title">Full API Contract Mismatch Resolution</span>
         <span class="release-date">2026-10-01</span>
     </div>
     <div class="release-body">
@@ -140,13 +140,6 @@
                     <div>
                         <strong>Search Parameter Unification & Navigation Fix</strong>
                         <span class="detail">Search API now accepts both <code>keyword</code> and <code>q</code>. Clicking a search result now correctly navigates to group, DM, or regular thread views.</span>
-                    </div>
-                </li>
-                <li>
-                    <span class="icon">⚡</span>
-                    <div>
-                        <strong>Optimistic UI Completion</strong>
-                        <span class="detail">On successful message send, the server-confirmed <code>created_at</code> is now reflected in the timestamp immediately. Attachment blob previews are replaced with the actual server path.</span>
                     </div>
                 </li>
             </ul>

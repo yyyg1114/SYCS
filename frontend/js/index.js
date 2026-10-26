@@ -10,7 +10,6 @@ import { loadThreads, loadGroupThreads, loadMessages, loadGroupMessages, updateF
 import { refreshDmIfOpen } from './modules/dm.js';
 import { initSocket, socket } from './modules/socket.js';
 import { initNotifications, showBrowserNotification, requestNotificationPermission, updateTabBadge, resetTabBadge, trackUnread, clearUnread } from './modules/notifications.js';
-import { initUiFamily, setUiFamily } from './modules/ui_family.js';
 
 // --- Emoji Picker state ---
 let emojiPickerTarget = null;
@@ -104,7 +103,6 @@ window.cancelUpload = cancelUpload;
 window.closeEmojiPicker = closeEmojiPicker;
 window.toggleReactionPicker = toggleReactionPicker;
 window.requestNotificationPermission = requestNotificationPermission;
-window.setUiFamily = setUiFamily;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -113,9 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initApp() {
-    // Apply UI Family
-    initUiFamily();
-
     // Apply Theme
     let themeToApply = localStorage.getItem('sycs_theme');
     if (!themeToApply && currentUserTheme && typeof currentUserTheme === 'object' && currentUserTheme.theme) {
@@ -689,21 +684,6 @@ async function sendMessage() {
             if (tempEl) {
                 tempEl.id = "message-" + res.id;
                 tempEl.classList.remove("message-pending");
-
-                // サーバー確定の created_at をタイムスタンプ表示に同期
-                if (res.created_at) {
-                    const timeEl = tempEl.querySelector(".message-time");
-                    if (timeEl) timeEl.textContent = res.created_at;
-                }
-
-                // 添付ファイルがサーバー保存済みのパスに変わった場合に差し替え
-                if (res.attachment_path) {
-                    // ローカルプレビュー（blob URL）を実際のサーバーパスに差し替え
-                    const previewImg = tempEl.querySelector("img.preview-img");
-                    if (previewImg && previewImg.src.startsWith("blob:")) {
-                        previewImg.src = res.attachment_path;
-                    }
-                }
             }
         } else {
             // 失敗: 仮メッセージをエラー状態にする
