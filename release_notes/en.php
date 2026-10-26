@@ -1,3 +1,35 @@
+<!-- ===== v2.2.43 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.43</span>
+        <span class="release-title">Profile Status Select Theming & Modal Input Contrast Improvements</span>
+        <span class="release-date">2026-10-26</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> Improvements & UI Enhancements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>Theme-Adaptive Status Dropdown Styling</strong>
+                        <span class="detail">Applied theme-aware background/text colors and native <code>color-scheme</code> properties to status dropdown options (<code>option.status</code>) in the profile modal, ensuring clean visibility across Light, Night, and Dark themes.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>Enhanced Modal Input Field Contrast</strong>
+                        <span class="detail">Optimized <code>--modal-input-bg</code> opacity to improve text legibility and input boundary contrast within form dialogs.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.42 ===== -->
 <article class="release">
     <div class="release-header">

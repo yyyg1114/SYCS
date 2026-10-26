@@ -7,6 +7,38 @@
  */
 ?>
 
+<!-- ===== v2.2.43 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.43</span>
+        <span class="release-title">プロフィールステータス選択のテーマ適応 & モーダルコントラスト改善</span>
+        <span class="release-date">2026-10-26</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改善 & UI強化 (Improvements & UI Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>ステータス選択プルダウンのテーマ別スタイリング対応</strong>
+                        <span class="detail">プロフィールモーダル内のステータス選択肢 (<code>option.status</code>) にテーマ別の背景色・文字色と <code>color-scheme</code> を適用。ライトテーマおよびナイトテーマにおいてドロップダウンの視認性と統一感を向上。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>モーダル入力欄のコントラスト最適化</strong>
+                        <span class="detail"><code>--modal-input-bg</code> の不透明度を調整し、各種モーダルにおけるフォーム入力フィールドの視認性と可読性を向上。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.42 ===== -->
 <article class="release">
     <div class="release-header">

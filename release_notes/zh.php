@@ -7,6 +7,38 @@
  */
 ?>
 
+<!-- ===== v2.2.43 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.43</span>
+        <span class="release-title">个人状态下拉框多主题适配与模态框输入对比度优化</span>
+        <span class="release-date">2026-10-26</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-yellow"></span> 改进与体验优化 (Improvements & UI Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🎨</span>
+                    <div>
+                        <strong>状态选择下拉框多主题样式适配</strong>
+                        <span class="detail">为个人资料模态框中的状态选项 (<code>option.status</code>) 增加自适应主题背景色、文本色与 <code>color-scheme</code> 属性，全面提升亮色模式与暗夜模式下的辨识度与视觉一致性。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>模态框输入框对比度优化</strong>
+                        <span class="detail">调整 <code>--modal-input-bg</code> 不透明度，增强表单输入区域在各主题下的可读性与边界清晰度。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.42 ===== -->
 <article class="release">
     <div class="release-header">

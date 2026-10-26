@@ -389,6 +389,41 @@ dialog.profile-modal[open]::backdrop {
   border-color: var(--accent-color);
 }
 
+/* Modal Select & Status Options */
+select.modal-input {
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+.light-theme select.modal-input {
+  color-scheme: light;
+}
+
+.night-theme select.modal-input {
+  color-scheme: dark;
+}
+
+/* Status option styling with theme switching */
+.status,
+option.status {
+  background-color: #1e2026;
+  color: var(--text-primary, #f8fafc);
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+
+.light-theme .status,
+.light-theme option.status {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+.night-theme .status,
+.night-theme option.status {
+  background-color: #1f2b3b;
+  color: #e8eef8;
+}
+
 /* WebRTC Meeting Controls */
 .meeting-controls {
     position: fixed !important;

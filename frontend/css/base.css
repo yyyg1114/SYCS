@@ -45,7 +45,7 @@
   --date-window-bg: #000;
   --date-window-border: #333;
   --clock-logo-bg: #8b5cf6;
-  --modal-input-bg: rgba(0, 0, 0, 0.2);
+  --modal-input-bg: rgba(0, 0, 0, 0.555);
   --modal-input-border: rgba(255, 255, 255, 0.1);
   --modal-input-focus-bg: rgba(0, 0, 0, 0.3);
   --btn-theme-selector-bg: rgba(255, 255, 255, 0.05);
