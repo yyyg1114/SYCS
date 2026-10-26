@@ -1,3 +1,42 @@
+<!-- ===== v2.2.42 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.42</span>
+        <span class="release-title">Fix WebRTC Join-Token Authorization & Signaling DoS</span>
+        <span class="release-date">2026-10-19</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> Security Fixes
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>Enforced Room Authorization for Join Token Issuance</strong>
+                        <span class="detail">All room identifiers supplied to <code>issueJoinToken</code> are strictly resolved against database records and verified against room access permissions, preventing unauthorized join token minting.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Prevented Signaling Server DoS on Malformed Signatures</strong>
+                        <span class="detail">Added strict byte-length and base64url validation prior to <code>timingSafeEqual</code> in <code>verifyJoinToken</code>, eliminating RangeError process crashes from malformed join payloads.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌐</span>
+                    <div>
+                        <strong>Strict Exact Origin Matching</strong>
+                        <span class="detail">Replaced prefix-based Origin checking with exact scheme, host, and port matching, preventing domain prefix bypass attacks.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.41 ===== -->
 <article class="release">
     <div class="release-header">

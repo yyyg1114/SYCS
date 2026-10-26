@@ -7,6 +7,45 @@
  */
 ?>
 
+<!-- ===== v2.2.42 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.42</span>
+        <span class="release-title">WebRTC Joinトークン認可不備修正 & シグナリングDoS対策</span>
+        <span class="release-date">2026-10-19</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> セキュリティ強化 (Security Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>Joinトークン発行時のルーム認可検証を強制</strong>
+                        <span class="detail"><code>issueJoinToken</code> においてクライアントから渡されたルーム識別子を必ずDBから解決し、未認可のルームに対するトークン発行を完全に遮断。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>署名長不一致によるシグナリングサーバー停止 (DoS) の防止</strong>
+                        <span class="detail"><code>verifyJoinToken</code> で <code>timingSafeEqual</code> 実行前に署名のバイト長検証とbase64url形式チェックを実施。不正なjoinメッセージによるプロセス強制終了を防御。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌐</span>
+                    <div>
+                        <strong>Origin 検証の厳格化（完全一致）</strong>
+                        <span class="detail">シグナリング接続時のOrigin検証を前方一致からスキーム・ホスト・ポートの完全一致方式に改修し、ドメインプレフィックスによるOriginバイパスを防止。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.41 ===== -->
 <article class="release">
     <div class="release-header">

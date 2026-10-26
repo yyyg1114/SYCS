@@ -29,10 +29,35 @@ const MAX_ROOM_SIZE   = parseInt(process.env.MAX_ROOM_SIZE   || '50', 10);
 const PING_INTERVAL_MS= parseInt(process.env.PING_INTERVAL_MS|| '30000', 10);
 const IDLE_TIMEOUT_MS = parseInt(process.env.IDLE_TIMEOUT_MS || '60000', 10);
 
-// Allowed origin(s) — empty means no Origin check (useful in dev/proxy setups)
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
-    : [];
+/**
+ * Normalize an origin string to scheme://host[:port] in lowercase.
+ * Returns empty string on invalid origin.
+ */
+function normalizeOrigin(originStr) {
+    if (!originStr || typeof originStr !== 'string') return '';
+    try {
+        const u = new URL(originStr);
+        return u.origin.toLowerCase();
+    } catch {
+        return '';
+    }
+}
+
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+// Allowed origin(s) — normalized into a Set of exact origins (scheme + host + port)
+const ALLOWED_ORIGINS_SET = new Set(
+    (process.env.ALLOWED_ORIGINS || '')
+        .split(',')
+        .map(o => o.trim())
+        .filter(Boolean)
+        .map(normalizeOrigin)
+        .filter(Boolean)
+);
+
+if (IS_PRODUCTION && ALLOWED_ORIGINS_SET.size === 0) {
+    console.warn('[Signaling] WARNING: Production environment detected with no ALLOWED_ORIGINS specified. For security, all incoming connections with an Origin header will be rejected until ALLOWED_ORIGINS is configured.');
+}
 
 // Fail-fast if secret is not configured
 if (!SIGNALING_SECRET) {
@@ -59,16 +84,40 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocketServer({
     server,
     maxPayload: MAX_MSG_BYTES,
-    // Origin verification callback
+    // Origin verification callback — exact origin comparison only
     verifyClient: ({ req }, cb) => {
-        if (ALLOWED_ORIGINS.length === 0) {
+        const rawOrigin = req.headers['origin'];
+
+        // If no Origin header was sent (e.g. non-browser client)
+        if (!rawOrigin) {
+            if (IS_PRODUCTION) {
+                console.warn('[Signaling] Rejected connection without Origin header in production');
+                return cb(false, 403, 'Forbidden: Missing Origin header');
+            }
             return cb(true);
         }
-        const origin = req.headers['origin'] || '';
-        if (ALLOWED_ORIGINS.some(o => origin === o || origin.startsWith(o))) {
+
+        const normalizedOrigin = normalizeOrigin(rawOrigin);
+        if (!normalizedOrigin) {
+            console.warn(`[Signaling] Rejected connection with malformed Origin header: ${rawOrigin}`);
+            return cb(false, 403, 'Forbidden: Malformed Origin');
+        }
+
+        if (ALLOWED_ORIGINS_SET.size === 0) {
+            if (IS_PRODUCTION) {
+                console.warn(`[Signaling] Connection rejected: ALLOWED_ORIGINS not configured in production (origin: ${normalizedOrigin})`);
+                return cb(false, 403, 'Forbidden: Origin validation required in production');
+            }
+            // Development fallback: permit when no ALLOWED_ORIGINS configured
             return cb(true);
         }
-        console.warn(`[Signaling] Rejected connection from disallowed origin: ${origin}`);
+
+        // Exact match comparison only (no startsWith or prefix matching)
+        if (ALLOWED_ORIGINS_SET.has(normalizedOrigin)) {
+            return cb(true);
+        }
+
+        console.warn(`[Signaling] Rejected connection from disallowed origin: ${rawOrigin} (normalized: ${normalizedOrigin})`);
         cb(false, 403, 'Forbidden');
     }
 });
@@ -97,6 +146,7 @@ const pingInterval = setInterval(() => {
         ws.ping();
     });
 }, PING_INTERVAL_MS);
+pingInterval.unref();
 
 wss.on('close', () => clearInterval(pingInterval));
 
@@ -125,126 +175,136 @@ wss.on('connection', (ws, req) => {
     });
 
     ws.on('message', (rawMessage, isBinary) => {
-        // Reject binary frames
-        if (isBinary) {
-            ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Binary messages not supported' }));
-            return;
-        }
-
-        // Payload size guard (ws maxPayload handles this too, but be explicit)
-        if (rawMessage.length > MAX_MSG_BYTES) {
-            ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Message too large' }));
-            return;
-        }
-
-        // Rate limiting per connection
-        const now = Date.now();
-        if (now - ws._windowStart > 1000) {
-            ws._msgCount    = 0;
-            ws._windowStart = now;
-        }
-        ws._msgCount++;
-        if (ws._msgCount > MAX_MSGS_PER_SEC) {
-            ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Rate limit exceeded' }));
-            return;
-        }
-
-        ws._lastActivity = now;
-
-        const msg = parseMessage(rawMessage);
-        if (!msg || !msg.type) {
-            ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Invalid message format' }));
-            return;
-        }
-
-        // ── JOIN ──────────────────────────────────────────────────
-        if (msg.type === MESSAGE_TYPES.JOIN) {
-            // Only allow one JOIN per connection
-            if (ws.userId !== null) {
-                ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Already joined' }));
+        try {
+            // Reject binary frames
+            if (isBinary) {
+                ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Binary messages not supported' }));
                 return;
             }
 
-            // Verify token — this is the only place we trust client-supplied identity
-            const identity = verifyJoinToken(msg);
-            if (!identity) {
-                ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Unauthorized' }));
-                ws.close(4001, 'Unauthorized');
+            // Payload size guard (ws maxPayload handles this too, but be explicit)
+            if (rawMessage.length > MAX_MSG_BYTES) {
+                ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Message too large' }));
                 return;
             }
 
-            const { userId, roomId } = identity;
-
-            // Room size limit
-            const currentPeers = roomManager.getRoomPeers(roomId);
-            if (currentPeers.length >= MAX_ROOM_SIZE) {
-                ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Room is full' }));
-                ws.close(4003, 'Room full');
+            // Rate limiting per connection
+            const now = Date.now();
+            if (now - ws._windowStart > 1000) {
+                ws._msgCount    = 0;
+                ws._windowStart = now;
+            }
+            ws._msgCount++;
+            if (ws._msgCount > MAX_MSGS_PER_SEC) {
+                ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Rate limit exceeded' }));
                 return;
             }
 
-            // Use username from token payload if available (ignore client msg.username)
-            const username = identity.username || `User_${userId}`;
+            ws._lastActivity = now;
 
-            // Register authenticated identity on socket
-            roomManager.joinRoom(roomId, userId, ws);
-            console.log(`[Signaling] User ${userId} (${username}) joined room ${roomId}`);
+            const msg = parseMessage(rawMessage);
+            if (!msg || !msg.type) {
+                ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Invalid message format' }));
+                return;
+            }
 
-            // Notify joining user of existing peers
-            const existingPeers = roomManager.getRoomPeers(roomId).filter(id => id !== userId);
-            existingPeers.forEach(peerId => {
-                ws.send(formatMessage(MESSAGE_TYPES.PEER_JOINED, {
-                    peer_id: peerId,
-                    user_id: peerId
+            // ── JOIN ──────────────────────────────────────────────────
+            if (msg.type === MESSAGE_TYPES.JOIN) {
+                // Only allow one JOIN per connection
+                if (ws.userId !== null) {
+                    ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Already joined' }));
+                    return;
+                }
+
+                // Verify token — this is the only place we trust client-supplied identity
+                const identity = verifyJoinToken(msg);
+                if (!identity) {
+                    ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Unauthorized' }));
+                    ws.close(4001, 'Unauthorized');
+                    return;
+                }
+
+                const { userId, roomId } = identity;
+
+                // Room size limit
+                const currentPeers = roomManager.getRoomPeers(roomId);
+                if (currentPeers.length >= MAX_ROOM_SIZE) {
+                    ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Room is full' }));
+                    ws.close(4003, 'Room full');
+                    return;
+                }
+
+                // Use username from token payload if available (ignore client msg.username)
+                const username = identity.username || `User_${userId}`;
+
+                // Register authenticated identity on socket
+                roomManager.joinRoom(roomId, userId, ws);
+                console.log(`[Signaling] User ${userId} (${username}) joined room ${roomId}`);
+
+                // Notify joining user of existing peers
+                const existingPeers = roomManager.getRoomPeers(roomId).filter(id => id !== userId);
+                existingPeers.forEach(peerId => {
+                    ws.send(formatMessage(MESSAGE_TYPES.PEER_JOINED, {
+                        peer_id: peerId,
+                        user_id: peerId
+                    }));
+                });
+
+                // Notify others that this user joined
+                roomManager.broadcastToRoom(roomId, userId, formatMessage(MESSAGE_TYPES.PEER_JOINED, {
+                    peer_id: userId,
+                    user_id: userId,
+                    username
                 }));
-            });
+                return;
+            }
 
-            // Notify others that this user joined
-            roomManager.broadcastToRoom(roomId, userId, formatMessage(MESSAGE_TYPES.PEER_JOINED, {
-                peer_id: userId,
-                user_id: userId,
-                username
-            }));
-            return;
-        }
+            // ── All other message types require an authenticated JOIN first ──
+            if (ws.userId === null) {
+                ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Unauthorized: join first' }));
+                return;
+            }
 
-        // ── All other message types require an authenticated JOIN first ──
-        if (ws.userId === null) {
-            ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Unauthorized: join first' }));
-            return;
-        }
-
-        switch (msg.type) {
-            case MESSAGE_TYPES.OFFER:
-            case MESSAGE_TYPES.ANSWER: {
-                const targetPeerId = parseInt(msg.peer_id, 10);
-                if (ws.roomId && targetPeerId && targetPeerId !== ws.userId) {
-                    roomManager.sendToPeer(ws.roomId, targetPeerId, formatMessage(msg.type, {
-                        peer_id: ws.userId,   // server-authoritative sender id
-                        description: msg.description
-                    }));
+            switch (msg.type) {
+                case MESSAGE_TYPES.OFFER:
+                case MESSAGE_TYPES.ANSWER: {
+                    const targetPeerId = parseInt(msg.peer_id, 10);
+                    if (ws.roomId && targetPeerId && targetPeerId !== ws.userId) {
+                        roomManager.sendToPeer(ws.roomId, targetPeerId, formatMessage(msg.type, {
+                            peer_id: ws.userId,   // server-authoritative sender id
+                            description: msg.description
+                        }));
+                    }
+                    break;
                 }
-                break;
-            }
 
-            case MESSAGE_TYPES.ICE_CANDIDATE: {
-                const targetPeerId = parseInt(msg.peer_id, 10);
-                if (ws.roomId && targetPeerId && targetPeerId !== ws.userId) {
-                    roomManager.sendToPeer(ws.roomId, targetPeerId, formatMessage(MESSAGE_TYPES.ICE_CANDIDATE, {
-                        peer_id: ws.userId,   // server-authoritative sender id
-                        candidate: msg.candidate
-                    }));
+                case MESSAGE_TYPES.ICE_CANDIDATE: {
+                    const targetPeerId = parseInt(msg.peer_id, 10);
+                    if (ws.roomId && targetPeerId && targetPeerId !== ws.userId) {
+                        roomManager.sendToPeer(ws.roomId, targetPeerId, formatMessage(MESSAGE_TYPES.ICE_CANDIDATE, {
+                            peer_id: ws.userId,   // server-authoritative sender id
+                            candidate: msg.candidate
+                        }));
+                    }
+                    break;
                 }
-                break;
-            }
 
-            case MESSAGE_TYPES.PEER_LEFT: {
-                handleDisconnect(ws);
-                break;
-            }
+                case MESSAGE_TYPES.PEER_LEFT: {
+                    handleDisconnect(ws);
+                    break;
+                }
 
-            default:
-                ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: `Unknown message type: ${msg.type}` }));
+                default:
+                    ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: `Unknown message type: ${msg.type}` }));
+            }
+        } catch (err) {
+            console.error(`[Signaling] Uncaught error handling message for user ${ws.userId}:`, err);
+            try {
+                ws.send(formatMessage(MESSAGE_TYPES.ERROR, { message: 'Internal server error processing message' }));
+                ws.close(1011, 'Internal server error');
+            } catch (closeErr) {
+                // ignore
+            }
         }
     });
 
@@ -271,8 +331,17 @@ function handleDisconnect(ws) {
 // ----------------------------------------------------------------
 // Start
 // ----------------------------------------------------------------
-server.listen(PORT, () => {
-    console.log(`[Signaling] Server running on port ${PORT}`);
-    console.log(`[Signaling] Max connections: ${MAX_CONNECTIONS}, Max room size: ${MAX_ROOM_SIZE}`);
-    console.log(`[Signaling] Allowed origins: ${ALLOWED_ORIGINS.length ? ALLOWED_ORIGINS.join(', ') : '(any — set ALLOWED_ORIGINS to restrict)'}`);
-});
+if (require.main === module) {
+    server.listen(PORT, () => {
+        console.log(`[Signaling] Server running on port ${PORT}`);
+        console.log(`[Signaling] Max connections: ${MAX_CONNECTIONS}, Max room size: ${MAX_ROOM_SIZE}`);
+        console.log(`[Signaling] Allowed origins: ${ALLOWED_ORIGINS_SET.size ? Array.from(ALLOWED_ORIGINS_SET).join(', ') : (IS_PRODUCTION ? '(none — all rejected)' : '(all — dev mode)')}`);
+    });
+}
+
+module.exports = {
+    server,
+    wss,
+    normalizeOrigin,
+    ALLOWED_ORIGINS_SET
+};

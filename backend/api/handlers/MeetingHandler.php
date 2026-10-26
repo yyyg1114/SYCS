@@ -56,18 +56,32 @@ class MeetingHandler extends BaseHandler
         } elseif ($tid === '0' && $gtid === '0' && $pid === '0') {
             // Instant meeting fallback
             $roomType = 'instant';
-            $uuid = sprintf(
-                '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-                mt_rand(0, 0xffff),
-                mt_rand(0, 0xffff),
-                mt_rand(0, 0xffff),
-                mt_rand(0, 0x0fff) | 0x4000,
-                mt_rand(0, 0x3fff) | 0x8000,
-                mt_rand(0, 0xffff),
-                mt_rand(0, 0xffff),
-                mt_rand(0, 0xffff)
-            );
-            $name = "instant_" . substr($uuid, 0, 8);
+        }
+
+        $meetingId = null;
+        $plainPasscode = null;
+        $passwordHash = null;
+
+        // Instant meeting または明示的な meeting_id 作成要求の場合、一意の9桁IDとパスワードを生成
+        if ($roomType === 'instant' || $this->getPost('create_meeting_id')) {
+            $meetingId = $this->generateUniqueMeetingId();
+            $name = "meeting_" . $meetingId;
+
+            // パスワード設定オプション ('auto': 自動生成, 'custom': ユーザー指定, 'none': パスワードなし)
+            $passOption = $this->getPost('passcode_option', 'auto');
+            $customPass = trim((string)$this->getPost('passcode', ''));
+
+            if ($passOption === 'none') {
+                $plainPasscode = null;
+                $passwordHash = null;
+            } elseif ($passOption === 'custom' && $customPass !== '') {
+                $plainPasscode = $customPass;
+                $passwordHash = password_hash($plainPasscode, PASSWORD_DEFAULT);
+            } else {
+                // デフォルト: 入力しやすい英数字6文字の安全なパスコードを自動生成
+                $plainPasscode = $this->generatePasscode(6);
+                $passwordHash = password_hash($plainPasscode, PASSWORD_DEFAULT);
+            }
         }
 
         $uuidVal = sprintf(
@@ -83,20 +97,21 @@ class MeetingHandler extends BaseHandler
         );
 
         $stmt = $this->mysqli->prepare(
-            "INSERT IGNORE INTO meeting_rooms (room_uuid, room_name, room_type, thread_id, group_thread_id, dm_user_1, dm_user_2, creator_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT IGNORE INTO meeting_rooms (room_uuid, room_name, room_type, thread_id, group_thread_id, dm_user_1, dm_user_2, meeting_id, password_hash, creator_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
-        $stmt->bind_param("sssiiiii", $uuidVal, $name, $roomType, $tVal, $gtVal, $dm1, $dm2, $this->userId);
+        $stmt->bind_param("sssiiiiisi", $uuidVal, $name, $roomType, $tVal, $gtVal, $dm1, $dm2, $meetingId, $passwordHash, $this->userId);
         $stmt->execute();
 
         $roomId = $stmt->insert_id;
         if ($roomId === 0) {
-            $sel = $this->mysqli->prepare("SELECT id, room_uuid FROM meeting_rooms WHERE room_name = ?");
+            $sel = $this->mysqli->prepare("SELECT id, room_uuid, meeting_id FROM meeting_rooms WHERE room_name = ?");
             $sel->bind_param("s", $name);
             $sel->execute();
             $row = $sel->get_result()->fetch_assoc();
             $roomId = (int)($row['id'] ?? 0);
             $uuidVal = $row['room_uuid'] ?? $uuidVal;
+            $meetingId = $row['meeting_id'] ?? $meetingId;
             $sel->close();
         }
         $stmt->close();
@@ -109,14 +124,23 @@ class MeetingHandler extends BaseHandler
         $partStmt->execute();
         $partStmt->close();
 
-        echo json_encode([
+        $response = [
             'success' => true,
             'room_id' => $roomId,
             'room_uuid' => $uuidVal,
             'room_name' => $name,
             'room_type' => $roomType,
             'user_id' => $this->userId
-        ]);
+        ];
+
+        if ($meetingId !== null) {
+            $response['meeting_id'] = $meetingId;
+            $response['formatted_meeting_id'] = $this->formatMeetingId($meetingId);
+            $response['passcode'] = $plainPasscode;
+            $response['has_password'] = ($plainPasscode !== null && $plainPasscode !== '');
+        }
+
+        echo json_encode($response);
     }
 
     public function leaveMeeting(): void
@@ -146,7 +170,7 @@ class MeetingHandler extends BaseHandler
         }
 
         $stmt = $this->mysqli->prepare(
-            "SELECT id, room_uuid, room_name, room_type, thread_id, group_thread_id, creator_id, created_at, closed_at FROM meeting_rooms WHERE id = ? LIMIT 1"
+            "SELECT id, room_uuid, room_name, room_type, thread_id, group_thread_id, creator_id, meeting_id, created_at, closed_at FROM meeting_rooms WHERE id = ? LIMIT 1"
         );
         $stmt->bind_param("i", $roomId);
         $stmt->execute();
@@ -157,6 +181,10 @@ class MeetingHandler extends BaseHandler
             http_response_code(444);
             echo json_encode(['success' => false, 'error' => 'Room not found']);
             return;
+        }
+
+        if (!empty($room['meeting_id'])) {
+            $room['formatted_meeting_id'] = $this->formatMeetingId($room['meeting_id']);
         }
 
         echo json_encode(['success' => true, 'room' => $room]);
@@ -283,27 +311,41 @@ class MeetingHandler extends BaseHandler
     {
         $this->verifyCsrf();
         $roomId = (int)$this->getPost('room_id', 0);
-        $roomName = $this->getPost('room_name', '');
+        $roomName = trim((string)$this->getPost('room_name', ''));
 
-        if ($roomId > 0 && empty($roomName)) {
-            $stmt = $this->mysqli->prepare("SELECT room_name FROM meeting_rooms WHERE id = ? LIMIT 1");
-            $stmt->bind_param("i", $roomId);
-            $stmt->execute();
-            $res = $stmt->get_result()->fetch_assoc();
-            $stmt->close();
-            if ($res) {
-                $roomName = $res['room_name'];
-            }
-        }
-
-        if (empty($roomName)) {
+        if ($roomId <= 0 && $roomName === '') {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Missing room identification']);
             return;
         }
 
-        // Validate user access to room
-        if ($roomId > 0 && !$this->canAccessMeetingRoom($roomId)) {
+        // Always resolve the room from DB
+        $room = null;
+        if ($roomId > 0) {
+            $stmt = $this->mysqli->prepare("SELECT id, room_name FROM meeting_rooms WHERE id = ? AND closed_at IS NULL LIMIT 1");
+            $stmt->bind_param("i", $roomId);
+            $stmt->execute();
+            $room = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+        } elseif ($roomName !== '') {
+            $stmt = $this->mysqli->prepare("SELECT id, room_name FROM meeting_rooms WHERE (room_name = ? OR room_uuid = ?) AND closed_at IS NULL LIMIT 1");
+            $stmt->bind_param("ss", $roomName, $roomName);
+            $stmt->execute();
+            $room = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+        }
+
+        if (!$room) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'error' => 'Meeting room not found or closed']);
+            return;
+        }
+
+        $resolvedRoomId = (int)$room['id'];
+        $resolvedRoomName = (string)$room['room_name'];
+
+        // Validate user access to room — MUST always be checked before issuing token
+        if (!$this->canAccessMeetingRoom($resolvedRoomId)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Forbidden: Cannot access this meeting room']);
             return;
@@ -313,7 +355,7 @@ class MeetingHandler extends BaseHandler
         $exp = time() + 120; // Token valid for 2 minutes
         $payload = [
             'uid' => (int)$this->userId,
-            'rid' => (string)$roomName,
+            'rid' => $resolvedRoomName,
             'exp' => $exp
         ];
 
@@ -327,7 +369,8 @@ class MeetingHandler extends BaseHandler
             'success' => true,
             'token' => $token,
             'expires_at' => $exp,
-            'room_name' => $roomName
+            'room_name' => $resolvedRoomName,
+            'room_id' => $resolvedRoomId
         ]);
     }
 
@@ -359,51 +402,129 @@ class MeetingHandler extends BaseHandler
     public function joinByMeetingId(): void
     {
         $this->verifyCsrf();
-        $meetingId = trim($this->getPost('meeting_id', ''));
-        $passcode = trim($this->getPost('passcode', ''));
+        $rawMeetingId = (string)$this->getPost('meeting_id', '');
+        // 空白、ハイフン、アンダースコアを除去して正規化
+        $meetingId = preg_replace('/[\s\-_]/', '', trim($rawMeetingId));
+        $passcode = trim((string)$this->getPost('passcode', ''));
 
-        if (empty($meetingId)) {
+        if ($meetingId === '') {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Meeting ID is required']);
+            echo json_encode(['success' => false, 'error' => 'ミーティングIDを入力してください']);
             return;
         }
 
+        // meeting_id, room_uuid, room_name で検索（クローズされていない部屋）
         $stmt = $this->mysqli->prepare(
-            "SELECT id, room_uuid, room_name, room_type, passcode_hash, is_active FROM meeting_rooms WHERE (id = ? OR room_uuid = ? OR room_name = ?) AND closed_at IS NULL LIMIT 1"
+            "SELECT id, room_uuid, room_name, room_type, meeting_id, password_hash 
+             FROM meeting_rooms 
+             WHERE (meeting_id = ? OR room_name = ? OR room_uuid = ?) 
+               AND closed_at IS NULL 
+             LIMIT 1"
         );
-        $midInt = (int)$meetingId;
-        $stmt->bind_param("iss", $midInt, $meetingId, $meetingId);
+        $stmt->bind_param("sss", $meetingId, $meetingId, $meetingId);
         $stmt->execute();
         $room = $stmt->get_result()->fetch_assoc();
         $stmt->close();
 
         if (!$room) {
             http_response_code(404);
-            echo json_encode(['success' => false, 'error' => 'Meeting not found or already closed']);
+            echo json_encode(['success' => false, 'error' => '指定されたミーティングが見つからないか、既に終了しています']);
             return;
         }
 
-        if (!empty($room['passcode_hash']) && !password_verify($passcode, $room['passcode_hash'])) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Invalid passcode']);
-            return;
+        // パスワード検証（ルームにパスワードが設定されている場合のみ）
+        if (!empty($room['password_hash'])) {
+            if ($passcode === '') {
+                http_response_code(401);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'パスワードが必要です',
+                    'require_passcode' => true
+                ]);
+                return;
+            }
+            if (!password_verify($passcode, $room['password_hash'])) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'error' => 'パスワードが正しくありません']);
+                return;
+            }
         }
 
-        // Record participant
+        // Record participant in meeting_participants
         $partStmt = $this->mysqli->prepare(
             "INSERT INTO meeting_participants (room_id, user_id, joined_at) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE left_at = NULL"
         );
-        $partStmt->bind_param("ii", $room['id'], $this->userId);
+        $roomId = (int)$room['id'];
+        $partStmt->bind_param("ii", $roomId, $this->userId);
         $partStmt->execute();
         $partStmt->close();
 
+        $mid = $room['meeting_id'] ?? '';
         echo json_encode([
             'success' => true,
-            'room_id' => $room['id'],
+            'room_id' => $roomId,
             'room_uuid' => $room['room_uuid'],
             'room_name' => $room['room_name'],
+            'meeting_id' => $mid,
+            'formatted_meeting_id' => $mid ? $this->formatMeetingId($mid) : $mid,
             'room_type' => $room['room_type']
         ]);
+    }
+
+    /**
+     * 重複しない9桁のミーティングIDを生成 (例: 384920175)
+     */
+    public function generateUniqueMeetingId(): string
+    {
+        for ($i = 0; $i < 10; $i++) {
+            $candidate = (string)random_int(100000000, 999999999);
+            $stmt = $this->mysqli->prepare("SELECT id FROM meeting_rooms WHERE meeting_id = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param("s", $candidate);
+                $stmt->execute();
+                $exists = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                if (!$exists) {
+                    return $candidate;
+                }
+            } else {
+                return $candidate;
+            }
+        }
+        // フォールバック: タイムスタンプと乱数を組み合わせた9桁
+        return substr(str_pad((string)(time() % 1000000000), 9, '0', STR_PAD_LEFT), 0, 9);
+    }
+
+    /**
+     * 混同しやすい文字（0, O, o, 1, I, l）を除いた安全なパスコード（英数字6文字）を生成
+     */
+    public function generatePasscode(int $length = 6): string
+    {
+        $chars = '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
+        $max = strlen($chars) - 1;
+        $passcode = '';
+        for ($i = 0; $i < $length; $i++) {
+            $passcode .= $chars[random_int(0, $max)];
+        }
+        return $passcode;
+    }
+
+    /**
+     * 9桁のミーティングIDを3桁スペース区切り (例: 123 456 789) に整形
+     */
+    public function formatMeetingId(?string $meetingId): string
+    {
+        if (!$meetingId) {
+            return '';
+        }
+        $digits = preg_replace('/\D/', '', $meetingId);
+        if (strlen($digits) === 9) {
+            return substr($digits, 0, 3) . ' ' . substr($digits, 3, 3) . ' ' . substr($digits, 6, 3);
+        }
+        if (strlen($digits) === 10) {
+            return substr($digits, 0, 3) . ' ' . substr($digits, 3, 3) . ' ' . substr($digits, 6, 4);
+        }
+        return $meetingId;
     }
 
     private function base64UrlEncode(string $data): string

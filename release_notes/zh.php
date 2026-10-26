@@ -7,6 +7,45 @@
  */
 ?>
 
+<!-- ===== v2.2.42 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.42</span>
+        <span class="release-title">修复 WebRTC Join 令牌授权缺陷与信令 DoS 防护</span>
+        <span class="release-date">2026-10-19</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 安全修复 (Security Fixes)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>强制 Join 令牌签发的房间权限验证</strong>
+                        <span class="detail">在 <code>issueJoinToken</code> 中对客户端提供的房间标识严格执行数据库记录检索与权限检验，杜绝签发未授权房间的令牌。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>防止签名长度不匹配导致信令服务器崩溃 (DoS)</strong>
+                        <span class="detail">在 <code>verifyJoinToken</code> 中执行 <code>timingSafeEqual</code> 前加入严格的字节长度检查与 base64url 校验，避免异常 join 消息触发进程退出。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🌐</span>
+                    <div>
+                        <strong>严格 Exact Origin 匹配</strong>
+                        <span class="detail">将信令 WebSocket 的 Origin 验证从前缀匹配改为协议、主机、端口的完全一致比对，杜绝域名伪造绕过。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.41 ===== -->
 <article class="release">
     <div class="release-header">

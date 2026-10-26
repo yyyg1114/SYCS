@@ -262,6 +262,8 @@ function db_init($mysqli)
             ['meeting_rooms',   'dm_user_1',            'INT DEFAULT NULL AFTER group_thread_id'],
             ['meeting_rooms',   'dm_user_2',            'INT DEFAULT NULL AFTER dm_user_1'],
             ['meeting_rooms',   'closed_at',            'TIMESTAMP NULL DEFAULT NULL AFTER created_at'],
+            ['meeting_rooms',   'meeting_id',           'VARCHAR(20) DEFAULT NULL AFTER dm_user_2'],
+            ['meeting_rooms',   'password_hash',        'VARCHAR(255) DEFAULT NULL AFTER meeting_id'],
         ];
 
         // Execute migrations with failure detection.
