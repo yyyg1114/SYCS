@@ -1,0 +1,417 @@
+openapi: 3.1.0
+info:
+  title: SYCS API
+  version: 2.2.41
+  license:
+    name: UNLICENSED
+    url: https://github.com/yyyg1114/SYCS
+  description: |
+    API contract for the current PHP API router. All API requests are made to
+    `/index.php?api=<action>`. The `api` query parameter selects the action.
+
+    Authentication is cookie-session based. State-changing requests that call the
+    server-side CSRF verifier require `csrf_token`, supplied by the rendered
+    application's `SYCS_CONFIG.csrfToken`. `set_lang` and `update_location` are
+    existing exceptions and are documented as implemented behavior.
+    Aliases retained for backwards compatibility are marked as deprecated below.
+servers:
+  - url: /
+security:
+  - sessionCookie: []
+paths:
+  /index.php:
+    get:
+      summary: Read data or open the SSE stream
+      description: Select one of the read actions with the required `api` query parameter.
+      operationId: getApiAction
+      parameters:
+        - $ref: '#/components/parameters/ReadAction'
+        - $ref: '#/components/parameters/ThreadId'
+        - $ref: '#/components/parameters/GroupThreadId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/PartnerId'
+        - $ref: '#/components/parameters/RoomId'
+        - $ref: '#/components/parameters/LastId'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/Keyword'
+        - $ref: '#/components/parameters/HasAttachment'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - $ref: '#/components/parameters/Lang'
+      responses:
+        '200':
+          description: Action-specific JSON response, except `sse`, which is an event stream.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+            text/event-stream:
+              schema:
+                type: string
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ApiError'
+    post:
+      summary: Perform a state-changing action
+      description: |
+        Select the action with the required `api` query parameter. All request forms
+        require `csrf_token`; multipart is required when an attachment, avatar, or
+        banner is included.
+      operationId: postApiAction
+      parameters:
+        - $ref: '#/components/parameters/WriteAction'
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/MessageMutation'
+                - $ref: '#/components/schemas/DirectMessageMutation'
+                - $ref: '#/components/schemas/ThreadMutation'
+                - $ref: '#/components/schemas/GroupMutation'
+                - $ref: '#/components/schemas/FriendMutation'
+                - $ref: '#/components/schemas/MeetingMutation'
+                - $ref: '#/components/schemas/UserMutation'
+          multipart/form-data:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/SendMessageForm'
+                - $ref: '#/components/schemas/SendDirectMessageForm'
+                - $ref: '#/components/schemas/UpdateProfileForm'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushSubscription'
+      responses:
+        '200':
+          description: Action completed. Inspect the action-specific schema in `x-sycs-actions`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ApiError'
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: PHPSESSID
+  parameters:
+    ReadAction:
+      name: api
+      in: query
+      required: true
+      schema:
+        type: string
+        enum: [get_threads, get_group_threads, get_messages, get_group_messages, get_direct_messages, get_dm_messages, get_user_status, get_user_profile, get_friends_statuses, get_all_users, search_users, get_online_users, get_my_files, get_mute_statuses, get_pinned_messages, getPinnedMessages, get_attachments, get_typing_users, search_messages, get_dm_partners, get_unread_dm_counts, get_friend_requests, get_pending_requests, get_friends, get_blocked_users, get_user_locations, get_meeting, get_meeting_participants, get_signaling, check_favorite, get_favorites, set_lang, sse]
+    WriteAction:
+      name: api
+      in: query
+      required: true
+      schema:
+        type: string
+        enum: [update_profile, push_subscribe, update_status, toggle_mute, send_message, edit_message, delete_message, delete_messages, toggle_reaction, toggle_pin, update_typing_status, send_direct_message, send_dm, mark_dms_as_read, create_thread, edit_thread, update_thread, delete_thread, set_last_thread, toggle_favorite, create_group_thread, create_group, request_friend, send_friend_request, accept_friend, handle_friend_request, block_user, unblock_user, update_location, join_meeting, leave_meeting, issue_turn_credentials, issue_join_token, close_meeting, join_by_meeting_id, send_signaling]
+    ThreadId:
+      name: thread_id
+      in: query
+      schema: { type: integer, minimum: 1 }
+    GroupThreadId:
+      name: group_thread_id
+      in: query
+      schema: { type: integer, minimum: 1 }
+    UserId:
+      name: user_id
+      in: query
+      schema: { type: integer, minimum: 1 }
+    PartnerId:
+      name: partner_id
+      in: query
+      schema: { type: integer, minimum: 1 }
+    RoomId:
+      name: room_id
+      in: query
+      schema: { type: integer, minimum: 1 }
+    LastId:
+      name: last_id
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    SearchQuery:
+      name: q
+      in: query
+      schema: { type: string }
+    Keyword:
+      name: keyword
+      in: query
+      schema: { type: string }
+    HasAttachment:
+      name: has_attachment
+      in: query
+      schema: { type: string, enum: ['0', '1'], default: '0' }
+    DateFrom:
+      name: date_from
+      in: query
+      schema: { type: string, format: date }
+    DateTo:
+      name: date_to
+      in: query
+      schema: { type: string, format: date }
+    Lang:
+      name: lang
+      in: query
+      schema: { type: string, enum: [ja, en, zh] }
+  responses:
+    BadRequest:
+      description: Missing, invalid, or inconsistent request data.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Forbidden:
+      description: The session, CSRF token, or resource access is invalid.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    ApiError:
+      description: Unexpected server error.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  schemas:
+    CsrfForm:
+      type: object
+      required: [csrf_token]
+      properties:
+        csrf_token: { type: string, minLength: 1 }
+    MessageMutation:
+      allOf:
+        - $ref: '#/components/schemas/CsrfForm'
+        - type: object
+          properties:
+            message_id: { type: integer, minimum: 1 }
+            message_ids: { type: string, description: Comma-separated message IDs. }
+            content: { type: string }
+            emoji: { type: string }
+            reply_to_id: { type: integer, minimum: 1 }
+            thread_id: { type: integer, minimum: 1 }
+            group_thread_id: { type: integer, minimum: 1 }
+            is_typing: { type: string, enum: ['0', '1'] }
+    SendMessageForm:
+      allOf:
+        - $ref: '#/components/schemas/MessageMutation'
+        - type: object
+          required: [content]
+          properties:
+            content: { type: string }
+            attachment: { type: string, format: binary }
+    DirectMessageMutation:
+      allOf:
+        - $ref: '#/components/schemas/CsrfForm'
+        - type: object
+          properties:
+            receiver_id: { type: integer, minimum: 1 }
+            recipient_id: { type: integer, minimum: 1, deprecated: true }
+            partner_id: { type: integer, minimum: 1, deprecated: true }
+            content: { type: string }
+            partner_id_for_read: { type: integer, minimum: 1, description: Used by mark_dms_as_read. }
+    SendDirectMessageForm:
+      allOf:
+        - $ref: '#/components/schemas/DirectMessageMutation'
+        - type: object
+          required: [receiver_id, content]
+          properties:
+            receiver_id: { type: integer, minimum: 1 }
+            content: { type: string }
+            attachment: { type: string, format: binary }
+    ThreadMutation:
+      allOf:
+        - $ref: '#/components/schemas/CsrfForm'
+        - type: object
+          properties:
+            id: { type: integer, minimum: 1, description: Alias used by delete_thread. }
+            thread_id: { type: integer, minimum: 1 }
+            name: { type: string }
+            category: { type: string, default: General }
+            discord_webhook_url: { type: string, format: uri }
+    GroupMutation:
+      allOf:
+        - $ref: '#/components/schemas/CsrfForm'
+        - type: object
+          required: [name]
+          properties:
+            name: { type: string }
+            participant_ids:
+              oneOf:
+                - type: string
+                  description: JSON array or comma-separated participant IDs, depending on the client.
+                - type: array
+                  items: { type: integer, minimum: 1 }
+            members:
+              oneOf:
+                - type: string
+                  description: Deprecated alias for participant_ids; JSON array.
+                - type: array
+                  items: { type: integer, minimum: 1 }
+    FriendMutation:
+      allOf:
+        - $ref: '#/components/schemas/CsrfForm'
+        - type: object
+          properties:
+            target_id: { type: integer, minimum: 1 }
+            block_id: { type: integer, minimum: 1, deprecated: true }
+            friend_id: { type: integer, minimum: 1 }
+            request_id: { type: integer, minimum: 1 }
+            action: { type: string, enum: [accept, reject] }
+    MeetingMutation:
+      allOf:
+        - $ref: '#/components/schemas/CsrfForm'
+        - type: object
+          properties:
+            room_id: { type: integer, minimum: 1 }
+            room_name: { type: string }
+            thread_id: { type: integer, minimum: 1 }
+            group_thread_id: { type: integer, minimum: 1 }
+            dm_partner_id: { type: integer, minimum: 1 }
+            meeting_id: { type: string }
+            passcode: { type: string }
+            receiver_id: { type: integer, minimum: 1 }
+            type: { type: string, enum: [offer, answer, candidate, ice_candidate] }
+            content: { type: string }
+    UserMutation:
+      allOf:
+        - $ref: '#/components/schemas/CsrfForm'
+        - type: object
+          properties:
+            status: { type: string, enum: [online, busy, away, offline, not_allowed, step_out, going_away] }
+            custom_status: { type: string }
+            target_type: { type: string }
+            target_id: { type: integer, minimum: 1 }
+            is_muted: { type: string, enum: ['0', '1'] }
+            lat: { type: number, format: double }
+            lon: { type: number, format: double }
+    UpdateProfileForm:
+      allOf:
+        - $ref: '#/components/schemas/UserMutation'
+        - type: object
+          properties:
+            bio: { type: string }
+            banner_color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+            social_links: { type: string, description: JSON-encoded social links. }
+            theme_preference: { type: string }
+            notification_keywords: { type: string }
+            profile_layout: { type: string, enum: [classic, modern] }
+            remove_avatar: { type: string, enum: ['true', 'false'] }
+            remove_banner: { type: string, enum: ['true', 'false'] }
+            avatar: { type: string, format: binary }
+            banner: { type: string, format: binary }
+    PushSubscription:
+      allOf:
+        - $ref: '#/components/schemas/CsrfForm'
+        - type: object
+          required: [endpoint, keys]
+          properties:
+            endpoint: { type: string, format: uri }
+            keys:
+              type: object
+              required: [p256dh, auth]
+              properties:
+                p256dh: { type: string }
+                auth: { type: string }
+    Message:
+      type: object
+      properties:
+        id: { type: integer }
+        thread_id: { type: [integer, 'null'] }
+        group_thread_id: { type: [integer, 'null'] }
+        user_id: { type: integer }
+        username: { type: string }
+        content: { type: string }
+        attachment_path: { type: [string, 'null'] }
+        reply_to_id: { type: [integer, 'null'] }
+        created_at: { type: string, format: date-time }
+    ApiResponse:
+      oneOf:
+        - $ref: '#/components/schemas/Success'
+        - $ref: '#/components/schemas/Error'
+        - type: array
+          items: { $ref: '#/components/schemas/Message' }
+    Success:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean, const: true }
+        id: { type: integer }
+        attachment_path: { type: [string, 'null'] }
+    Error:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean, const: false }
+        error: { type: string }
+x-sycs-actions:
+  get_user_status: { parameters: [user_id], response: UserStatus }
+  get_user_profile: { parameters: [user_id], response: User }
+  get_friends_statuses: { response: 'UserStatus[]' }
+  get_all_users: { response: 'User[]' }
+  search_users: { parameters: [q], response: 'User[]' }
+  get_online_users: { response: 'User[]' }
+  get_my_files: { response: 'Attachment[]' }
+  get_mute_statuses: { response: 'MuteSetting[]' }
+  set_lang: { parameters: [lang], response: Success, note: 'State-changing GET retained for compatibility.' }
+  get_threads: { response: 'Thread[]' }
+  get_group_threads: { response: 'GroupThread[]' }
+  get_messages: { parameters: [thread_id], response: 'Message[]' }
+  get_group_messages: { parameters: [thread_id], response: 'Message[]' }
+  get_direct_messages: { parameters: [partner_id], response: 'DirectMessage[]' }
+  get_dm_messages: { deprecated: true, alias_for: get_direct_messages }
+  send_message: { request: SendMessageForm, response: Success }
+  send_direct_message: { request: SendDirectMessageForm, response: Success }
+  send_dm: { deprecated: true, alias_for: send_direct_message }
+  delete_message: { request: MessageMutation, response: Success }
+  delete_messages: { request: MessageMutation, response: Success }
+  edit_message: { request: MessageMutation, response: Success }
+  toggle_reaction: { request: MessageMutation, response: Success }
+  toggle_pin: { request: MessageMutation, response: Success }
+  search_messages: { parameters: [thread_id, group_thread_id, partner_id, keyword, q, has_attachment, date_from, date_to], response: 'Message[]' }
+  get_pinned_messages: { parameters: [thread_id, group_thread_id], response: 'Message[]' }
+  getPinnedMessages: { deprecated: true, alias_for: get_pinned_messages }
+  get_attachments: { parameters: [thread_id, group_thread_id, partner_id], response: 'Attachment[]' }
+  update_typing_status: { request: MessageMutation, response: Success }
+  get_typing_users: { parameters: [thread_id], response: 'User[]' }
+  mark_dms_as_read: { request: DirectMessageMutation, response: Success }
+  get_dm_partners: { response: 'User[]' }
+  get_unread_dm_counts: { response: 'UnreadDmCount[]' }
+  create_thread: { request: ThreadMutation, response: Success }
+  edit_thread: { request: ThreadMutation, response: Success }
+  update_thread: { deprecated: true, alias_for: edit_thread }
+  delete_thread: { request: ThreadMutation, response: Success }
+  create_group_thread: { request: GroupMutation, response: Success }
+  create_group: { deprecated: true, alias_for: create_group_thread }
+  get_friend_requests: { response: 'FriendRequest[]' }
+  get_pending_requests: { deprecated: true, alias_for: get_friend_requests }
+  get_friends: { response: 'User[]' }
+  request_friend: { request: FriendMutation, response: Success }
+  send_friend_request: { request: FriendMutation, response: Success }
+  handle_friend_request: { request: FriendMutation, response: Success }
+  block_user: { request: FriendMutation, response: Success }
+  unblock_user: { request: FriendMutation, response: Success }
+  get_blocked_users: { response: 'User[]' }
+  update_profile: { request: UpdateProfileForm, response: Success }
+  push_subscribe: { request: PushSubscription, response: Success }
+  update_status: { request: UserMutation, response: Success }
+  toggle_mute: { request: UserMutation, response: Success }
+  update_location: { request: UserMutation, response: Success, note: 'Current implementation does not verify CSRF.' }
+  get_user_locations: { response: 'Location[]' }
+  join_meeting: { request: MeetingMutation, response: Success }
+  leave_meeting: { request: MeetingMutation, response: Success }
+  get_meeting: { parameters: [room_id], response: Meeting }
+  get_meeting_participants: { parameters: [room_id], response: 'MeetingParticipant[]' }
+  issue_turn_credentials: { request: MeetingMutation, response: TurnCredentials }
+  issue_join_token: { request: MeetingMutation, response: Success }
+  close_meeting: { request: MeetingMutation, response: Success }
+  join_by_meeting_id: { request: MeetingMutation, response: Success }
+  send_signaling: { request: MeetingMutation, response: Success }
+  get_signaling: { parameters: [room_id, last_id], response: 'SignalingMessage[]' }
+  set_last_thread: { request: ThreadMutation, response: Success }
+  toggle_favorite: { request: ThreadMutation, response: Success }
+  get_favorites: { response: 'Thread[]' }
+  check_favorite: { parameters: [thread_id], response: FavoriteStatus }
+  sse: { response: 'text/event-stream' }
