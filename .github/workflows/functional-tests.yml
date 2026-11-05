@@ -1,0 +1,47 @@
+name: Functional Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-functional-tests:
+    name: PHP functional tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Run meeting token authorization tests
+        run: php tests/test_meeting_token_auth.php
+
+  signaling-functional-tests:
+    name: Signaling server functional tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/signaling-server/package-lock.json
+
+      - name: Install signaling server dependencies
+        run: npm ci
+        working-directory: backend/signaling-server
+
+      - name: Run signaling authentication tests
+        run: npm test
+        working-directory: backend/signaling-server

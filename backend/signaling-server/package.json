@@ -4,7 +4,8 @@
   "description": "SYCS WebRTC Signaling Server",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node test_auth_dos.js"
   },
   "dependencies": {
     "ws": "^8.18.0"
