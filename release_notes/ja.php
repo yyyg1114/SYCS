@@ -7,6 +7,45 @@
  */
 ?>
 
+<!-- ===== v2.2.44 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.44</span>
+        <span class="release-title">APIセキュリティ強化 & サインアップ入力検証</span>
+        <span class="release-date">2026-11-08</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> セキュリティ強化 (Security Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>API入力値の検証を一層強化</strong>
+                        <span class="detail">メッセージ長制限、空メッセージ防止、添付ファイル付き送信の許容、サインアップ時のメール/ユーザー名/パスワード検証を統合し、悪意ある入力とAPI契約逸脱を未然に遮断しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>ファイルレート制限とスコープ分離</strong>
+                        <span class="detail">同一ユーザーに対して「メッセージ」「友達」「アップロード」などの制限を独立スコープで管理し、過剰な連続操作やDoS的なアクセスを抑制しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>SVG/フォームの安全化とUI整合性改善</strong>
+                        <span class="detail">SVGの危険属性除去、テーマ初期化の安定化、ダウンロード/DM/メッセージ送信周辺の表示と入力体験をさらに洗練し、信頼性と見た目の一貫性を高めました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.43 ===== -->
 <article class="release">
     <div class="release-header">

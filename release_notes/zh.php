@@ -7,6 +7,45 @@
  */
 ?>
 
+<!-- ===== v2.2.44 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.44</span>
+        <span class="release-title">API 安全加固与注册输入校验</span>
+        <span class="release-date">2026-11-08</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 安全增强 (Security Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>强化 API 输入校验</strong>
+                        <span class="detail">统一检测消息长度、空消息拦截、附件消息放行规则以及注册阶段的邮箱/用户名/密码校验，提前阻断恶意请求和接口契约偏差。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>独立的文件速率限制</strong>
+                        <span class="detail">为消息、好友、上传等操作分离速率限制作用域，降低单用户连续滥用带来的异常访问与 DoS 风险。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>更安全的 SVG 与更稳定的界面体验</strong>
+                        <span class="detail">清理潜在危险的 SVG 属性，稳定主题初始化，并进一步优化下载、私信与消息发送周边的交互与视觉一致性，让系统在安全性与体验间达成更好平衡。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.43 ===== -->
 <article class="release">
     <div class="release-header">

@@ -1,3 +1,42 @@
+<!-- ===== v2.2.44 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.44</span>
+        <span class="release-title">API Hardening & Signup Input Validation</span>
+        <span class="release-date">2026-11-08</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> Security Enhancements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🛡️</span>
+                    <div>
+                        <strong>Strengthened API Input Validation</strong>
+                        <span class="detail">Unified validation for message length, empty-message rejection, attachment-aware delivery, and signup-time email, username, and password checks to block malicious payloads and contract mismatches before they reach the app logic.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔒</span>
+                    <div>
+                        <strong>Independent File Rate Limiting</strong>
+                        <span class="detail">Separated rate-limit scopes for message, friend, and upload actions to prevent abusive burst behavior and reduce the risk of DoS-style access patterns from a single user.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✨</span>
+                    <div>
+                        <strong>Safer SVG and Smoother UI Handling</strong>
+                        <span class="detail">Removed unsafe SVG attributes, stabilized theme initialization, and refined download, DM, and message UX so the system remains both secure and visually consistent across sessions.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.43 ===== -->
 <article class="release">
     <div class="release-header">
