@@ -1,5 +1,23 @@
 <?php
 
+require_once __DIR__ . '/../FileRateLimiter.php';
+
+class ApiRequestException extends \RuntimeException
+{
+    private $httpStatus;
+
+    public function __construct(string $message, int $httpStatus)
+    {
+        parent::__construct($message);
+        $this->httpStatus = $httpStatus;
+    }
+
+    public function getHttpStatus(): int
+    {
+        return $this->httpStatus;
+    }
+}
+
 /**
  * BaseHandler
  * 全ハンドラクラス共通のユーティリティを提供する基底クラス
@@ -26,9 +44,52 @@ abstract class BaseHandler
     protected function verifyCsrf(): void
     {
         $token = $this->getPost('csrf_token');
-        if (!$token || !hash_equals($this->csrfToken, $token)) {
+        if (!is_string($token) || $token === '' || !is_string($this->csrfToken) || !hash_equals($this->csrfToken, $token)) {
             throw new \Exception('Invalid CSRF Token');
         }
+    }
+
+    protected function enforceRateLimit(string $scope, int $maxRequests, int $windowSeconds = 60): bool
+    {
+        $limiter = new FileRateLimiter();
+        $result = $limiter->checkUserRateLimit((int)$this->userId, $maxRequests, $windowSeconds, $scope);
+        if ($result['allowed']) {
+            return true;
+        }
+
+        $retryAfter = max(1, (int)$result['retry_after']);
+        http_response_code(429);
+        header('Retry-After: ' . $retryAfter);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Too many requests. Please try again later.',
+            'retry_after' => $retryAfter,
+        ]);
+        return false;
+    }
+
+    protected function validateMessageContent($content, bool $allowEmpty = false): bool
+    {
+        if (!is_string($content)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Message content must be text']);
+            return false;
+        }
+
+        if (function_exists('mb_check_encoding') && !mb_check_encoding($content, 'UTF-8')) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Message content must be valid UTF-8']);
+            return false;
+        }
+
+        $length = function_exists('mb_strlen') ? mb_strlen($content, 'UTF-8') : strlen($content);
+        if ($length > 5000 || (!$allowEmpty && trim($content) === '')) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Message must contain 1 to 5000 characters']);
+            return false;
+        }
+
+        return true;
     }
 
     // ----------------------------------------------------------------
@@ -100,68 +161,120 @@ abstract class BaseHandler
 
     protected function handleFileUpload(): ?string
     {
-        $file = $this->getFile('attachment');
-        if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
+        $file = $this->getValidatedUpload('attachment');
+        if ($file === null) {
             return null;
         }
         require_once __DIR__ . '/../SecurityUtil.php';
-        $file = $this->getFile('attachment');
         $tmp  = $file['tmp_name'];
         $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         $sec  = new SecurityUtil();
-        if (!$sec->validateFile($tmp, $ext)) return null;
         $uuid = $sec->generateUuid();
         $dir  = __DIR__ . '/../../frontend/uploads/';
-        if (!is_dir($dir)) mkdir($dir, 0755, true);
+        if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+            throw new \RuntimeException('Unable to create upload directory');
+        }
         $path = $uuid . '.' . $ext;
-        if (move_uploaded_file($tmp, $dir . $path)) return 'uploads/' . $path;
-        return null;
+        if (!move_uploaded_file($tmp, $dir . $path)) {
+            throw new \RuntimeException('Unable to move uploaded attachment');
+        }
+        return 'uploads/' . $path;
     }
 
     protected function handleAvatarUpload(): void
     {
-        $file = $this->getFile('avatar');
-        if ($file && $file['error'] === UPLOAD_ERR_OK) {
+        $file = $this->getValidatedUpload('avatar');
+        if ($file !== null) {
             require_once __DIR__ . '/../SecurityUtil.php';
-            $file = $this->getFile('avatar');
             $tmp  = $file['tmp_name'];
             $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
             $sec  = new SecurityUtil();
-            if ($sec->validateFile($tmp, $ext)) {
-                $uuid = $sec->generateUuid();
-                $dir  = __DIR__ . '/../../frontend/uploads/avatars/';
-                if (!is_dir($dir)) mkdir($dir, 0755, true);
-                if (move_uploaded_file($tmp, $dir . $uuid . '.' . $ext)) {
-                    $path = 'uploads/avatars/' . $uuid . '.' . $ext;
-                    $upd  = $this->mysqli->prepare("UPDATE users SET avatar_url = ? WHERE id = ?");
-                    $upd->bind_param("si", $path, $this->userId);
-                    $upd->execute();
-                }
+            $uuid = $sec->generateUuid();
+            $dir  = __DIR__ . '/../../frontend/uploads/avatars/';
+            if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+                throw new \RuntimeException('Unable to create avatar upload directory');
             }
+            if (!move_uploaded_file($tmp, $dir . $uuid . '.' . $ext)) {
+                throw new \RuntimeException('Unable to move uploaded avatar');
+            }
+            $path = 'uploads/avatars/' . $uuid . '.' . $ext;
+            $upd  = $this->mysqli->prepare("UPDATE users SET avatar_url = ? WHERE id = ?");
+            $upd->bind_param("si", $path, $this->userId);
+            $upd->execute();
         }
     }
 
     protected function handleBannerUpload(): void
     {
-        $file = $this->getFile('banner');
-        if ($file && $file['error'] === UPLOAD_ERR_OK) {
+        $file = $this->getValidatedUpload('banner');
+        if ($file !== null) {
             require_once __DIR__ . '/../SecurityUtil.php';
-            $file = $this->getFile('banner');
             $tmp  = $file['tmp_name'];
             $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
             $sec  = new SecurityUtil();
-            if ($sec->validateFile($tmp, $ext)) {
-                $uuid = $sec->generateUuid();
-                $dir  = __DIR__ . '/../../frontend/uploads/banners/';
-                if (!is_dir($dir)) mkdir($dir, 0755, true);
-                if (move_uploaded_file($tmp, $dir . $uuid . '.' . $ext)) {
-                    $path = 'uploads/banners/' . $uuid . '.' . $ext;
-                    $upd  = $this->mysqli->prepare("UPDATE users SET banner_url = ? WHERE id = ?");
-                    $upd->bind_param("si", $path, $this->userId);
-                    $upd->execute();
-                }
+            $uuid = $sec->generateUuid();
+            $dir  = __DIR__ . '/../../frontend/uploads/banners/';
+            if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+                throw new \RuntimeException('Unable to create banner upload directory');
+            }
+            if (!move_uploaded_file($tmp, $dir . $uuid . '.' . $ext)) {
+                throw new \RuntimeException('Unable to move uploaded banner');
+            }
+            $path = 'uploads/banners/' . $uuid . '.' . $ext;
+            $upd  = $this->mysqli->prepare("UPDATE users SET banner_url = ? WHERE id = ?");
+            $upd->bind_param("si", $path, $this->userId);
+            $upd->execute();
+        }
+    }
+
+    private function getValidatedUpload(string $key): ?array
+    {
+        $file = $this->getFile($key);
+        if ($file === null || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            $contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+            if ($contentLength > 10 * 1024 * 1024 + 65536) {
+                throw new ApiRequestException('Upload exceeds the 10 MB limit', 413);
+            }
+            return null;
+        }
+
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            $status = in_array($file['error'], [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) ? 413 : 400;
+            throw new ApiRequestException('Upload failed or exceeds the 10 MB limit', $status);
+        }
+
+        $path = $file['tmp_name'] ?? '';
+        $size = is_file($path) ? filesize($path) : false;
+        if ($size === false || $size > 10 * 1024 * 1024 || (int)($file['size'] ?? 0) > 10 * 1024 * 1024) {
+            throw new ApiRequestException('Upload exceeds the 10 MB limit', 413);
+        }
+
+        require_once __DIR__ . '/../SecurityUtil.php';
+        $extension = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
+        $security = new SecurityUtil();
+        if (!$security->validateFile($path, $extension)) {
+            throw new ApiRequestException('Unsupported or invalid upload file', 400);
+        }
+        if ($extension === 'svg') {
+            $content = file_get_contents($path);
+            if ($content === false) {
+                throw new \RuntimeException('Unable to read uploaded SVG');
+            }
+            $sanitized = SecurityUtil::sanitizeSVG($content);
+            if ($sanitized === '') {
+                throw new ApiRequestException('Invalid SVG upload', 400);
+            }
+            if (file_put_contents($path, $sanitized, LOCK_EX) === false) {
+                throw new \RuntimeException('Unable to sanitize uploaded SVG');
             }
         }
+
+        return $file;
+    }
+
+    protected function validateUpload(string $key): void
+    {
+        $this->getValidatedUpload($key);
     }
 
     // ----------------------------------------------------------------
@@ -207,6 +320,18 @@ abstract class BaseHandler
     {
         $uid = $userId ?? $this->userId;
         if ($partnerId <= 0 || !$uid || $partnerId === $uid) return false;
+
+        $blockedStmt = $this->mysqli->prepare(
+            "SELECT 1 FROM blocked_users
+            WHERE (blocker_id = ? AND blocked_id = ?)
+               OR (blocker_id = ? AND blocked_id = ?)
+            LIMIT 1"
+        );
+        $blockedStmt->bind_param("iiii", $uid, $partnerId, $partnerId, $uid);
+        $blockedStmt->execute();
+        $isBlocked = $blockedStmt->get_result()->fetch_assoc();
+        $blockedStmt->close();
+        if ($isBlocked) return false;
 
         $friendStmt = $this->mysqli->prepare(
             "SELECT 1 FROM friends

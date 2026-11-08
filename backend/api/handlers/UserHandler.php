@@ -11,6 +11,8 @@ class UserHandler extends BaseHandler
     public function updateProfile(): void
     {
         $this->verifyCsrf();
+        $this->validateUpload('avatar');
+        $this->validateUpload('banner');
         $bio          = $this->getPost('bio');
         $bannerColor  = $this->getPost('banner_color', '#6366f1');
         $status       = $this->getPost('status', 'online');

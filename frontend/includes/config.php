@@ -1,4 +1,4 @@
-<script>
+<script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>">
     window.SYCS_CONFIG = {
         currentThreadId: <?= json_encode($initialThreadId ?? 1) ?>,
         currentThreadCreatorId: <?= json_encode($currentThreadCreatorId ?? 0) ?>,

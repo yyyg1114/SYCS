@@ -5,7 +5,7 @@
  * Separate from index.php for clean meeting management
  */
 
-ini_set('display_errors', 1);
+ini_set('display_errors', getenv('APP_ENV') === 'development' ? '1' : '0');
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../backend/session_config.php';

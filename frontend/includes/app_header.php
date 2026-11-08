@@ -13,13 +13,13 @@
 <header class="chat-header">
     <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
         <?php if (isset($backAction)): ?>
-            <button class="icon-btn" onclick="<?= $backAction ?>" title="<?= __('back') ?>" style="margin-right:10px;">
+            <button class="icon-btn" data-action="backToHub" title="<?= __('back') ?>" style="margin-right:10px;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M19 12H5M12 19l-7-7 7-7" />
                 </svg>
             </button>
         <?php else: ?>
-            <button class="icon-btn mobile-menu-btn" onclick="toggleSidebar()" title="<?= __('menu') ?>">
+            <button class="icon-btn mobile-menu-btn" data-action="toggleSidebar" title="<?= __('menu') ?>">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="3" y1="12" x2="21" y2="12"></line>
                     <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -29,8 +29,8 @@
         <?php endif; ?>
 
         <?php if ($isThread ?? false): ?>
-            <div class="thread-name-clickable" onclick="toggleThreadBrowser()">
-                <button id="fav-btn" class="icon-btn" onclick="event.stopPropagation(); toggleFavorite()"
+            <div class="thread-name-clickable" data-action="toggleThreadBrowser">
+                <button id="fav-btn" class="icon-btn" data-action="toggleFavorite" data-stop-propagation="true"
                     title="<?= __('favorites') ?>">
                     ☆
                 </button>
@@ -53,8 +53,8 @@
     <div class="thread-actions" style="display: flex; align-items: center; gap: 8px;">
         <?php if ($headerSearch ?? false): ?>
             <div class="search-input-wrapper">
-                <input type="text" id="search-input" placeholder="<?= __('search_placeholder') ?>" onkeydown="if(event.key==='Enter') searchMessages()">
-                <button class="icon-btn" onclick="toggleAdvancedSearch()" title="<?= __('search_filter') ?>">
+                <input type="text" id="search-input" placeholder="<?= __('search_placeholder') ?>" data-keydown-action="searchOnEnter">
+                <button class="icon-btn" data-action="toggleAdvancedSearch" title="<?= __('search_filter') ?>">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="4" y1="21" x2="4" y2="14"></line>
                         <line x1="4" y1="10" x2="4" y2="3"></line>
@@ -80,7 +80,7 @@
                         <div class="label-mini"><?= __('date_to') ?></div>
                         <input type="date" id="search-date-to" class="mini-input">
                     </div>
-                    <button class="btn-primary" onclick="searchMessages(); toggleAdvancedSearch();"><?= __('search') ?></button>
+                    <button class="btn-primary" data-action="searchMessages toggleAdvancedSearch"><?= __('search') ?></button>
                 </div>
             </div>
         <?php endif; ?>

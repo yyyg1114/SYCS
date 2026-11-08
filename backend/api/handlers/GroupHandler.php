@@ -72,6 +72,7 @@ class GroupHandler extends BaseHandler
             $this->mysqli->commit();
             echo json_encode(['success' => true, 'id' => $tid]);
         } catch (\Throwable $e) {
+            error_log(sprintf('Group thread creation failed user_id=%s: %s', (string)$this->userId, $e));
             $this->mysqli->rollback();
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Failed to create group thread']);

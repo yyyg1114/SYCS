@@ -16,13 +16,46 @@ function hasAttachmentAccess($mysqli, int $userId, string $file): bool
         return false;
     }
 
+    $groupStmt = $mysqli->prepare(
+        "SELECT 1
+         FROM messages m
+         JOIN group_thread_participants p ON p.thread_id = m.group_thread_id
+         WHERE m.attachment_path = ? AND p.user_id = ?
+         LIMIT 1"
+    );
+    if (!$groupStmt) {
+        throw new \RuntimeException('Attachment authorization query preparation failed: ' . $mysqli->error);
+    }
+    $groupStmt->bind_param('si', $normalized, $userId);
+    if (!$groupStmt->execute()) {
+        $error = $groupStmt->error;
+        $groupStmt->close();
+        throw new \RuntimeException('Attachment authorization query failed: ' . $error);
+    }
+    $groupStmt->store_result();
+    $hasGroupAccess = $groupStmt->num_rows > 0;
+    $groupStmt->close();
+    if ($hasGroupAccess) {
+        return true;
+    }
+
     $queries = [
         [
-            "SELECT 1 FROM messages WHERE attachment_path = ? AND user_id = ? LIMIT 1",
-            [$normalized, $userId]
+            "SELECT 1 FROM messages m
+             JOIN threads t ON t.id = m.thread_id
+             WHERE m.attachment_path = ? AND m.group_thread_id IS NULL
+             LIMIT 1",
+            [$normalized]
         ],
         [
-            "SELECT 1 FROM direct_messages WHERE attachment_path = ? AND (sender_id = ? OR receiver_id = ?) LIMIT 1",
+            "SELECT 1 FROM direct_messages dm
+             WHERE dm.attachment_path = ? AND (dm.sender_id = ? OR dm.receiver_id = ?)
+             AND NOT EXISTS (
+                 SELECT 1 FROM blocked_users b
+                 WHERE (b.blocker_id = dm.sender_id AND b.blocked_id = dm.receiver_id)
+                    OR (b.blocker_id = dm.receiver_id AND b.blocked_id = dm.sender_id)
+             )
+             LIMIT 1",
             [$normalized, $userId, $userId]
         ],
     ];
@@ -30,7 +63,7 @@ function hasAttachmentAccess($mysqli, int $userId, string $file): bool
     foreach ($queries as [$sql, $params]) {
         $stmt = $mysqli->prepare($sql);
         if (!$stmt) {
-            continue;
+            throw new \RuntimeException('Attachment authorization query preparation failed: ' . $mysqli->error);
         }
 
         $types = '';
@@ -39,7 +72,11 @@ function hasAttachmentAccess($mysqli, int $userId, string $file): bool
         }
 
         $stmt->bind_param($types, ...$params);
-        $stmt->execute();
+        if (!$stmt->execute()) {
+            $error = $stmt->error;
+            $stmt->close();
+            throw new \RuntimeException('Attachment authorization query failed: ' . $error);
+        }
         $stmt->store_result();
         if ($stmt->num_rows > 0) {
             $stmt->close();
@@ -65,7 +102,14 @@ if (!preg_match('#^(?:uploads/|protected_uploads/)?[A-Za-z0-9._-]+(?:/[A-Za-z0-9
 }
 
 $userId = (int)$_SESSION['user_id'];
-if (!hasAttachmentAccess($mysqli, $userId, $file)) {
+try {
+    $hasAccess = hasAttachmentAccess($mysqli, $userId, $file);
+} catch (\Throwable $e) {
+    error_log('Attachment authorization failed: ' . $e);
+    http_response_code(500);
+    die('Internal Server Error');
+}
+if (!$hasAccess) {
     http_response_code(403);
     die('Forbidden: Access denied');
 }

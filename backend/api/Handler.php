@@ -131,21 +131,31 @@ class ApiHandler
                 'sse' => [SseHandler::class, 'streamEvents'],
             ];
 
-            if (!isset($routes[$action])) {
-                echo json_encode(['error' => 'Unknown action: ' . $action]);
+            if (!is_string($action) || !isset($routes[$action])) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Unknown API action']);
                 return;
             }
 
             [$handlerClass, $method] = $routes[$action];
             $handler = new $handlerClass(...$args);
             $handler->$method();
-        } catch (\Exception $e) {
-            $code = 500;
-            if ($e->getMessage() === 'Invalid CSRF Token') {
-                $code = 403;
-            }
+        } catch (ApiRequestException $e) {
+            http_response_code($e->getHttpStatus());
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            error_log(sprintf(
+                'API failure action=%s user_id=%s: %s',
+                is_string($action) ? $action : 'invalid',
+                (string)$this->userId,
+                $e
+            ));
+            $code = $e->getMessage() === 'Invalid CSRF Token' ? 403 : 500;
             http_response_code($code);
-            echo json_encode(['success' => false, 'error' => 'API Error: ' . $e->getMessage()]);
+            echo json_encode([
+                'success' => false,
+                'error' => $code === 403 ? 'Invalid CSRF token' : 'An internal server error occurred',
+            ]);
         }
     }
 }

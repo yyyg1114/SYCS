@@ -18,6 +18,12 @@ class MessageHandler extends BaseHandler
             db_cleanup_expired($this->mysqli);
         }
         $tid  = (int)($this->getGet('thread_id', 0));
+        if ($tid <= 0 || !$this->canAccessThread($tid)) {
+            http_response_code($tid <= 0 ? 400 : 403);
+            echo json_encode(['success' => false, 'error' => 'Thread is unavailable']);
+            return;
+        }
+
         $stmt = $this->mysqli->prepare(
             "SELECT m.*, u.username, u.avatar_url, u.status,
         r.username AS reply_username
@@ -59,6 +65,9 @@ class MessageHandler extends BaseHandler
     public function sendMessage(): void
     {
         $this->verifyCsrf();
+        if (!$this->enforceRateLimit('send_message', 30)) {
+            return;
+        }
         if (function_exists('db_cleanup_expired')) {
             db_cleanup_expired($this->mysqli);
         }
@@ -66,7 +75,9 @@ class MessageHandler extends BaseHandler
         $rawGtid  = $this->getParam('group_thread_id');
         $con      = $this->getPost('content', '');
         $replyToId = !empty($this->getPost('reply_to_id')) ? (int)$this->getPost('reply_to_id') : null;
-        $att      = $this->handleFileUpload();
+        if (!$this->validateMessageContent($con, true)) {
+            return;
+        }
 
         $tidVal  = ($rawTid  && (int)$rawTid  > 0) ? (int)$rawTid  : null;
         $gtidVal = ($rawGtid && (int)$rawGtid > 0) ? (int)$rawGtid : null;
@@ -118,6 +129,11 @@ class MessageHandler extends BaseHandler
                     return;
                 }
             }
+        }
+
+        $att = $this->handleFileUpload();
+        if (!$this->validateMessageContent($con, $att !== null)) {
+            return;
         }
 
         $stmt = $this->mysqli->prepare(
@@ -180,9 +196,15 @@ class MessageHandler extends BaseHandler
     public function editMessage(): void
     {
         $this->verifyCsrf();
+        if (!$this->enforceRateLimit('edit_message', 30)) {
+            return;
+        }
         $mid  = (int)$this->getParam('message_id', 0);
         $did  = (int)$this->getParam('dm_id', 0);
         $con  = $this->getPost('content', '');
+        if (!$this->validateMessageContent($con)) {
+            return;
+        }
 
         $stmt = null;
         if ($mid > 0) {

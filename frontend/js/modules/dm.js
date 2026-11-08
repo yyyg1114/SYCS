@@ -8,6 +8,7 @@ import { renderMessageNode } from './message.js';
 import { t } from './utils.js';
 
 let currentDmPartnerId = null;
+let isSendingDm = false;
 
 let lastTypingSentTime = 0;
 let typingTimer = null;
@@ -125,23 +126,31 @@ export function backToHub() {
  * Uses the dedicated DM API: action=send_direct_message, param=receiver_id
  */
 export async function sendDm() {
+  if (isSendingDm) return;
   const input = document.getElementById("dm-msg-input");
   const content = input.value.trim();
   if (!content || !currentDmPartnerId) return;
 
-  const res = await api("send_direct_message", "POST", {
-    receiver_id: currentDmPartnerId,
-    content: content
-  });
+  isSendingDm = true;
+  const sendButton = document.getElementById("send-dm-btn");
+  if (sendButton) sendButton.disabled = true;
+  try {
+    const res = await api("send_direct_message", "POST", {
+      receiver_id: currentDmPartnerId,
+      content: content
+    });
 
-  if (res && res.success) {
-    input.value = "";
-    const threadId = `dm_${currentDmPartnerId}`;
-    api("update_typing_status", "POST", { thread_id: threadId, is_typing: "0" });
-    const indicator = document.getElementById("dm-typing-indicator");
-    if (indicator) indicator.textContent = "";
-    // Reload DM messages to show the newly sent message
-    await loadDmMessages(currentDmPartnerId);
+    if (res && res.success) {
+      input.value = "";
+      const threadId = `dm_${currentDmPartnerId}`;
+      api("update_typing_status", "POST", { thread_id: threadId, is_typing: "0" });
+      const indicator = document.getElementById("dm-typing-indicator");
+      if (indicator) indicator.textContent = "";
+      await loadDmMessages(currentDmPartnerId);
+    }
+  } finally {
+    isSendingDm = false;
+    if (sendButton) sendButton.disabled = false;
   }
 }
 
@@ -166,6 +175,7 @@ export async function blockCurrentPartner() {
 export function handleDmInputKey(event) {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
+    if (event.isComposing || event.keyCode === 229) return;
     sendDm();
   }
 }

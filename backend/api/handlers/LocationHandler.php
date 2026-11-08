@@ -10,8 +10,15 @@ class LocationHandler extends BaseHandler
 {
     public function updateLocation(): void
     {
-        $lat  = $this->getPost('lat', 0);
-        $lon  = $this->getPost('lon', 0);
+        $this->verifyCsrf();
+        $lat  = filter_var($this->getPost('lat'), FILTER_VALIDATE_FLOAT);
+        $lon  = filter_var($this->getPost('lon'), FILTER_VALIDATE_FLOAT);
+        if ($lat === false || $lon === false || $lat < -90 || $lat > 90 || $lon < -180 || $lon > 180) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Invalid coordinates']);
+            return;
+        }
+
         $stmt = $this->mysqli->prepare(
             "INSERT INTO user_locations (user_id, lat, lon) VALUES (?, ?, ?)
              ON DUPLICATE KEY UPDATE lat=VALUES(lat), lon=VALUES(lon)"

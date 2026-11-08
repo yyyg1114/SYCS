@@ -241,6 +241,7 @@ async leave() {
 
 // Global instance initialization
 const meetingManager = new MeetingManager();
+window.meetingManager = meetingManager;
 
 function startMeeting(threadId = null, dmPartnerId = null, groupThreadId = null) {
 meetingManager.start({ threadId, dmPartnerId, groupThreadId });

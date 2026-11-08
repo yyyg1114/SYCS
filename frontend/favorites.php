@@ -5,8 +5,8 @@
  * v1.0.0
  */
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+ini_set('display_errors', getenv('APP_ENV') === 'development' ? '1' : '0');
+ini_set('display_startup_errors', getenv('APP_ENV') === 'development' ? '1' : '0');
 error_reporting(E_ALL);
 
 // 1. Secure Session Settings

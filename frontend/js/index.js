@@ -26,6 +26,7 @@ const currentUserTheme = window.SYCS_CONFIG.currentUserTheme;
 let isSelectionMode = false;
 let selectedMessageIds = new Set();
 let lastSelectedMessageId = null;
+let isSendingMessage = false;
 
 // Export globals for HTML onclick handlers
 window.switchThread = switchThread;
@@ -220,6 +221,65 @@ async function initApp() {
 }
 
 function setupEventListeners() {
+    const resolveArgs = (element, event) => {
+        const values = element.dataset.actionArgs ? JSON.parse(element.dataset.actionArgs) : [];
+        return values.map(value => {
+            if (value === "@event") return event;
+            if (value === "@element") return element;
+            if (value === "@value") return element.value;
+            if (value === "@files") return element.files;
+            if (value === "true") return true;
+            if (value === "false") return false;
+            return value;
+        });
+    };
+
+    const actions = {
+        closeDialog: id => document.getElementById(id)?.close(),
+        clickElement: id => document.getElementById(id)?.click(),
+        navigate: path => window.location.assign(path),
+        toggleMeetingMic: () => window.meetingManager?.toggleMic(),
+        toggleMeetingVideo: () => window.meetingManager?.toggleVideo(),
+        toggleMeetingScreen: () => window.meetingManager?.toggleScreenShare(),
+        leaveMeeting: () => window.meetingManager?.leave(),
+        refreshLocation: () => window.locationManager?.getCurrentLocation(),
+        searchOnEnter: event => {
+            if (event.key === "Enter" && !event.isComposing && event.keyCode !== 229) {
+                event.preventDefault();
+                window.searchMessages();
+            }
+        },
+    };
+
+    const dispatch = (element, event, attribute) => {
+        if (element.matches("a")) event.preventDefault();
+        if (element.dataset.stopPropagation === "true") event.stopPropagation();
+        const names = element.dataset[attribute].split(/\s+/).filter(Boolean);
+        const args = resolveArgs(element, event);
+        for (const name of names) {
+            const action = actions[name] || window[name];
+            if (typeof action === "function") action(...args);
+        }
+    };
+
+    document.addEventListener("click", event => {
+        if (!(event.target instanceof Element)) return;
+        const element = event.target.closest("[data-action]");
+        if (element) dispatch(element, event, "action");
+    });
+
+    for (const [eventType, attribute] of [
+        ["keydown", "keydownAction"],
+        ["input", "inputAction"],
+        ["change", "changeAction"],
+    ]) {
+        document.addEventListener(eventType, event => {
+            if (!(event.target instanceof Element)) return;
+            const element = event.target.closest(`[data-${attribute.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`)}]`);
+            if (element) dispatch(element, event, attribute);
+        });
+    }
+
     // Nav Tabs
     document.querySelectorAll(".nav-item").forEach(item => {
         item.addEventListener("click", () => {
@@ -426,7 +486,7 @@ function getMessageCallbacks() {
             saveBtn.style.fontSize = "0.75rem";
             saveBtn.style.padding = "4px 10px";
             saveBtn.textContent = t("save", "保存");
-            saveBtn.onclick = async () => {
+            saveBtn.addEventListener("click", async () => {
                 const newContent = textarea.value.trim();
                 if (!newContent) return;
                 const payload = isDm
@@ -441,21 +501,21 @@ function getMessageCallbacks() {
                         getMessageCallbacks()
                     );
                 }
-            };
+            });
 
             const cancelBtn = document.createElement("button");
             cancelBtn.className = "btn-secondary";
             cancelBtn.style.fontSize = "0.75rem";
             cancelBtn.style.padding = "4px 10px";
             cancelBtn.textContent = t("cancel", "キャンセル");
-            cancelBtn.onclick = () => {
+            cancelBtn.addEventListener("click", () => {
                 loadMessages(
                     currentThreadId,
                     document.getElementById("message-container"),
                     { currentUserName, currentUserId },
                     getMessageCallbacks()
                 );
-            };
+            });
 
             btnRow.appendChild(saveBtn);
             btnRow.appendChild(cancelBtn);
@@ -551,6 +611,7 @@ function cancelUpload() {
 function handleInputKey(event) {
     if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
+        if (event.isComposing || event.keyCode === 229) return;
         sendMessage();
     }
 }
@@ -588,9 +649,9 @@ function toggleReactionPicker(event, messageId) {
         const btn = document.createElement("button");
         btn.textContent = emoji;
         btn.style.cssText = "background:none; border:none; font-size:1.3rem; cursor:pointer; padding:4px; border-radius:6px; transition: transform 0.1s;";
-        btn.onmouseenter = () => btn.style.transform = "scale(1.3)";
-        btn.onmouseleave = () => btn.style.transform = "scale(1)";
-        btn.onclick = async (e) => {
+        btn.addEventListener("mouseenter", () => btn.style.transform = "scale(1.3)");
+        btn.addEventListener("mouseleave", () => btn.style.transform = "scale(1)");
+        btn.addEventListener("click", async (e) => {
             e.stopPropagation();
             closeEmojiPicker();
             const res = await api("toggle_reaction", "POST", { message_id: messageId, emoji });
@@ -602,7 +663,7 @@ function toggleReactionPicker(event, messageId) {
                     loadMessages(currentThreadId, container, {currentUserName, currentUserId}, getMessageCallbacks());
                 }
             }
-        };
+        });
         picker.appendChild(btn);
     });
 
@@ -622,6 +683,7 @@ function closeEmojiPicker() {
 }
 
 async function sendMessage() {
+    if (isSendingMessage) return;
     const input = document.getElementById("msg-input");
     const content = input.value.trim();
     if (!content && !window.pendingFile) return;
@@ -676,6 +738,9 @@ async function sendMessage() {
     if (replyToId) formData.append("reply_to_id", replyToId);
     if (pendingFile) formData.append("attachment", pendingFile);
 
+    isSendingMessage = true;
+    const sendButton = document.getElementById("send-message-btn");
+    if (sendButton) sendButton.disabled = true;
     try {
         const res = await api("send_message", "POST", formData);
 
@@ -692,6 +757,9 @@ async function sendMessage() {
     } catch (e) {
         // 通信エラー: 同様にエラー状態にする
         _markMessageFailed(tempEl, content, pendingFile, replyToId);
+    } finally {
+        isSendingMessage = false;
+        if (sendButton) sendButton.disabled = false;
     }
 }
 
@@ -705,8 +773,12 @@ function _markMessageFailed(el, content, pendingFile, replyToId) {
 
     const banner = document.createElement("div");
     banner.className = "message-failed-banner";
-    banner.innerHTML = `⚠️ 送信に失敗しました。 <span style="text-decoration:underline;">再送信</span>`;
-    banner.onclick = () => {
+    banner.append("⚠️ 送信に失敗しました。 ");
+    const retry = document.createElement("span");
+    retry.textContent = "再送信";
+    retry.style.textDecoration = "underline";
+    banner.appendChild(retry);
+    banner.addEventListener("click", () => {
         el.remove();
         // 入力欄にテキストを戻して再送信を促す
         const input = document.getElementById("msg-input");
@@ -715,7 +787,7 @@ function _markMessageFailed(el, content, pendingFile, replyToId) {
             input.focus();
         }
         if (replyToId) window.replyToId = replyToId;
-    };
+    });
 
     const info = el.querySelector(".message-info");
     if (info) info.appendChild(banner);

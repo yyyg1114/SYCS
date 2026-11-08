@@ -2,30 +2,66 @@
 
 class SecurityUtil
 {
+    private static $cspNonce;
+
+    public static function validateSignupInput($username, $email, $password): ?string
+    {
+        if (!is_string($username) || !is_string($email) || !is_string($password)) {
+            return '入力内容を確認してください。';
+        }
+
+        $username = trim($username);
+        $email = trim($email);
+        $usernameLength = function_exists('mb_strlen') ? mb_strlen($username, 'UTF-8') : strlen($username);
+        if ($usernameLength < 1 || $usernameLength > 50 || preg_match('/[\x00-\x1F\x7F]/', $username)) {
+            return 'ユーザー名は1〜50文字で入力してください。';
+        }
+        if (strlen($email) > 254 || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return '有効なメールアドレスを入力してください。';
+        }
+        if (strlen($password) < 8 || strlen($password) > 72) {
+            return 'パスワードは8〜72バイトで入力してください。';
+        }
+
+        return null;
+    }
+
     /**
      * Send standard security headers
      */
-    public static function sendSecurityHeaders()
+    public static function sendSecurityHeaders(bool $strictScripts = false)
     {
         if (headers_sent()) {
             return;
         }
 
+        self::$cspNonce = base64_encode(random_bytes(18));
         // Prevent clickjacking
         header("X-Frame-Options: SAMEORIGIN");
 
         // Prevent MIME type sniffing
         header("X-Content-Type-Options: nosniff");
 
-        // Content Security Policy
-        // Note: 'unsafe-inline' is currently needed for some styles/scripts. 
-        // Ideally should be removed in favor of nonces or separate files.
-        header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.socket.io https://unpkg.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.socket.io https://unpkg.com http://localhost:3000 ws://localhost:3000 wss://localhost:3000 https://*.ngrok-free.app;");
+        $scriptSrc = "'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.socket.io https://unpkg.com";
+        $scriptAttributes = '';
+        if ($strictScripts) {
+            $scriptSrc .= " 'nonce-" . self::$cspNonce . "' 'strict-dynamic' 'report-sample'";
+            $scriptAttributes = "; script-src-attr 'none'";
+        } else {
+            // Legacy pages still contain inline handlers; migrate them before enabling strict CSP globally.
+            $scriptSrc .= " 'unsafe-inline'";
+        }
+        header("Content-Security-Policy: default-src 'self'; script-src " . $scriptSrc . $scriptAttributes . "; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://cdnjs.cloudflare.com https://cdn.socket.io https://unpkg.com http://localhost:3000 ws://localhost:3000 wss://localhost:3000 https://*.ngrok-free.app; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self';");
 
         // HSTS (HTTP Strict Transport Security) - Only if HTTPS
         if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
             header("Strict-Transport-Security: max-age=31536000; includeSubDomains");
         }
+    }
+
+    public static function getCspNonce(): string
+    {
+        return self::$cspNonce ?? '';
     }
 
     /**

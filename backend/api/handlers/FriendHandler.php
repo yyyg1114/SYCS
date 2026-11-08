@@ -16,36 +16,14 @@ class FriendHandler extends BaseHandler
     public function requestFriend(): void
     {
         $this->verifyCsrf();
-        $tid  = (int)$this->getPost('target_id', 0);
-        $stmt = $this->mysqli->prepare(
-            "INSERT IGNORE INTO friends (user_id_1, user_id_2, status) VALUES (?, ?, 'pending')"
-        );
-        $stmt->bind_param("ii", $this->userId, $tid);
-        $stmt->execute();
-        echo json_encode(['success' => true]);
+        $this->createFriendRequest((int)$this->getPost('target_id', 0));
     }
 
     public function sendFriendRequestAction(): void
     {
         $this->verifyCsrf();
 
-        $tid = (int)$this->getPost('friend_id', $this->getPost('target_id', 0));
-
-        // 早期リターン：IDが不正な場合は先にエラーを返して終了
-        if ($tid <= 0) {
-            echo json_encode(['success' => false, 'error' => 'Invalid friend ID']);
-            return;
-        }
-
-        // 主要な処理：正常系（ネストが浅くなり、elseも不要に）
-        $stmt = $this->mysqli->prepare(
-            "INSERT IGNORE INTO friends (user_id_1, user_id_2, status) VALUES (?, ?, 'pending')"
-        );
-        $stmt->bind_param("ii", $this->userId, $tid);
-        $stmt->execute();
-        $stmt->close();
-
-        echo json_encode(['success' => true]);
+        $this->createFriendRequest((int)$this->getPost('friend_id', $this->getPost('target_id', 0)));
     }
 
 
@@ -61,6 +39,12 @@ class FriendHandler extends BaseHandler
         }
 
         if ($act === 'accept') {
+            $senderId = $this->getFriendRequestSender($rid);
+            if ($senderId <= 0 || $this->isUserBlocked($senderId)) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'Friend request is unavailable']);
+                return;
+            }
             $stmt = $this->mysqli->prepare("UPDATE friends SET status = 'accepted' WHERE id = ? AND user_id_2 = ?");
             $stmt->bind_param("ii", $rid, $this->userId);
             $stmt->execute();
@@ -88,12 +72,82 @@ class FriendHandler extends BaseHandler
     {
         $this->verifyCsrf();
         $rid  = (int)$this->getPost('request_id', 0);
+        $senderId = $rid > 0 ? $this->getFriendRequestSender($rid) : 0;
+        if ($senderId <= 0 || $this->isUserBlocked($senderId)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Friend request is unavailable']);
+            return;
+        }
         $stmt = $this->mysqli->prepare(
             "UPDATE friends SET status = 'accepted' WHERE id = ? AND user_id_2 = ?"
         );
         $stmt->bind_param("ii", $rid, $this->userId);
         $stmt->execute();
         echo json_encode(['success' => true]);
+    }
+
+    private function createFriendRequest(int $targetId): void
+    {
+        if ($targetId <= 0 || $targetId === (int)$this->userId) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Invalid friend ID']);
+            return;
+        }
+        if (!$this->enforceRateLimit('friend_request', 10)) {
+            return;
+        }
+
+        $userStmt = $this->mysqli->prepare("SELECT 1 FROM users WHERE id = ? LIMIT 1");
+        $userStmt->bind_param("i", $targetId);
+        $userStmt->execute();
+        $targetExists = $userStmt->get_result()->fetch_assoc();
+        $userStmt->close();
+        if (!$targetExists) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'error' => 'User not found']);
+            return;
+        }
+        if ($this->isUserBlocked($targetId)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Friend request is unavailable']);
+            return;
+        }
+
+        $stmt = $this->mysqli->prepare(
+            "INSERT IGNORE INTO friends (user_id_1, user_id_2, status) VALUES (?, ?, 'pending')"
+        );
+        $stmt->bind_param("ii", $this->userId, $targetId);
+        $stmt->execute();
+        $stmt->close();
+        echo json_encode(['success' => true]);
+    }
+
+    private function isUserBlocked(int $targetId): bool
+    {
+        if ($targetId <= 0) {
+            return false;
+        }
+        $stmt = $this->mysqli->prepare(
+            "SELECT 1 FROM blocked_users
+             WHERE (blocker_id = ? AND blocked_id = ?)
+                OR (blocker_id = ? AND blocked_id = ?)
+             LIMIT 1"
+        );
+        $stmt->bind_param("iiii", $this->userId, $targetId, $targetId, $this->userId);
+        $stmt->execute();
+        $blocked = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return (bool)$blocked;
+    }
+
+    private function getFriendRequestSender(int $requestId): int
+    {
+        $stmt = $this->mysqli->prepare("SELECT user_id_1 FROM friends WHERE id = ? AND user_id_2 = ? LIMIT 1");
+        $stmt->bind_param("ii", $requestId, $this->userId);
+        $stmt->execute();
+        $sender = (int)($stmt->get_result()->fetch_assoc()['user_id_1'] ?? 0);
+        $stmt->close();
+        return $sender;
     }
 
     public function getFriendRequests(): void
@@ -137,6 +191,11 @@ class FriendHandler extends BaseHandler
         if ($tid <= 0) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'target_id or block_id required']);
+            return;
+        }
+        if ($tid === (int)$this->userId) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Cannot block yourself']);
             return;
         }
         $stmt = $this->mysqli->prepare(

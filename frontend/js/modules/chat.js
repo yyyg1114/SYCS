@@ -280,8 +280,7 @@ export function switchSidebarTab(tab) {
   }
 
   document.querySelectorAll(".sidebar-tabs .tab-btn").forEach(btn => {
-    const onclickAttr = btn.getAttribute("onclick") || "";
-    btn.classList.toggle("active", onclickAttr.includes(tab));
+    btn.classList.toggle("active", btn.dataset.threadListTab === tab);
   });
 }
 

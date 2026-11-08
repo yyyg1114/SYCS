@@ -9,13 +9,14 @@ class FileRateLimiter
      * コンストラクタ
      * @param string $cacheDir キャッシュディレクトリ
      */
-    public function __construct($cacheDir = '/tmp/rate_limit_cache')
+    public function __construct($cacheDir = null)
     {
-        $this->cacheDir = $cacheDir;
+        $this->cacheDir = $cacheDir ?? sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sycs_rate_limit_cache';
 
-        // キャッシュディレクトリが存在しない場合は作成
         if (!is_dir($this->cacheDir)) {
-            mkdir($this->cacheDir, 0755, true);
+            if (!mkdir($this->cacheDir, 0755, true) && !is_dir($this->cacheDir)) {
+                throw new \RuntimeException('Unable to create rate-limit cache directory');
+            }
         }
 
         // 1時間に1回、自動的にクリーンアップを実行
@@ -29,9 +30,10 @@ class FileRateLimiter
      * @param int $windowSeconds 時間枠（秒）
      * @return array ['allowed' => bool, 'remaining' => int, 'reset_at' => int]
      */
-    public function checkUserRateLimit($userId, $maxRequests = 12, $windowSeconds = 60)
+    public function checkUserRateLimit($userId, $maxRequests = 12, $windowSeconds = 60, $scope = '')
     {
-        $key = 'user_' . $userId;
+        $scope = preg_replace('/[^A-Za-z0-9_-]/', '_', (string)$scope);
+        $key = 'user_' . (int)$userId . ($scope !== '' ? '_' . $scope : '');
         return $this->checkRateLimit($key, $maxRequests, $windowSeconds);
     }
 
@@ -57,36 +59,50 @@ class FileRateLimiter
      */
     private function checkRateLimit($key, $maxRequests, $windowSeconds)
     {
-        $file = $this->cacheDir . '/' . $this->prefix . $key . '.json';
+        $key = preg_replace('/[^A-Za-z0-9_-]/', '_', (string)$key);
+        $file = $this->cacheDir . DIRECTORY_SEPARATOR . $this->prefix . $key . '.json';
         $now = time();
+        $handle = fopen($file, 'c+');
+        if ($handle === false) {
+            throw new \RuntimeException('Unable to open rate-limit cache file');
+        }
 
-        // ファイルが存在し、有効期限内の場合
-        if (file_exists($file)) {
-            $data = json_decode(file_get_contents($file), true);
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                throw new \RuntimeException('Unable to lock rate-limit cache file');
+            }
 
-            // 有効期限チェック
-            // 注意: json_decode() が false を返すかもしれない場合のエラーを避ける
-            if ($data && isset($data['reset_at']) && $data['reset_at'] > $now) {
-                $current = $data['count'] + 1;
-                $resetAt = $data['reset_at'];
+            $raw = stream_get_contents($handle);
+            if ($raw === false) {
+                throw new \RuntimeException('Unable to read rate-limit cache file');
+            }
+            $data = json_decode($raw, true);
+            if (is_array($data) && isset($data['count'], $data['reset_at']) && $data['reset_at'] > $now) {
+                $current = (int)$data['count'] + 1;
+                $resetAt = (int)$data['reset_at'];
             } else {
-                // 有効期限切れ、リセット
                 $current = 1;
                 $resetAt = $now + $windowSeconds;
             }
-        } else {
-            // 初回
-            $current = 1;
-            $resetAt = $now + $windowSeconds;
-        }
 
-        // ファイルに保存
-        $data = [
-            'count' => $current,
-            'reset_at' => $resetAt,
-            'last_update' => $now,
-        ];
-        file_put_contents($file, json_encode($data), LOCK_EX);
+            $payload = json_encode([
+                'count' => $current,
+                'reset_at' => $resetAt,
+                'last_update' => $now,
+            ]);
+            if (
+                $payload === false ||
+                !ftruncate($handle, 0) ||
+                !rewind($handle) ||
+                fwrite($handle, $payload) !== strlen($payload) ||
+                !fflush($handle)
+            ) {
+                throw new \RuntimeException('Unable to write rate-limit cache file');
+            }
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
 
         if ($current > $maxRequests) {
             return [
@@ -110,7 +126,7 @@ class FileRateLimiter
      */
     private function autoCleanup()
     {
-        $lastRunFile = $this->cacheDir . '/.last_cleanup';
+        $lastRunFile = $this->cacheDir . DIRECTORY_SEPARATOR . '.last_cleanup';
         $now = time();
         $interval = 3600; // 1時間（3600秒）
 
@@ -134,7 +150,7 @@ class FileRateLimiter
     public function cleanup()
     {
         $now = time();
-        $files = glob($this->cacheDir . '/' . $this->prefix . '*.json');
+        $files = glob($this->cacheDir . DIRECTORY_SEPARATOR . $this->prefix . '*.json');
 
         $totalSize = 0;
         $maxSizeBytes = 100 * 1024 * 1024; // 100MBの最大ファイルサイズ（ディレクトリ全体）制限

@@ -27,6 +27,9 @@ export async function api(path, method = "GET", body = null) {
   const opts = {
     method,
   };
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
+  opts.signal = controller.signal;
   
   if (method === "POST") {
     if (!body) body = new FormData();
@@ -113,10 +116,19 @@ export async function api(path, method = "GET", body = null) {
     }
   } catch (fetchError) {
     console.error("Fetch error:", fetchError);
-    const errorMsg = t("network_error", "ネットワークエラー") + ": " + fetchError.message;
-    showToastFn(t("network_error", "通信エラー"), t("connection_failed", "サーバーに接続できませんでした"), "error");
+    const timedOut = fetchError.name === "AbortError";
+    const errorMsg = timedOut
+      ? t("request_timeout", "リクエストがタイムアウトしました")
+      : t("network_error", "ネットワークエラー") + ": " + fetchError.message;
+    showToastFn(
+      timedOut ? t("request_timeout", "タイムアウト") : t("network_error", "通信エラー"),
+      timedOut ? t("request_timeout", "リクエストがタイムアウトしました") : t("connection_failed", "サーバーに接続できませんでした"),
+      "error",
+    );
     return {
       error: errorMsg,
     };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

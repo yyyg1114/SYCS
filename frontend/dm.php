@@ -5,8 +5,8 @@
  * v1.2.38
  */
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+ini_set('display_errors', getenv('APP_ENV') === 'development' ? '1' : '0');
+ini_set('display_startup_errors', getenv('APP_ENV') === 'development' ? '1' : '0');
 error_reporting(E_ALL);
 
 // 1. Secure Session Settings
@@ -40,12 +40,14 @@ if (isset($_GET['api'])) {
 
     $userId = $_SESSION['user_id'] ?? null;
     if (!$userId) {
-        echo json_encode(['error' => 'Unauthorized']);
+        http_response_code(401);
+        echo json_encode(['success' => false, 'error' => 'Authentication required']);
         exit;
     }
 
     $handler = new ApiHandler($mysqli, $userId, $_SESSION['csrf_token'] ?? null);
     $handler->handle($_GET['api']);
+    exit;
 }
 
 // --- Auth Status Check ---

@@ -273,7 +273,8 @@ class LocationManager {
     body.append("altitude", altitude);
 
     // CSRF Token
-    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
+    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value
+      || window.SYCS_CONFIG?.csrfToken;
     if (csrfToken) {
       body.append("csrf_token", csrfToken);
     }
@@ -329,3 +330,4 @@ class LocationManager {
 
 // グローバルインスタンスを作成
 const locationManager = new LocationManager();
+window.locationManager = locationManager;

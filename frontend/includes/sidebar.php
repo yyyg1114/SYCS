@@ -29,7 +29,7 @@ if (!isset($currentUserStatus)) {
         </div>
         <nav>
             <ul class="nav-list">
-                <li class="nav-item <?= $currentPage === 'threads' ? 'active' : '' ?>" data-tab="threads" onclick="location.href='index.php'">
+                <li class="nav-item <?= $currentPage === 'threads' ? 'active' : '' ?>" data-tab="threads" data-action="navigate" data-action-args='["index.php"]'>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="4" y1="9" x2="20" y2="9" />
@@ -39,7 +39,7 @@ if (!isset($currentUserStatus)) {
                     </svg>
                     <span><?= __('threads') ?></span>
                 </li>
-                <li class="nav-item <?= $currentPage === 'dm' ? 'active' : '' ?>" data-tab="dm" onclick="location.href='dm.php'">
+                <li class="nav-item <?= $currentPage === 'dm' ? 'active' : '' ?>" data-tab="dm" data-action="navigate" data-action-args='["dm.php"]'>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -47,7 +47,7 @@ if (!isset($currentUserStatus)) {
                     <span><?= __('dm') ?></span>
                     <span id="dm-unread-badge" style="display:none; background:#ef4444; color:white; border-radius:9999px; font-size:0.65rem; font-weight:700; padding:1px 6px; margin-left:6px; min-width:18px; text-align:center;"></span>
                 </li>
-                <li class="nav-item <?= $currentPage === 'favorites' ? 'active' : '' ?>" data-tab="favorites" onclick="location.href='favorites.php'">
+                <li class="nav-item <?= $currentPage === 'favorites' ? 'active' : '' ?>" data-tab="favorites" data-action="navigate" data-action-args='["favorites.php"]'>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <polygon
@@ -55,7 +55,7 @@ if (!isset($currentUserStatus)) {
                     </svg>
                     <span><?= __('favorites') ?></span>
                 </li>
-                <li class="nav-item <?= $currentPage === 'meetings' ? 'active' : '' ?>" data-tab="meetings" onclick="location.href='meetings.php'">
+                <li class="nav-item <?= $currentPage === 'meetings' ? 'active' : '' ?>" data-tab="meetings" data-action="navigate" data-action-args='["meetings.php"]'>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <polygon points="23 7 16 12 23 17 23 7"></polygon>
@@ -150,7 +150,7 @@ if (!isset($currentUserStatus)) {
                 <div class="todo-container">
                     <div class="todo-input-area">
                         <input type="text" id="todo-input" placeholder="<?= __('task_placeholder') ?>">
-                        <button class="todo-add-btn" onclick="addTodo()" title="<?= __('add') ?>">
+                        <button class="todo-add-btn" data-action="addTodo" title="<?= __('add') ?>">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -178,7 +178,7 @@ if (!isset($currentUserStatus)) {
                 <div class="user-info">
                     <span class="user-name"><?= htmlspecialchars($currentUser) ?></span>
                     <div class="status-select-container">
-                        <select id="sidebar-status-input" class="status-select" onchange="updateMyStatus(this.value)">
+                        <select id="sidebar-status-input" class="status-select" data-change-action="updateMyStatus" data-action-args='["@value"]'>
                             <option value="online" <?= $currentUserStatus === 'online' ? 'selected' : '' ?>><?= __('status_online') ?></option>
                             <option value="busy" <?= $currentUserStatus === 'busy' ? 'selected' : '' ?>><?= __('status_busy') ?></option>
                             <option value="not_allowed" <?= $currentUserStatus === 'not_allowed' ? 'selected' : '' ?>><?= __('status_not_allowed') ?></option>
@@ -192,9 +192,9 @@ if (!isset($currentUserStatus)) {
             </div>
         </div>
         <div class="sidebar-actions">
-            <a href="javascript:void(0)" onclick="showProfileModal()" class="action-link"><?= __('settings') ?></a>
+            <a href="#" data-action="showProfileModal" class="action-link"><?= __('settings') ?></a>
             <div class="lang-switcher">
-                <select class="status-select" onchange="changeLang(this.value)">
+                <select class="status-select" data-change-action="changeLang" data-action-args='["@value"]'>
                     <option value="ja" <?= I18n::getInstance()->getCurrentLang() === 'ja' ? 'selected' : '' ?>><?= __('lang_ja') ?></option>
                     <option value="en" <?= I18n::getInstance()->getCurrentLang() === 'en' ? 'selected' : '' ?>><?= __('lang_en') ?></option>
                     <option value="zh" <?= I18n::getInstance()->getCurrentLang() === 'zh' ? 'selected' : '' ?>><?= __('lang_zh') ?></option>
