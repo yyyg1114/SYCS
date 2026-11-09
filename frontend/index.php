@@ -1,5 +1,5 @@
 <?php
-// v2.2.44
+// v2.2.45
 
 ini_set('display_errors', getenv('APP_ENV') === 'development' ? '1' : '0');
 ini_set('display_startup_errors', getenv('APP_ENV') === 'development' ? '1' : '0');

@@ -1,3 +1,35 @@
+<!-- ===== v2.2.45 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.45</span>
+        <span class="release-title">Email Verification Codes for Login</span>
+        <span class="release-date">2026-11-09</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> Security Enhancements
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>Added Email Verification to the Login Flow</strong>
+                        <span class="detail">After password verification, users must enter a six-digit code sent to their registered email. Codes expire after 10 minutes and have a limited number of attempts, adding a stronger layer of account protection.</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✉️</span>
+                    <div>
+                        <strong>Connected Code Delivery with Login Confirmation</strong>
+                        <span class="detail">The login flow now proceeds to code entry only after successful email delivery, and creates the authenticated session only after the code is confirmed.</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.44 ===== -->
 <article class="release">
     <div class="release-header">

@@ -7,6 +7,38 @@
  */
 ?>
 
+<!-- ===== v2.2.45 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.45</span>
+        <span class="release-title">新增邮件验证码登录认证</span>
+        <span class="release-date">2026-11-09</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> 安全增强 (Security Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>登录流程新增邮件验证码验证</strong>
+                        <span class="detail">密码验证通过后，必须输入发送至注册邮箱的六位验证码。验证码十分钟后失效且设有尝试次数上限，进一步加强账户保护。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✉️</span>
+                    <div>
+                        <strong>验证码发送与登录确认流程联动</strong>
+                        <span class="detail">确认邮件成功发送后才进入验证码输入步骤，并在验证码通过后才创建已认证的登录会话。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.44 ===== -->
 <article class="release">
     <div class="release-header">

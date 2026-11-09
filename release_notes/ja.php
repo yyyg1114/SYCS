@@ -7,6 +7,38 @@
  */
 ?>
 
+<!-- ===== v2.2.45 ===== -->
+<article class="release">
+    <div class="release-header">
+        <span class="version-badge">v2.2.45</span>
+        <span class="release-title">メール確認コードによるログイン認証</span>
+        <span class="release-date">2026-11-09</span>
+    </div>
+    <div class="release-body">
+        <div class="section">
+            <div class="section-title">
+                <span class="dot dot-green"></span> セキュリティ強化 (Security Enhancements)
+            </div>
+            <ul>
+                <li>
+                    <span class="icon">🔐</span>
+                    <div>
+                        <strong>ログイン時のメール確認コード認証を追加</strong>
+                        <span class="detail">パスワード認証後、登録済みメールアドレスへ届く6桁コードの確認を必須化。コードは10分で失効し、入力回数にも上限を設けることで、不正なログインを防ぎアカウント保護を強化しました。</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✉️</span>
+                    <div>
+                        <strong>確認コードの送信とログイン画面を連携</strong>
+                        <span class="detail">メール送信結果を確認してからコード入力へ進み、確認完了後にログインセッションを開始するフローに変更しました。</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</article>
+
 <!-- ===== v2.2.44 ===== -->
 <article class="release">
     <div class="release-header">
