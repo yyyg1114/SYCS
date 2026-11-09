@@ -3,6 +3,8 @@ require_once __DIR__ . '/session_config.php';
 require_once __DIR__ . '/Session.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/db_init.php';
+require_once __DIR__ . '/SecurityUtil.php';
+require_once __DIR__ . '/Mailer.php';
 
 db_init($mysqli);
 
@@ -60,7 +62,7 @@ if ((int)$countByUser >= $maxAttempts || (int)$countByIp >= $maxAttempts) {
 }
 
 // --- 認証処理 ---
-$stmt = $mysqli->prepare("SELECT id, username, password, is_verified, last_thread_id FROM users WHERE username = ?");
+$stmt = $mysqli->prepare("SELECT id, username, password, is_verified, last_thread_id, email FROM users WHERE username = ?");
 if ($stmt === false) {
     error_log("SELECT user prepare failed: " . $mysqli->error);
     die("ログイン処理中にエラーが発生しました。しばらくしてから再試行してください。");
@@ -73,7 +75,7 @@ if (!$stmt->execute()) {
     die("ログイン処理中にエラーが発生しました。しばらくしてから再試行してください。");
 }
 
-$stmt->bind_result($userId, $dbUsername, $dbPassword, $isVerified, $lastThreadId);
+$stmt->bind_result($userId, $dbUsername, $dbPassword, $isVerified, $lastThreadId, $encryptedEmail);
 $stmt->fetch();
 $stmt->close();
 
@@ -82,13 +84,22 @@ if ($userId && $dbPassword !== null && password_verify($password, $dbPassword)) 
         die("メールアドレスの本登録が完了していません。メールを確認してください。");
     }
 
-    // ログイン成功: セッションIDを再生成してセッション固定攻撃を防ぐ
-    session_regenerate_id(true);
-
-    $session = new Session();
-    $session->set('user_id', $userId);
-    $session->set('user', $dbUsername);
-    $session->set('last_thread_id', $lastThreadId ?: 1);
+    $email = $encryptedEmail ? SecurityUtil::decrypt($encryptedEmail) : null;
+    if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        die("登録メールアドレスを確認できないため、ログインできません。");
+    }
+    $code = (string)random_int(100000, 999999);
+    if (!Mailer::sendLoginCode($email, $dbUsername, $code)) {
+        die("確認コードを送信できませんでした。しばらくしてから再試行してください。");
+    }
+    $_SESSION['pending_login'] = [
+        'user_id' => (int)$userId,
+        'username' => $dbUsername,
+        'last_thread_id' => (int)$lastThreadId,
+        'code_hash' => hash('sha256', $code),
+        'expires' => time() + 600,
+        'attempts' => 0,
+    ];
 
     // ログイン成功時: 該当ユーザー+IPの失敗記録をクリア
     $delStmt = $mysqli->prepare(
@@ -100,7 +111,7 @@ if ($userId && $dbPassword !== null && password_verify($password, $dbPassword)) 
         $delStmt->close();
     }
 
-    header("Location: ../frontend/index.php");
+    header("Location: ../frontend/login.php");
     exit();
 } else {
     // ログイン失敗: 失敗を記録（ユーザー名と IP の両方）

@@ -2,6 +2,8 @@
 require_once __DIR__ . '/SecurityUtil.php';
 
 // Import PHPMailer classes into the global namespace
+
+use Jose\Component\Signature\Algorithm\None;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\SMTP;
@@ -148,6 +150,15 @@ class Mailer
         $subject = "【SYCS】パスワードのリセット";
         $body = "こんにちは、{$username} 様。\n\nパスワードのリセットリクエストを受け付けました。\n新しいパスワードを設定するには、以下のリンクをクリックしてください。\n\n$url\n\n有効期限は1時間です。心当たりがない場合は、このメールを無視して構いません。パスワードは変更されません。";
 
+        return self::send($toEmail, $subject, $body);
+    }
+
+    public static function sendLoginCode(string $toEmail, string $username, string $code): bool
+    {
+        $baseUrl = self::getBaseUrl();
+        $url = "";
+        $subject = "【SYCS】ログイン確認コード";
+        $body = "こんにちは、{$username} 様。\n\nログイン確認コードは {$code} です。\nこのコードは10分間有効です。心当たりがない場合は、このメールを無視してください。";
         return self::send($toEmail, $subject, $body);
     }
 }

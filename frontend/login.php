@@ -4,6 +4,7 @@ require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/db_init.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
 require_once __DIR__ . '/../backend/I18n.php';
+require_once __DIR__ . '/../backend/Mailer.php';
 
 // Ensure the login attempt tracking table and related schema are present before any rate-limit checks run.
 db_init($mysqli);
@@ -16,6 +17,39 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 $error = '';
+if (!empty($_SESSION['pending_login']) && ($_SESSION['pending_login']['expires'] ?? 0) < time()) {
+    unset($_SESSION['pending_login']);
+}
+
+// Complete the second factor before accepting the pending password login.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verify_login_code'])) {
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        $error = __('invalid_request_csrf', '不正なリクエストです。');
+    } elseif (empty($_SESSION['pending_login']) || ($_SESSION['pending_login']['expires'] ?? 0) < time()) {
+        unset($_SESSION['pending_login']);
+        $error = '確認コードの有効期限が切れました。もう一度ログインしてください。';
+    } else {
+        $pending = &$_SESSION['pending_login'];
+        $pending['attempts'] = (int)($pending['attempts'] ?? 0) + 1;
+        $code = trim((string)($_POST['login_code'] ?? ''));
+        if ($pending['attempts'] > 5) {
+            unset($_SESSION['pending_login']);
+            $error = '確認コードの入力回数が上限に達しました。もう一度ログインしてください。';
+        } elseif (!preg_match('/^\d{6}$/', $code) || !hash_equals($pending['code_hash'], hash('sha256', $code))) {
+            $error = '確認コードが正しくありません。';
+        } else {
+            $login = $pending;
+            unset($_SESSION['pending_login']);
+            session_regenerate_id(true);
+            $_SESSION['user_id'] = $login['user_id'];
+            $_SESSION['user'] = $login['username'];
+            $_SESSION['last_thread_id'] = $login['last_thread_id'] ?: 1;
+            header('Location: index.php');
+            exit;
+        }
+        unset($pending);
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['password'])) {
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
@@ -63,10 +97,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
                 $error = sprintf(__('login_limit_reached', "ログイン試行回数の上限（%d回）に達しました。%d分後に再試行してください。"), $maxAttempts, $lockMinutes);
             } else {
                 // --- 認証処理 ---
-                $stmt = $mysqli->prepare("SELECT id, username, password, is_verified, last_thread_id FROM users WHERE username = ?");
+                $stmt = $mysqli->prepare("SELECT id, username, password, is_verified, last_thread_id, email FROM users WHERE username = ?");
                 $stmt->bind_param("s", $u);
                 $stmt->execute();
-                $stmt->bind_result($userId, $dbUsername, $dbPassword, $isVerified, $lastThreadId);
+                $stmt->bind_result($userId, $dbUsername, $dbPassword, $isVerified, $lastThreadId, $encryptedEmail);
                 $stmt->fetch();
                 $stmt->close();
 
@@ -74,22 +108,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
                     if ($isVerified == 0) {
                         $error = __('email_not_verified', 'メールアドレスの本登録が完了していません。');
                     } else {
-                        // ログイン成功: セッション固定攻撃対策
-                        session_regenerate_id(true);
-                        $_SESSION['user_id']        = $userId;
-                        $_SESSION['user']           = $dbUsername;
-                        $_SESSION['last_thread_id'] = $lastThreadId ?: 1;
-
-                        // 失敗記録をクリア
-                        $del = $mysqli->prepare("DELETE FROM login_attempts WHERE identifier = ? OR identifier = ?");
-                        if ($del) {
-                            $del->bind_param("ss", $u, $ip);
-                            $del->execute();
-                            $del->close();
+                        $email = $encryptedEmail ? SecurityUtil::decrypt($encryptedEmail) : null;
+                        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                            $error = '登録メールアドレスを確認できないため、ログインできません。';
+                        } else {
+                            $code = (string)random_int(100000, 999999);
+                            if (!Mailer::sendLoginCode($email, $dbUsername, $code)) {
+                                $error = '確認コードを送信できませんでした。しばらくしてから再試行してください。';
+                            } else {
+                                $_SESSION['pending_login'] = [
+                                    'user_id' => (int)$userId,
+                                    'username' => $dbUsername,
+                                    'last_thread_id' => (int)$lastThreadId,
+                                    'code_hash' => hash('sha256', $code),
+                                    'expires' => time() + 600,
+                                    'attempts' => 0,
+                                ];
+                                $del = $mysqli->prepare("DELETE FROM login_attempts WHERE identifier = ? OR identifier = ?");
+                                if ($del) {
+                                    $del->bind_param("ss", $u, $ip);
+                                    $del->execute();
+                                    $del->close();
+                                }
+                                $maskedEmail = preg_replace('/(^.).*(@.*$)/', '$1***$2', $email);
+                                $error = "登録メールアドレス {$maskedEmail} に確認コードを送信しました。";
+                            }
                         }
-
-                        header('Location: index.php');
-                        exit;
                     }
                 } else {
                     $error = __('invalid_credentials', 'ユーザー名またはパスワードが正しくありません。');
@@ -753,18 +797,30 @@ if (isset($_GET['api'])) {
             <div class="error-box"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
-        <form method="POST">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-            <div class="input-group">
-                <label for="username"><?= __('username') ?></label>
-                <input type="text" id="username" name="username" placeholder="Username" required autofocus>
-            </div>
-            <div class="input-group">
-                <label for="password"><?= __('password') ?></label>
-                <input type="password" id="password" name="password" placeholder="Password" required>
-            </div>
-            <button type="submit"><?= __('login') ?></button>
-        </form>
+        <?php if (!empty($_SESSION['pending_login'])): ?>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                <input type="hidden" name="verify_login_code" value="1">
+                <div class="input-group">
+                    <label for="login_code">メールで受け取った6桁の確認コード</label>
+                    <input type="text" id="login_code" name="login_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required autofocus>
+                </div>
+                <button type="submit">確認してログイン</button>
+            </form>
+        <?php else: ?>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                <div class="input-group">
+                    <label for="username"><?= __('username') ?></label>
+                    <input type="text" id="username" name="username" placeholder="Username" required autofocus>
+                </div>
+                <div class="input-group">
+                    <label for="password"><?= __('password') ?></label>
+                    <input type="password" id="password" name="password" placeholder="Password" required>
+                </div>
+                <button type="submit"><?= __('login') ?></button>
+            </form>
+        <?php endif; ?>
 
         <div class="divider">
             <span><?= __('or') ?></span>
