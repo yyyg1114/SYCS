@@ -609,9 +609,9 @@ export async function submitMediaUpload() {
       const currentUserName = window.SYCS_CONFIG.currentUserName;
       const currentUserId = window.SYCS_CONFIG.currentUserId;
       if (window.SYCS_CONFIG.isGroupChat) {
-        import('./chat.ts').then(m => m.loadGroupMessages(window.SYCS_CONFIG.currentThreadId, container, {currentUserName, currentUserId}, {}));
+        import('./chat.js').then(m => m.loadGroupMessages(window.SYCS_CONFIG.currentThreadId, container, {currentUserName, currentUserId}, {}));
       } else {
-        import('./chat.ts').then(m => m.loadMessages(window.SYCS_CONFIG.currentThreadId, container, {currentUserName, currentUserId}, {}));
+        import('./chat.js').then(m => m.loadMessages(window.SYCS_CONFIG.currentThreadId, container, {currentUserName, currentUserId}, {}));
       }
     }
   } else {

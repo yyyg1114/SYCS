@@ -3,7 +3,7 @@
  */
 
 import { api } from './api.js';
-import { showToast } from './ui.ts';
+import { showToast } from './ui.js';
 import { renderMessageNode } from './message.js';
 import { t } from './utils.js';
 

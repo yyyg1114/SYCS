@@ -3,7 +3,7 @@
  */
 
 import { api } from './api.js';
-import { showToast, showModal, closeModal } from './ui.ts';
+import { showToast, showModal, closeModal } from './ui.js';
 import { t } from './utils.js';
 
 /**

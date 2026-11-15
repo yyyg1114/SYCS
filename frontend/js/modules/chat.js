@@ -5,7 +5,7 @@
 import { api } from './api.js';
 import { renderMessageNode } from './message.js';
 import { getSkeletonLoader, t } from './utils.js';
-import { showToast, switchTab } from './ui.ts';
+import { showToast, switchTab } from './ui.js';
 
 export async function loadThreads(callback) {
   const threads = await api("get_threads");

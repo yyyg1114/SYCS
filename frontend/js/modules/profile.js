@@ -3,7 +3,7 @@
  */
 
 import { api } from './api.js';
-import { showToast } from './ui.ts';
+import { showToast } from './ui.js';
 import { t } from './utils.js';
 
 const PERSIST_PREFIX = 'sycs_profile_';
@@ -64,7 +64,7 @@ export function clearPersistedProfileInputs() {
  * @param {string} theme 
  */
 export function setTheme(theme) {
-  import('./ui.ts').then(m => m.setTheme(theme, false)); // false = don't show toast for preview
+  import('./ui.js').then(m => m.setTheme(theme, false)); // false = don't show toast for preview
   persistProfileInput('sycs_theme', theme);
 }
 

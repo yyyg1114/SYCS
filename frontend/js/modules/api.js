@@ -5,7 +5,7 @@
 import { t } from './utils.js';
 
 /**
- * トースト通知を表示する (Stubs for now, will be implemented in ui.ts)
+ * トースト通知を表示する (Stubs for now, will be implemented in ui.js)
  */
 let showToastFn = (title, message, type = "success", duration = 5000) => {
     console.log(`Toast: [${type}] ${title} - ${message}`);
