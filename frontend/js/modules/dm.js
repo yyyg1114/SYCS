@@ -2,10 +2,10 @@
  * SYCS DM Module
  */
 
-import { api } from './api.ts';
+import { api } from './api.js';
 import { showToast } from './ui.ts';
-import { renderMessageNode } from './message.ts';
-import { t } from './utils.ts';
+import { renderMessageNode } from './message.js';
+import { t } from './utils.js';
 
 let currentDmPartnerId = null;
 let isSendingDm = false;

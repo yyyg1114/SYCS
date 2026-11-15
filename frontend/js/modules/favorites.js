@@ -2,8 +2,8 @@
  * SYCS Favorites Module
  */
 
-import { api } from './api.ts';
-import { t } from './utils.ts';
+import { api } from './api.js';
+import { t } from './utils.js';
 
 export async function loadFavorites() {
     const list = document.getElementById("fav-thread-list");

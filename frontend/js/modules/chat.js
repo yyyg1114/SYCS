@@ -2,9 +2,9 @@
  * SYCS Chat Module
  */
 
-import { api } from './api.ts';
-import { renderMessageNode } from './message.ts';
-import { getSkeletonLoader, t } from './utils.ts';
+import { api } from './api.js';
+import { renderMessageNode } from './message.js';
+import { getSkeletonLoader, t } from './utils.js';
 import { showToast, switchTab } from './ui.ts';
 
 export async function loadThreads(callback) {

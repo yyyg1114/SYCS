@@ -2,7 +2,7 @@
  * SYCS Message Rendering Module
  */
 
-import { formatMessage, applyHighlighting, getAvatarElement, t } from './utils.ts';
+import { formatMessage, applyHighlighting, getAvatarElement, t } from './utils.js';
 
 /**
  * Render a message node recursively

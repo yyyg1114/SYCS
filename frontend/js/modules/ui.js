@@ -2,7 +2,7 @@
  * SYCS UI Module
  */
 
-import { t, getAvatarElement } from './utils.ts';
+import { t, getAvatarElement } from './utils.js';
 import { api, registerShowToast } from './api.ts';
 
 /**

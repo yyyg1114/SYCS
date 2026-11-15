@@ -2,9 +2,9 @@
  * SYCS Profile Management Module
  */
 
-import { api } from './api.ts';
+import { api } from './api.js';
 import { showToast } from './ui.ts';
-import { t } from './utils.ts';
+import { t } from './utils.js';
 
 const PERSIST_PREFIX = 'sycs_profile_';
 const PERSIST_KEYS = [

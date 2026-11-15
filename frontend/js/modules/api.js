@@ -2,7 +2,7 @@
  * SYCS API Module
  */
 
-import { t } from './utils.ts';
+import { t } from './utils.js';
 
 /**
  * トースト通知を表示する (Stubs for now, will be implemented in ui.ts)

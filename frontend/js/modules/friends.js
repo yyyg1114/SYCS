@@ -2,9 +2,9 @@
  * SYCS Friend Management Module
  */
 
-import { api } from './api.ts';
+import { api } from './api.js';
 import { showToast, showModal, closeModal } from './ui.ts';
-import { t } from './utils.ts';
+import { t } from './utils.js';
 
 /**
  * Show Add Friend Modal

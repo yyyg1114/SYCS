@@ -1,6 +1,6 @@
-import { api } from './api.ts';
+import { api } from './api.js';
 import { showToast } from './ui.ts';
-import { t } from './utils.ts';
+import { t } from './utils.js';
 
 const VAPID_PUBLIC_KEY = window.SYCS_CONFIG ? window.SYCS_CONFIG.vapidPublicKey : null;
 
