@@ -214,16 +214,16 @@ if ($isLoggedIn) {
     <?php include 'includes/modals.php'; ?>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="js/webrtc/media-manager.ts"></script>
-    <script src="js/webrtc/signaling-client.ts"></script>
-    <script src="js/webrtc/peer-connection-manager.ts"></script>
-    <script src="js/webrtc/meeting-ui.ts"></script>
-    <script src="js/webrtc/meeting-manager.ts"></script>
-    <script src="js/locate.ts"></script>
-    <script src="js/index.ts" type="module"></script>
-    <script src="js/widgets.ts"></script>
+    <script src="js/webrtc/media-manager.js"></script>
+    <script src="js/webrtc/signaling-client.js"></script>
+    <script src="js/webrtc/peer-connection-manager.js"></script>
+    <script src="js/webrtc/meeting-ui.js"></script>
+    <script src="js/webrtc/meeting-manager.js"></script>
+    <script src="js/locate.js"></script>
+    <script src="js/index.js" type="module"></script>
+    <script src="js/widgets.js"></script>
     <script>
-        // Ensure DM tab is active in the logic if index.ts is shared
+        // Ensure DM tab is active in the logic if index.js is shared
         window.addEventListener('DOMContentLoaded', () => {
             const checkSwitchTab = setInterval(() => {
                 if (typeof window.switchTab === 'function') {

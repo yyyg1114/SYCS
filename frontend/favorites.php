@@ -136,12 +136,12 @@ if (isset($_GET['logout'])) {
 
     <?php include 'includes/modals.php'; ?>
 
-    <script src="js/widgets.ts"></script>
-    <script src="js/index.ts" type="module"></script>
+    <script src="js/widgets.js"></script>
+    <script src="js/index.js" type="module"></script>
     <script type="module">
         import {
             loadFavorites
-        } from './js/modules/favorites.ts';
+        } from './js/modules/favorites.js';
         window.addEventListener('load', () => {
             loadFavorites();
         });
