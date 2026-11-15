@@ -5,6 +5,7 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/db_init.php';
 require_once __DIR__ . '/SecurityUtil.php';
 require_once __DIR__ . '/Mailer.php';
+require_once __DIR__ . '/LoginSecurity.php';
 
 db_init($mysqli);
 
@@ -22,11 +23,12 @@ $lockWindow  = $lockMinutes * 60; // 秒換算
 $maxAttempts = 5;
 
 // 失敗時の記録用: username と IP の両方を記録して、名前・IP の両方をロック対象にする
-// 既存スキーマ `login_attempts(identifier, attempted_at)` を再利用する。
+// 既存スキーマ `login_attempts(identifier, attempted_at)` を再利用しつつ、code_verify と password_failure を分離する。
 $countByUser = 0;
 $stmtU = $mysqli->prepare(
     "SELECT COUNT(*) FROM login_attempts
-    WHERE identifier = ?
+    WHERE purpose = 'password_failure'
+    AND identifier = ?
     AND attempted_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
 );
 if ($stmtU) {
@@ -42,7 +44,8 @@ if ($stmtU) {
 $countByIp = 0;
 $stmtI = $mysqli->prepare(
     "SELECT COUNT(*) FROM login_attempts
-    WHERE identifier = ?
+    WHERE purpose = 'password_failure'
+    AND identifier = ?
     AND attempted_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
 );
 if ($stmtI) {
@@ -88,56 +91,35 @@ if ($userId && $dbPassword !== null && password_verify($password, $dbPassword)) 
     if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         die("登録メールアドレスを確認できないため、ログインできません。");
     }
+
+    $existingPending = $_SESSION['pending_login'] ?? [];
+    $rateLimit = isLoginCodeIssueRateLimited($mysqli, (int)$userId, $ip, 3, 900);
+    if (!$rateLimit['allowed']) {
+        error_log(sprintf('Login code issuance rate limited for user_id=%d ip=%s user_count=%d ip_count=%d', (int)$userId, $ip, $rateLimit['user_count'], $rateLimit['ip_count']));
+        die("確認コードの送信回数が上限に達しました。15分ほど経ってから再試行してください。");
+    }
+
     $code = (string)random_int(100000, 999999);
     if (!Mailer::sendLoginCode($email, $dbUsername, $code)) {
         die("確認コードを送信できませんでした。しばらくしてから再試行してください。");
     }
-    $_SESSION['pending_login'] = [
+    recordLoginAttempt($mysqli, 'code_issue', (int)$userId, $ip, $dbUsername);
+    $_SESSION['pending_login'] = buildPendingLoginState($existingPending, [
         'user_id' => (int)$userId,
         'username' => $dbUsername,
         'last_thread_id' => (int)$lastThreadId,
         'code_hash' => hash('sha256', $code),
         'expires' => time() + 600,
         'attempts' => 0,
-    ];
-
-    // ログイン成功時: 該当ユーザー+IPの失敗記録をクリア
-    $delStmt = $mysqli->prepare(
-        "DELETE FROM login_attempts WHERE identifier = ? OR identifier = ?"
-    );
-    if ($delStmt) {
-        $delStmt->bind_param("ss", $username, $ip);
-        $delStmt->execute();
-        $delStmt->close();
-    }
+    ]);
 
     header("Location: ../frontend/login.php");
     exit();
 } else {
     // ログイン失敗: 失敗を記録（ユーザー名と IP の両方）
     error_log("Login failed for user: $username from IP: $ip");
-
-    $insStmt = $mysqli->prepare("INSERT INTO login_attempts (identifier) VALUES (?)");
-    if ($insStmt === false) {
-        error_log("login_attempts INSERT prepare failed (username): " . $mysqli->error);
-    } else {
-        $insStmt->bind_param("s", $username);
-        if (!$insStmt->execute()) {
-            error_log("login_attempts INSERT execute failed (username): " . $insStmt->error);
-        }
-        $insStmt->close();
-    }
-
-    $insStmt2 = $mysqli->prepare("INSERT INTO login_attempts (identifier) VALUES (?)");
-    if ($insStmt2 === false) {
-        error_log("login_attempts INSERT prepare failed (ip): " . $mysqli->error);
-    } else {
-        $insStmt2->bind_param("s", $ip);
-        if (!$insStmt2->execute()) {
-            error_log("login_attempts INSERT execute failed (ip): " . $insStmt2->error);
-        }
-        $insStmt2->close();
-    }
+    recordLoginAttempt($mysqli, 'password_failure', null, $ip, $username);
+    recordLoginAttempt($mysqli, 'password_failure', null, $ip, $ip);
 
     // 認証失敗時の情報公開を避ける: どのアカウントが存在するかは漏らさない
     die("ログインに失敗しました。しばらくしてから再試行してください。");

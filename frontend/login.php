@@ -5,6 +5,7 @@ require_once __DIR__ . '/../backend/db_init.php';
 require_once __DIR__ . '/../backend/SecurityUtil.php';
 require_once __DIR__ . '/../backend/I18n.php';
 require_once __DIR__ . '/../backend/Mailer.php';
+require_once __DIR__ . '/../backend/LoginSecurity.php';
 
 // Ensure the login attempt tracking table and related schema are present before any rate-limit checks run.
 db_init($mysqli);
@@ -32,6 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verify_login_code']))
         $pending = &$_SESSION['pending_login'];
         $pending['attempts'] = (int)($pending['attempts'] ?? 0) + 1;
         $code = trim((string)($_POST['login_code'] ?? ''));
+        $userId = (int)($pending['user_id'] ?? 0);
+        $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        recordLoginAttempt($mysqli, 'code_verify', $userId, $ipAddress, $pending['username'] ?? 'unknown');
+
         if ($pending['attempts'] > 5) {
             unset($_SESSION['pending_login']);
             $error = '確認コードの入力回数が上限に達しました。もう一度ログインしてください。';
@@ -68,7 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
             $countByUser = 0;
             $stmtU = $mysqli->prepare(
                 "SELECT COUNT(*) FROM login_attempts
-            WHERE identifier = ?
+            WHERE purpose = 'password_failure'
+            AND identifier = ?
             AND attempted_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
             );
             if ($stmtU) {
@@ -82,7 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
             $countByIp = 0;
             $stmtI = $mysqli->prepare(
                 "SELECT COUNT(*) FROM login_attempts
-            WHERE identifier = ?
+            WHERE purpose = 'password_failure'
+            AND identifier = ?
             AND attempted_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
             );
             if ($stmtI) {
@@ -113,23 +120,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
                             $error = '登録メールアドレスを確認できないため、ログインできません。';
                         } else {
                             $code = (string)random_int(100000, 999999);
-                            if (!Mailer::sendLoginCode($email, $dbUsername, $code)) {
+                            $existingPending = $_SESSION['pending_login'] ?? [];
+                            $rateLimit = isLoginCodeIssueRateLimited($mysqli, (int)$userId, $ip, 3, 900);
+                            if (!$rateLimit['allowed']) {
+                                error_log(sprintf('Login code issuance rate limited for user_id=%d ip=%s user_count=%d ip_count=%d', (int)$userId, $ip, $rateLimit['user_count'], $rateLimit['ip_count']));
+                                $error = '確認コードの送信回数が上限に達しました。15分ほど経ってから再試行してください。';
+                            } elseif (!Mailer::sendLoginCode($email, $dbUsername, $code)) {
                                 $error = '確認コードを送信できませんでした。しばらくしてから再試行してください。';
                             } else {
-                                $_SESSION['pending_login'] = [
+                                recordLoginAttempt($mysqli, 'code_issue', (int)$userId, $ip, $dbUsername);
+                                $_SESSION['pending_login'] = buildPendingLoginState($existingPending, [
                                     'user_id' => (int)$userId,
                                     'username' => $dbUsername,
                                     'last_thread_id' => (int)$lastThreadId,
                                     'code_hash' => hash('sha256', $code),
                                     'expires' => time() + 600,
                                     'attempts' => 0,
-                                ];
-                                $del = $mysqli->prepare("DELETE FROM login_attempts WHERE identifier = ? OR identifier = ?");
-                                if ($del) {
-                                    $del->bind_param("ss", $u, $ip);
-                                    $del->execute();
-                                    $del->close();
-                                }
+                                ]);
                                 $maskedEmail = preg_replace('/(^.).*(@.*$)/', '$1***$2', $email);
                                 $error = "登録メールアドレス {$maskedEmail} に確認コードを送信しました。";
                             }
@@ -138,19 +145,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'], $_POST['p
                 } else {
                     $error = __('invalid_credentials', 'ユーザー名またはパスワードが正しくありません。');
 
-                    // ログイン失敗を記録
-                    $ins = $mysqli->prepare("INSERT INTO login_attempts (identifier) VALUES (?)");
-                    if ($ins) {
-                        $ins->bind_param("s", $u);
-                        $ins->execute();
-                        $ins->close();
-                    }
-                    $ins2 = $mysqli->prepare("INSERT INTO login_attempts (identifier) VALUES (?)");
-                    if ($ins2) {
-                        $ins2->bind_param("s", $ip);
-                        $ins2->execute();
-                        $ins2->close();
-                    }
+                    // ログイン失敗を記録（コード検証の失敗と分離し、再送信がカウントをリセットしないようにする）
+                    recordLoginAttempt($mysqli, 'password_failure', null, $ip, $u);
+                    recordLoginAttempt($mysqli, 'password_failure', null, $ip, $ip);
                 }
             }
         } catch (Exception $e) {
