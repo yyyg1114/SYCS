@@ -674,11 +674,11 @@ $initialTab = isset($_GET['create']) ? 'create' : 'join';
             font-weight: 600;
         }
     </style>
-    <script type="module" src="js/webrtc/media-manager.ts"></script>
-    <script type="module" src="js/webrtc/signaling-client.ts"></script>
-    <script type="module" src="js/webrtc/peer-connection-manager.ts"></script>
-    <script type="module" src="js/webrtc/meeting-ui.ts"></script>
-    <script type="module" src="js/webrtc/meeting-manager.ts"></script>
+    <script type="module" src="js/webrtc/media-manager.js"></script>
+    <script type="module" src="js/webrtc/signaling-client.js"></script>
+    <script type="module" src="js/webrtc/peer-connection-manager.js"></script>
+    <script type="module" src="js/webrtc/meeting-ui.js"></script>
+    <script type="module" src="js/webrtc/meeting-manager.js"></script>
 </head>
 
 <body>

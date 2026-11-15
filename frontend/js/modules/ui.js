@@ -3,7 +3,7 @@
  */
 
 import { t, getAvatarElement } from './utils.js';
-import { api, registerShowToast } from './api.ts';
+import { api, registerShowToast } from './api.js';
 
 /**
  * トースト通知を表示する
