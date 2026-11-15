@@ -114,7 +114,6 @@ export async function loadFavorites() {
             item.appendChild(actions);
             list.appendChild(item);
         });
-        }
     } else {
         const empty = document.createElement('div');
         empty.className = 'empty-state';
