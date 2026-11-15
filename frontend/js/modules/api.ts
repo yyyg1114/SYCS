@@ -2,10 +2,10 @@
  * SYCS API Module
  */
 
-import { t } from './utils.js';
+import { t } from './utils.ts';
 
 /**
- * トースト通知を表示する (Stubs for now, will be implemented in ui.js)
+ * トースト通知を表示する (Stubs for now, will be implemented in ui.ts)
  */
 let showToastFn = (title, message, type = "success", duration = 5000) => {
     console.log(`Toast: [${type}] ${title} - ${message}`);

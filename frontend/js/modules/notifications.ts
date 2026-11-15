@@ -1,6 +1,6 @@
-import { api } from './api.js';
-import { showToast } from './ui.js';
-import { t } from './utils.js';
+import { api } from './api.ts';
+import { showToast } from './ui.ts';
+import { t } from './utils.ts';
 
 const VAPID_PUBLIC_KEY = window.SYCS_CONFIG ? window.SYCS_CONFIG.vapidPublicKey : null;
 
@@ -12,7 +12,7 @@ export async function initNotifications() {
 
     if ('serviceWorker' in navigator) {
         try {
-            const registration = await navigator.serviceWorker.register('sw.js');
+            const registration = await navigator.serviceWorker.register('sw.ts');
             console.log('Service Worker registered with scope:', registration.scope);
             
             // If already permitted, ensure subscription is up to date

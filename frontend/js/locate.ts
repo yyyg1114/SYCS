@@ -52,7 +52,7 @@ class LocationManager {
   }
 
   /**
-   * 初期化メソッド (index.js からの呼び出し用)
+   * 初期化メソッド (index.ts からの呼び出し用)
    * @param {string} statusElementId
    * @param {number} updateInterval
    */
@@ -246,7 +246,7 @@ class LocationManager {
     // 5秒以内の更新は送信しない
     if (timeSinceLastUpdate < this.minUpdateInterval) {
       console.log(
-        `[locate.js] レート制限中。次の送信まで ${this.minUpdateInterval - timeSinceLastUpdate}ms 待機`,
+        `[locate.ts] レート制限中。次の送信まで ${this.minUpdateInterval - timeSinceLastUpdate}ms 待機`,
       );
       return;
     }
@@ -279,7 +279,7 @@ class LocationManager {
       body.append("csrf_token", csrfToken);
     }
 
-    console.log("[locate.js] 送信データ:", { lat, lon, accuracy, altitude });
+    console.log("[locate.ts] 送信データ:", { lat, lon, accuracy, altitude });
 
     fetch("index.php?api=update_location", {
       method: "POST",
@@ -293,13 +293,13 @@ class LocationManager {
       })
       .then((data) => {
         if (data.success) {
-          console.log("[locate.js] 位置情報の更新に成功しました");
+          console.log("[locate.ts] 位置情報の更新に成功しました");
         } else if (data.error === "rate_limit_exceeded") {
           console.warn(
-            "[locate.js] レート制限に達しました。しばらく待機してください。",
+            "[locate.ts] レート制限に達しました。しばらく待機してください。",
           );
         } else {
-          console.error("[locate.js] 位置情報の更新に失敗:", data.error);
+          console.error("[locate.ts] 位置情報の更新に失敗:", data.error);
         }
       })
       .catch((err) => {

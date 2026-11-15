@@ -2,9 +2,9 @@
  * SYCS Profile Management Module
  */
 
-import { api } from './api.js';
-import { showToast } from './ui.js';
-import { t } from './utils.js';
+import { api } from './api.ts';
+import { showToast } from './ui.ts';
+import { t } from './utils.ts';
 
 const PERSIST_PREFIX = 'sycs_profile_';
 const PERSIST_KEYS = [
@@ -64,7 +64,7 @@ export function clearPersistedProfileInputs() {
  * @param {string} theme 
  */
 export function setTheme(theme) {
-  import('./ui.js').then(m => m.setTheme(theme, false)); // false = don't show toast for preview
+  import('./ui.ts').then(m => m.setTheme(theme, false)); // false = don't show toast for preview
   persistProfileInput('sycs_theme', theme);
 }
 

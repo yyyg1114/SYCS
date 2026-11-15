@@ -1,4 +1,4 @@
-// frontend/js/errorHandler.js
+// frontend/js/errorHandler.ts
 
 class APIError extends Error {
     constructor(code, message, userMessage = null) {

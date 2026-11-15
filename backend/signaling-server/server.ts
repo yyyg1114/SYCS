@@ -14,9 +14,9 @@
 
 const { WebSocketServer } = require('ws');
 const http = require('http');
-const roomManager = require('./room-manager');
-const { verifyJoinToken, SIGNALING_SECRET } = require('./auth');
-const { MESSAGE_TYPES, parseMessage, formatMessage } = require('./protocol');
+const roomManager = require('./room-manager.ts');
+const { verifyJoinToken, SIGNALING_SECRET } = require('./auth.ts');
+const { MESSAGE_TYPES, parseMessage, formatMessage } = require('./protocol.ts');
 
 // ----------------------------------------------------------------
 // Configuration

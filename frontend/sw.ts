@@ -21,9 +21,9 @@ const STATIC_ASSETS = [
   "./assets/img/reply.svg",
   "./assets/img/screen_share.svg",
   "./assets/img/trash.svg",
-  "./js/index.js",
-  "./js/webrtc.js",
-  "./js/locate.js",
+  "./js/index.ts",
+  "./js/webrtc.ts",
+  "./js/locate.ts",
 ];
 
 // インストール: 静的アセットを事前キャッシュ

@@ -2,12 +2,13 @@
   "name": "sycs-signaling-server",
   "version": "1.0.0",
   "description": "SYCS WebRTC Signaling Server",
-  "main": "server.js",
+  "main": "server.ts",
   "scripts": {
-    "start": "node server.js",
-    "test": "node test_auth_dos.js"
+    "start": "tsx server.ts",
+    "test": "tsx test_auth_dos.ts"
   },
   "dependencies": {
+    "tsx": "^4.23.15",
     "ws": "^8.18.0"
   }
 }

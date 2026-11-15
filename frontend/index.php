@@ -154,7 +154,7 @@ if ($isLoggedIn) {
     <head>
         <!-- CSSの読み込みなど -->
 
-        <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/theme-init.js"></script>
+        <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/theme-init.ts"></script>
     </head>
 
     <?php require_once __DIR__ . '/build_css.php'; ?>
@@ -550,12 +550,12 @@ if ($isLoggedIn) {
     </div>
 
     <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
-    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/webrtc/media-manager.js" defer></script>
-    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/webrtc/signaling-client.js" defer></script>
-    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/webrtc/peer-connection-manager.js" defer></script>
-    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/webrtc/meeting-ui.js" defer></script>
-    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/webrtc/meeting-manager.js" defer></script>
-    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/locate.js" defer></script>
+    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/webrtc/media-manager.ts" defer></script>
+    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/webrtc/signaling-client.ts" defer></script>
+    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/webrtc/peer-connection-manager.ts" defer></script>
+    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/webrtc/meeting-ui.ts" defer></script>
+    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/webrtc/meeting-manager.ts" defer></script>
+    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/locate.ts" defer></script>
 
 
     <!-- PWA Installation Logic moved to integrated locations -->
@@ -564,8 +564,8 @@ if ($isLoggedIn) {
     <div id="offline-indicator" style="display:none; position:fixed; top:0; left:0; right:0; background:#ef4444; color:white; text-align:center; padding:6px; font-size:0.8rem; font-family:'Inter',sans-serif; z-index:10001; animation: slideDown 0.3s ease-out;">
         <?= __('offline_msg') ?>
     </div>
-    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/index.js" type="module"></script>
-    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/widgets.js" defer></script>
+    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/index.ts" type="module"></script>
+    <script nonce="<?= htmlspecialchars(SecurityUtil::getCspNonce(), ENT_QUOTES, 'UTF-8') ?>" src="js/widgets.ts" defer></script>
 </body>
 
 </html>

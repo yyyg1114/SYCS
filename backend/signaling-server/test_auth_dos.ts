@@ -9,8 +9,8 @@ const crypto = require('crypto');
 
 // Set test secret
 process.env.SIGNALING_SECRET = 'test-secret-for-regression-tests-123456';
-const { verifyJoinToken, createJoinToken, toBase64url, fromBase64url } = require('./auth');
-const { normalizeOrigin } = require('./server');
+const { verifyJoinToken, createJoinToken, toBase64url, fromBase64url } = require('./auth.ts');
+const { normalizeOrigin } = require('./server.ts');
 
 console.log('--- Running WebRTC Signaling Auth & DoS Regression Tests ---');
 

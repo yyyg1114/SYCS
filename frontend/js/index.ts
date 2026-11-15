@@ -2,14 +2,14 @@
  * SYCS Main Entry Point (Modularized)
  */
 
-import { t, formatMessage, applyHighlighting, getAvatarElement, getSkeletonLoader } from './modules/utils.js';
-import { api } from './modules/api.js';
-import { showToast, updateMyStatus, loadOnlineUsers } from './modules/ui.js';
-import { renderMessageNode } from './modules/message.js';
-import { loadThreads, loadGroupThreads, loadMessages, loadGroupMessages, updateFavoriteStatus } from './modules/chat.js';
-import { refreshDmIfOpen } from './modules/dm.js';
-import { initSocket, socket } from './modules/socket.js';
-import { initNotifications, showBrowserNotification, requestNotificationPermission, updateTabBadge, resetTabBadge, trackUnread, clearUnread } from './modules/notifications.js';
+import { t, formatMessage, applyHighlighting, getAvatarElement, getSkeletonLoader } from './modules/utils.ts';
+import { api } from './modules/api.ts';
+import { showToast, updateMyStatus, loadOnlineUsers } from './modules/ui.ts';
+import { renderMessageNode } from './modules/message.ts';
+import { loadThreads, loadGroupThreads, loadMessages, loadGroupMessages, updateFavoriteStatus } from './modules/chat.ts';
+import { refreshDmIfOpen } from './modules/dm.ts';
+import { initSocket, socket } from './modules/socket.ts';
+import { initNotifications, showBrowserNotification, requestNotificationPermission, updateTabBadge, resetTabBadge, trackUnread, clearUnread } from './modules/notifications.ts';
 
 // --- Emoji Picker state ---
 let emojiPickerTarget = null;
@@ -36,69 +36,69 @@ window.selectAllMessages = selectAllMessages;
 window.deselectAllMessages = deselectAllMessages;
 window.deleteSelectedMessages = deleteSelectedMessages;
 window.cancelReply = cancelReply;
-window.toggleSidebar = (f) => import('./modules/ui.js').then(m => m.toggleSidebar(f));
-window.toggleThreadBrowser = () => import('./modules/ui.js').then(m => m.toggleThreadBrowser());
-window.toggleAdvancedSearch = () => import('./modules/ui.js').then(m => m.toggleAdvancedSearch());
-window.toggleSearch = (s) => import('./modules/ui.js').then(m => m.toggleSearch(s));
-window.updateMyStatus = (s) => import('./modules/ui.js').then(m => m.updateMyStatus(s));
-window.searchMessages = () => import('./modules/chat.js').then(m => m.searchMessages());
-window.toggleFavorite = () => import('./modules/chat.js').then(m => m.toggleFavorite(currentThreadId));
-window.showProfileModal = () => import('./modules/ui.js').then(m => {
+window.toggleSidebar = (f) => import('./modules/ui.ts').then(m => m.toggleSidebar(f));
+window.toggleThreadBrowser = () => import('./modules/ui.ts').then(m => m.toggleThreadBrowser());
+window.toggleAdvancedSearch = () => import('./modules/ui.ts').then(m => m.toggleAdvancedSearch());
+window.toggleSearch = (s) => import('./modules/ui.ts').then(m => m.toggleSearch(s));
+window.updateMyStatus = (s) => import('./modules/ui.ts').then(m => m.updateMyStatus(s));
+window.searchMessages = () => import('./modules/chat.ts').then(m => m.searchMessages());
+window.toggleFavorite = () => import('./modules/chat.ts').then(m => m.toggleFavorite(currentThreadId));
+window.showProfileModal = () => import('./modules/ui.ts').then(m => {
     m.showModal("profile-modal");
     window.loadPersistedProfileInputs();
 });
-window.showAttachmentGallery = () => import('./modules/ui.js').then(m => m.showAttachmentGallery());
-window.showPinnedMessages = () => import('./modules/ui.js').then(m => m.showPinnedMessages());
-window.toggleGPS = () => import('./modules/ui.js').then(m => m.toggleGPS());
-window.toggleMap = () => import('./modules/ui.js').then(m => m.toggleMap());
-window.changeLang = (l) => import('./modules/ui.js').then(m => m.changeLang(l));
-window.closeModal = (id) => import('./modules/ui.js').then(m => m.closeModal(id));
-window.editCurrentThread = () => import('./modules/chat.js').then(m => m.editCurrentThread());
-window.deleteCurrentThread = () => import('./modules/chat.js').then(m => m.deleteCurrentThread());
-window.openMediaUploadModal = () => import('./modules/ui.js').then(m => m.showModal("media-upload-modal"));
-window.closeMediaUploadModal = () => import('./modules/ui.js').then(m => m.closeMediaUploadModal());
-window.submitMediaUpload = () => import('./modules/ui.js').then(m => m.submitMediaUpload());
-window.switchSidebarTab = (t) => import('./modules/chat.js').then(m => m.switchSidebarTab(t));
-window.switchTab = (t) => import('./modules/ui.js').then(m => m.switchTab(t));
-window.createThread = () => import('./modules/chat.js').then(m => m.createThread());
-window.toggleOnlineUsers = () => import('./modules/ui.js').then(m => m.toggleOnlineUsers());
-window.setTheme = (t) => import('./modules/ui.js').then(m => m.setTheme(t));
-window.toggleMute = () => import('./modules/ui.js').then(m => m.toggleMute());
-window.showAddFriendModal = () => import('./modules/friends.js').then(m => m.showAddFriendModal());
-window.loadFriends = () => import('./modules/friends.js').then(m => m.loadFriends());
-window.searchUsers = () => import('./modules/friends.js').then(m => m.searchUsers());
-window.sendFriendRequest = (id) => import('./modules/friends.js').then(m => m.sendFriendRequest(id));
-window.showPendingRequestsModal = () => import('./modules/friends.js').then(m => m.showPendingRequestsModal());
-window.handleFriendRequest = (id, a) => import('./modules/friends.js').then(m => m.handleFriendRequest(id, a));
-window.showBlockedModal = () => import('./modules/friends.js').then(m => m.showBlockedModal());
-window.unblockUser = (id) => import('./modules/friends.js').then(m => m.unblockUser(id));
-window.switchToDm = (id, n) => import('./modules/dm.js').then(m => m.switchToDm(id, n));
-window.backToHub = () => import('./modules/dm.js').then(m => m.backToHub());
-window.sendDm = () => import('./modules/dm.js').then(m => m.sendDm());
-window.blockCurrentPartner = () => import('./modules/dm.js').then(m => m.blockCurrentPartner());
-window.handleDmInputKey = (e) => import('./modules/dm.js').then(m => m.handleDmInputKey(e));
-window.handleTyping = () => import('./modules/dm.js').then(m => m.handleTyping());
-window.previewAvatar = (i) => import('./modules/profile.js').then(m => m.previewAvatar(i));
-window.removeAvatarPreview = () => import('./modules/profile.js').then(m => m.removeAvatarPreview());
-window.updatePreviewBanner = (c) => import('./modules/profile.js').then(m => m.updatePreviewBanner(c));
-window.previewBannerImage = (i) => import('./modules/profile.js').then(m => m.previewBannerImage(i));
-window.removeBannerPreview = () => import('./modules/profile.js').then(m => m.removeBannerPreview());
-window.updatePreviewLayout = (l) => import('./modules/profile.js').then(m => m.updatePreviewLayout(l));
-window.updateAccentColor = (c) => import('./modules/profile.js').then(m => m.updateAccentColor(c));
-window.updatePreviewBio = (b) => import('./modules/profile.js').then(m => m.updatePreviewBio(b));
-window.updatePreviewStatus = (s) => import('./modules/profile.js').then(m => m.updatePreviewStatus(s));
-window.loadPersistedProfileInputs = () => import('./modules/profile.js').then(m => m.loadPersistedProfileInputs());
-window.persistProfileInput = (id, v) => import('./modules/profile.js').then(m => m.persistProfileInput(id, v));
-window.saveProfile = () => import('./modules/profile.js').then(m => m.saveProfile());
-window.saveThreadSettings = () => import('./modules/chat.js').then(m => m.saveThreadSettings());
-window.showGroupCreationDialog = () => import('./modules/chat.js').then(m => m.showGroupCreationDialog());
-window.submitGroupCreation = () => import('./modules/chat.js').then(m => m.submitGroupCreation());
-window.installPWA = () => import('./modules/ui.js').then(m => m.installPWA());
-window.dismissInstallBanner = () => import('./modules/ui.js').then(m => m.dismissInstallBanner());
-window.startMeeting = () => import('./modules/ui.js').then(m => m.startMeeting());
-window.showUserProfile = (id) => import('./modules/ui.js').then(m => m.showUserProfile(id));
-window.handleMediaUploadFiles = (f) => import('./modules/ui.js').then(m => m.handleMediaUploadFiles(f));
-window.cancelDmUpload = () => import('./modules/ui.js').then(m => m.cancelDmUpload());
+window.showAttachmentGallery = () => import('./modules/ui.ts').then(m => m.showAttachmentGallery());
+window.showPinnedMessages = () => import('./modules/ui.ts').then(m => m.showPinnedMessages());
+window.toggleGPS = () => import('./modules/ui.ts').then(m => m.toggleGPS());
+window.toggleMap = () => import('./modules/ui.ts').then(m => m.toggleMap());
+window.changeLang = (l) => import('./modules/ui.ts').then(m => m.changeLang(l));
+window.closeModal = (id) => import('./modules/ui.ts').then(m => m.closeModal(id));
+window.editCurrentThread = () => import('./modules/chat.ts').then(m => m.editCurrentThread());
+window.deleteCurrentThread = () => import('./modules/chat.ts').then(m => m.deleteCurrentThread());
+window.openMediaUploadModal = () => import('./modules/ui.ts').then(m => m.showModal("media-upload-modal"));
+window.closeMediaUploadModal = () => import('./modules/ui.ts').then(m => m.closeMediaUploadModal());
+window.submitMediaUpload = () => import('./modules/ui.ts').then(m => m.submitMediaUpload());
+window.switchSidebarTab = (t) => import('./modules/chat.ts').then(m => m.switchSidebarTab(t));
+window.switchTab = (t) => import('./modules/ui.ts').then(m => m.switchTab(t));
+window.createThread = () => import('./modules/chat.ts').then(m => m.createThread());
+window.toggleOnlineUsers = () => import('./modules/ui.ts').then(m => m.toggleOnlineUsers());
+window.setTheme = (t) => import('./modules/ui.ts').then(m => m.setTheme(t));
+window.toggleMute = () => import('./modules/ui.ts').then(m => m.toggleMute());
+window.showAddFriendModal = () => import('./modules/friends.ts').then(m => m.showAddFriendModal());
+window.loadFriends = () => import('./modules/friends.ts').then(m => m.loadFriends());
+window.searchUsers = () => import('./modules/friends.ts').then(m => m.searchUsers());
+window.sendFriendRequest = (id) => import('./modules/friends.ts').then(m => m.sendFriendRequest(id));
+window.showPendingRequestsModal = () => import('./modules/friends.ts').then(m => m.showPendingRequestsModal());
+window.handleFriendRequest = (id, a) => import('./modules/friends.ts').then(m => m.handleFriendRequest(id, a));
+window.showBlockedModal = () => import('./modules/friends.ts').then(m => m.showBlockedModal());
+window.unblockUser = (id) => import('./modules/friends.ts').then(m => m.unblockUser(id));
+window.switchToDm = (id, n) => import('./modules/dm.ts').then(m => m.switchToDm(id, n));
+window.backToHub = () => import('./modules/dm.ts').then(m => m.backToHub());
+window.sendDm = () => import('./modules/dm.ts').then(m => m.sendDm());
+window.blockCurrentPartner = () => import('./modules/dm.ts').then(m => m.blockCurrentPartner());
+window.handleDmInputKey = (e) => import('./modules/dm.ts').then(m => m.handleDmInputKey(e));
+window.handleTyping = () => import('./modules/dm.ts').then(m => m.handleTyping());
+window.previewAvatar = (i) => import('./modules/profile.ts').then(m => m.previewAvatar(i));
+window.removeAvatarPreview = () => import('./modules/profile.ts').then(m => m.removeAvatarPreview());
+window.updatePreviewBanner = (c) => import('./modules/profile.ts').then(m => m.updatePreviewBanner(c));
+window.previewBannerImage = (i) => import('./modules/profile.ts').then(m => m.previewBannerImage(i));
+window.removeBannerPreview = () => import('./modules/profile.ts').then(m => m.removeBannerPreview());
+window.updatePreviewLayout = (l) => import('./modules/profile.ts').then(m => m.updatePreviewLayout(l));
+window.updateAccentColor = (c) => import('./modules/profile.ts').then(m => m.updateAccentColor(c));
+window.updatePreviewBio = (b) => import('./modules/profile.ts').then(m => m.updatePreviewBio(b));
+window.updatePreviewStatus = (s) => import('./modules/profile.ts').then(m => m.updatePreviewStatus(s));
+window.loadPersistedProfileInputs = () => import('./modules/profile.ts').then(m => m.loadPersistedProfileInputs());
+window.persistProfileInput = (id, v) => import('./modules/profile.ts').then(m => m.persistProfileInput(id, v));
+window.saveProfile = () => import('./modules/profile.ts').then(m => m.saveProfile());
+window.saveThreadSettings = () => import('./modules/chat.ts').then(m => m.saveThreadSettings());
+window.showGroupCreationDialog = () => import('./modules/chat.ts').then(m => m.showGroupCreationDialog());
+window.submitGroupCreation = () => import('./modules/chat.ts').then(m => m.submitGroupCreation());
+window.installPWA = () => import('./modules/ui.ts').then(m => m.installPWA());
+window.dismissInstallBanner = () => import('./modules/ui.ts').then(m => m.dismissInstallBanner());
+window.startMeeting = () => import('./modules/ui.ts').then(m => m.startMeeting());
+window.showUserProfile = (id) => import('./modules/ui.ts').then(m => m.showUserProfile(id));
+window.handleMediaUploadFiles = (f) => import('./modules/ui.ts').then(m => m.handleMediaUploadFiles(f));
+window.cancelDmUpload = () => import('./modules/ui.ts').then(m => m.cancelDmUpload());
 window.handleInputKey = handleInputKey;
 window.cancelUpload = cancelUpload;
 window.closeEmojiPicker = closeEmojiPicker;
@@ -118,14 +118,14 @@ async function initApp() {
         themeToApply = currentUserTheme.theme;
     }
     if (themeToApply) {
-        import('./modules/ui.js').then(m => m.setTheme(themeToApply, false));
+        import('./modules/ui.ts').then(m => m.setTheme(themeToApply, false));
     }
 
     const threadList = document.getElementById("thread-list");
     if (threadList) {
         loadThreads(th => switchThread(th.id, th.name, th.creator_id));
         if (window.SYCS_CONFIG.isGroupChat) {
-            import('./modules/chat.js').then(m => m.switchSidebarTab('groups'));
+            import('./modules/chat.ts').then(m => m.switchSidebarTab('groups'));
         }
         const initialName = document.getElementById("current-thread-name")?.innerText.replace(/^[#👥]\s*/, "") || "general";
         switchThread(currentThreadId, initialName, currentThreadCreatorId, isGroupChat);
@@ -285,7 +285,7 @@ function setupEventListeners() {
         item.addEventListener("click", () => {
             const tab = item.dataset.tab;
             if (tab) {
-                import('./modules/ui.js').then(m => m.switchTab(tab));
+                import('./modules/ui.ts').then(m => m.switchTab(tab));
             }
         });
     });
@@ -295,7 +295,7 @@ function setupEventListeners() {
         tab.addEventListener("click", () => {
             const widget = tab.dataset.widget;
             if (widget) {
-                import('./modules/ui.js').then(m => m.switchWidget(widget));
+                import('./modules/ui.ts').then(m => m.switchWidget(widget));
             }
         });
     });
@@ -537,7 +537,7 @@ function getMessageCallbacks() {
         },
 
         onShowProfile: async (userId, username) => {
-            import('./modules/ui.js').then(m => m.showModal("profile-modal"));
+            import('./modules/ui.ts').then(m => m.showModal("profile-modal"));
             const res = await api(`get_user_profile&user_id=${userId}`);
             if (res && !res.error) {
                 const modal = document.getElementById("profile-modal");
@@ -803,7 +803,7 @@ document.addEventListener("keydown", (e) => {
     // Alt+Shift+?: キーボードショートカット一覧
     if (e.altKey && e.shiftKey && e.key === "?") {
         e.preventDefault();
-        import('./modules/ui.js').then(m => m.showModal("keyboard-shortcuts-modal"));
+        import('./modules/ui.ts').then(m => m.showModal("keyboard-shortcuts-modal"));
     }
     // Esc: アクティブなモーダルを閉じる
     if (e.key === "Escape") {
